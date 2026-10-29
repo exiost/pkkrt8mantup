@@ -1,0 +1,6 @@
+*.xls
+*.xlsx
+*.xlsm
+node_modules/
+dist/
+.env*
