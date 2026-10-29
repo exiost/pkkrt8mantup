@@ -2,6 +2,11 @@
 
 Turunan dari [PRD.md](./PRD.md). Estimasi untuk 1 developer full-time; total **±10 minggu** sampai rilis v1.0.
 
+## Status
+
+**v1.0 sudah dibangun** (lihat [KEPUTUSAN.md](./KEPUTUSAN.md)): semua 19 tab laporan + cetak/PDF, CRUD lengkap, impor/ekspor Excel, dashboard, tag, animasi, PWA. Data disimpan di browser.
+Yang dipindah ke **v1.1**: login + peran + sinkron antar-perangkat (Supabase/RLS), input offline-antrean, uji Playwright di CI.
+
 ## Ringkasan Fase
 
 | Fase | Minggu | Hasil utama | Sheet Excel yang tergantikan |
