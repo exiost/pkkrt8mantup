@@ -116,6 +116,54 @@ Selain itu ada halaman tambahan: **Dashboard**, **Keluarga (KK)**, **Pengaturan*
 
 ## 6. Kebutuhan Fungsional
 
+### F0. CRUD Menyeluruh (Tambah · Lihat · Ubah · Hapus)
+
+Semua data yang di Excel bisa diketik, di aplikasi bisa **dibuat, dilihat, diubah, dan dihapus** lewat layar, tanpa menyentuh rumus.
+
+#### F0.1 Matriks CRUD per data
+
+| Data | Create | Read | Update | Delete | Catatan |
+|---|---|---|---|---|---|
+| Warga | ✅ wizard 9 bagian / form cepat | ✅ tabel, kartu, detail | ✅ per bagian / inline | ✅ soft delete → Tempat Sampah | Bisa duplikat warga sebagai template |
+| Keluarga (KK) | ✅ (sekaligus tambah Kepala Keluarga) | ✅ | ✅ data rumah & sanitasi | ✅ hanya jika tanpa anggota, atau pilih "hapus beserta anggota" | Pindah anggota, pecah/gabung KK |
+| Anggota keluarga | ✅ dari halaman KK | ✅ | ✅ status dalam keluarga, urutan | ✅ keluarkan dari KK | Urutan bisa digeser (drag) |
+| Dasawisma | ✅ | ✅ | ✅ nama, ketua, warna | ✅ hanya jika kosong / pindahkan warga dulu | Tidak lagi terbatas Drupadi I & II |
+| Kegiatan warga (PPP, kerja bakti, dll.) | ✅ | ✅ | ✅ Y/T + jenis | ✅ | Bisa ubah massal per dasawisma |
+| Status ibu (hamil/melahirkan/menyusui/nifas) | ✅ | ✅ riwayat | ✅ tanggal, HPL, hamil ke- | ✅ | Riwayat tidak tertimpa |
+| Kelahiran bayi | ✅ | ✅ register | ✅ | ✅ | Opsi otomatis buat data warga bayi |
+| Kematian ibu/bayi/balita | ✅ | ✅ | ✅ | ✅ | Warga terkait otomatis berstatus "Meninggal" |
+| Peserta KB baru | ✅ | ✅ | ✅ | ✅ | |
+| Item pekarangan (HATINYA PKK) | ✅ | ✅ | ✅ inline di tabel | ✅ | Menggantikan teks `"Cabe, 2 pot;"` |
+| Item IRT | ✅ | ✅ | ✅ inline | ✅ | |
+| Isian manual Kampung KB (PIK-R, BKR, BKL, UPPKA, PUS bukan KB) | ✅ per bulan | ✅ | ✅ | ✅ | Langsung diketik di halaman laporan |
+| Arsip laporan bulanan | ✅ "Simpan arsip" | ✅ | ✏️ judul/catatan saja | ✅ | Isi angka dikunci (snapshot) |
+| Tag kustom | ✅ | ✅ | ✅ nama, warna, ikon | ✅ (dilepas dari semua warga) | Tag otomatis tidak bisa dihapus |
+| Daftar pilihan (agama, pendidikan, pekerjaan, alkon, jabatan, satuan, …) | ✅ | ✅ | ✅ ganti nama → ikut berubah di semua data | ✅ hanya jika tidak dipakai, atau gabungkan ke nilai lain | |
+| Pengaturan wilayah & penanda tangan | — | ✅ | ✅ | — | Satu set per RT |
+| Pengguna | ✅ undang via email | ✅ | ✅ peran, dasawisma, aktif/nonaktif | ✅ nonaktifkan | Hanya Admin |
+
+#### F0.2 Perilaku standar semua CRUD
+- **Create**: tombol ➕ (FAB di HP, tombol "Tambah" berwarna di desktop) → dialog/halaman form; setelah simpan muncul toast ✅ dan opsi "Tambah lagi".
+- **Read**: daftar dengan cari, filter, urut, pagination; klik baris → detail di drawer (desktop) / halaman (HP).
+- **Update**: tombol ✏️ di detail, atau **edit inline** langsung di sel tabel (klik dua kali di desktop) untuk field sederhana; perubahan yang belum disimpan ditandai dan diperingatkan jika halaman ditutup.
+- **Delete**: dialog konfirmasi merah dengan nama data, lalu **toast "Urungkan" (Undo) 5 detik**. Data masuk Tempat Sampah 30 hari dan bisa dipulihkan (Admin bisa hapus permanen).
+- **Aksi massal**: pilih banyak baris → ubah field yang sama, beri tag, pindah dasawisma, hapus, ekspor.
+- **Validasi** sama di klien (Zod) dan server (constraint DB); pesan kesalahan tampil di bawah field dalam Bahasa Indonesia.
+- **Kunci bentrok**: jika dua orang mengubah data yang sama, yang kedua mendapat peringatan "Data sudah diubah oleh X" dan bisa melihat perbedaannya.
+- **Audit**: setiap Create/Update/Delete tercatat (F10).
+- **Dari halaman laporan & formulir**: setiap nama warga/KK bisa diklik → popup ubah cepat, lalu laporan langsung diperbarui. Jadi seperti Excel, data bisa dibetulkan saat sedang melihat laporan.
+
+#### F0.3 Hak CRUD per peran
+
+| Data | Admin | Ketua Dasawisma | Kader | Pembaca |
+|---|---|---|---|---|
+| Warga, Keluarga, Kegiatan, Pekarangan, IRT | CRUD | CRUD (dasawismanya) | R + U kesehatan/KB | R |
+| Ibu & Anak, Kelahiran, Kematian, KB | CRUD | CRUD (dasawismanya) | CRUD | R |
+| Isian Kampung KB, Arsip laporan | CRUD | R | CRU | R |
+| Dasawisma, Tag, Daftar pilihan, Pengaturan | CRUD | R (tag: CRU) | R | R |
+| Pengguna | CRUD | — | — | — |
+| Hapus permanen / pulihkan Tempat Sampah | ✅ | pulihkan saja | — | — |
+
 ### F1. Autentikasi & Hak Akses
 - F1.1 Login email + password (atau magic link); sesi tetap login di HP.
 - F1.2 Peran: Admin, Ketua Dasawisma, Kader, Pembaca (§3). Ketua Dasawisma otomatis terfilter ke dasawismanya.
@@ -325,8 +373,9 @@ Kolom rumus Excel (umur, WUS, PUS, ID keluarga) → **fungsi turunan** di kode (
 2. Untuk tanggal acuan yang sama, angka WUS, PUS, Penduduk 15–59 dan rekap Dawis **sama** dengan Excel (setelah koreksi bug rentang baris — selisih karena bug harus dijelaskan di laporan impor).
 3. Ke-19 laporan bisa dibuka, difilter, dicetak, dan disimpan PDF dari Chrome desktop & Chrome Android tanpa tabel terpotong.
 4. Ketua Dasawisma Drupadi I tidak bisa melihat/mengubah warga Drupadi II.
-5. Semua halaman bisa dipakai di layar 360 px tanpa scroll horizontal (kecuali tabel lebar dengan scroll di dalam kartu).
-6. Lighthouse: Performance ≥ 85, Accessibility ≥ 90, PWA installable.
+5. Setiap data di matriks F0.1 bisa ditambah, dilihat, diubah, dan dihapus (lalu dipulihkan) dari HP maupun desktop, dan perubahannya langsung terlihat di semua laporan terkait.
+6. Semua halaman bisa dipakai di layar 360 px tanpa scroll horizontal (kecuali tabel lebar dengan scroll di dalam kartu).
+7. Lighthouse: Performance ≥ 85, Accessibility ≥ 90, PWA installable.
 
 ## 12. Risiko & Mitigasi
 

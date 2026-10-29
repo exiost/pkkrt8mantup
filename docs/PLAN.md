@@ -51,6 +51,9 @@ Turunan dari [PRD.md](./PRD.md). Estimasi untuk 1 developer full-time; total **�
 - [ ] Command palette `Ctrl+K`.
 - [ ] Halaman **Pengaturan**: identitas wilayah (kop), dasawisma, penanda tangan, tanggal acuan bawaan, batas umur, daftar pilihan, tag.
 - [ ] Toast, dialog konfirmasi, skeleton loading — dipakai global.
+- [ ] **Kit CRUD generik** (dipakai semua modul, PRD F0.2): `useCrud(table)` (TanStack Query: list/get/create/update/softDelete/restore + optimistic update), `CrudTable` (cari/filter/sort/pagination/pilih banyak/edit inline), `CrudDialog` & `CrudDrawer`, `DeleteConfirm` + toast **Urungkan**, peringatan perubahan belum disimpan, deteksi bentrok via kolom `updated_at`.
+- [ ] Kolom standar di semua tabel: `created_at/by`, `updated_at/by`, `deleted_at` + trigger audit log; kebijakan RLS per peran sesuai matriks PRD F0.3.
+- [ ] Halaman **Tempat Sampah** (pulihkan / hapus permanen) & CRUD **Pengguna**, **Dasawisma**, **Daftar Pilihan** (ganti nama & gabung nilai).
 
 ## Fase 2 — Data Master (Minggu 3–4)
 
@@ -61,9 +64,12 @@ Turunan dari [PRD.md](./PRD.md). Estimasi untuk 1 developer full-time; total **�
 - [ ] Sub-form tabel item: Pekarangan (kategori, komoditi, jumlah, satuan) & IRT.
 - [ ] Detail warga (drawer di desktop, halaman di HP): header berwarna, tag otomatis + kustom, timeline audit.
 - [ ] Status warga (Aktif/Pindah/Meninggal) & Tempat Sampah.
+- [ ] CRUD lengkap: tambah (wizard & form cepat), ubah per bagian / inline, hapus + urungkan, duplikat sebagai template, aksi massal.
 
 **Keluarga**
 - [ ] Daftar KK (kartu), detail KK, form data rumah & sanitasi per KK, pindah anggota / pecah KK.
+- [ ] CRUD KK & anggota: tambah KK + kepala keluarga sekaligus, tambah/keluarkan anggota, ubah urutan (drag), gabung KK, hapus KK (dengan pilihan nasib anggotanya).
+- [ ] CRUD Kegiatan warga (Y/T + jenis) termasuk ubah massal per dasawisma.
 
 **Tag**
 - [ ] CRUD tag kustom (warna + ikon), tag otomatis dari aturan (dihitung, tidak disimpan).
@@ -83,6 +89,7 @@ Turunan dari [PRD.md](./PRD.md). Estimasi untuk 1 developer full-time; total **�
 - [ ] `lib/rules/*` — implementasi aturan R1–R12 sebagai fungsi murni + **unit test** dengan kasus batas (tepat 15 th, tepat 49 th, lahir setelah tanggal acuan, istri cerai, Tidak Ikut PKK).
 - [ ] `ReportShell` komponen: bar parameter (tanggal acuan / bulan-tahun / dasawisma / toggle), tombol Cetak · Excel · CSV, area konten.
 - [ ] **Drill-down**: angka di tabel rekap bisa diklik → dialog berisi daftar nama.
+- [ ] **Ubah cepat dari laporan**: klik nama warga/KK di laporan atau formulir → popup edit → laporan dihitung ulang otomatis.
 - [ ] `PrintPreview` dialog layar penuh: ukuran kertas (A4/F4/Legal), orientasi, skala, kolom NIK on/off, cetak berwarna on/off, tempat & tanggal TTD.
 - [ ] `styles/print.css`: `@page { size; margin }`, `thead { display: table-header-group }`, `tr { break-inside: avoid }`, `.page-break`, sembunyikan navigasi, garis tabel 0.5pt hitam, nomor halaman.
 - [ ] `KopLaporan` & `SignatureBlock` dari Pengaturan.
@@ -104,7 +111,8 @@ Turunan dari [PRD.md](./PRD.md). Estimasi untuk 1 developer full-time; total **�
 
 ## Fase 6 — Formulir & Kesehatan Ibu-Anak (Minggu 8)
 
-- [ ] Modul **Kesehatan Ibu & Anak**: status ibu bertanggal (hamil/melahirkan/menyusui/nifas), kelahiran (+ "tambahkan bayi sebagai warga"), kematian, peserta KB baru, pengingat HPL.
+- [ ] Modul **Kesehatan Ibu & Anak**: CRUD status ibu bertanggal (hamil/melahirkan/menyusui/nifas), CRUD kelahiran (+ "tambahkan bayi sebagai warga"), CRUD kematian, CRUD peserta KB baru, pengingat HPL.
+- [ ] CRUD item **pekarangan & IRT** (edit inline di tabel HT_IRT), CRUD isian manual **Kampung KB** per bulan, CRUD **arsip laporan** (angka terkunci).
 - [ ] **Catatan Ibu Hamil, Kelahiran & Kematian per Dasawisma** — filter dasawisma / bulan / status (menggantikan dawis 1, dawis 2, CUSTOM).
 - [ ] **Register Kelahiran** (menggantikan `bayi lahir`).
 - [ ] Formulir **Data Warga TP PKK** (per orang) — kotak centang ☑/☐ seperti formulir kertas.
@@ -143,7 +151,8 @@ Turunan dari [PRD.md](./PRD.md). Estimasi untuk 1 developer full-time; total **�
 2. Ada tampilan cetak (untuk laporan) yang lolos uji PDF.
 3. Aturan hitung tercakup unit test.
 4. Hak akses diuji untuk 4 peran.
-5. Tidak ada error konsol; lint & typecheck bersih.
+5. Create, Read, Update, Delete + Pulihkan berfungsi dan diuji (Playwright) untuk data fitur tersebut, termasuk validasi & pesan error.
+6. Tidak ada error konsol; lint & typecheck bersih.
 
 ## Temuan dari File Excel yang Perlu Diputuskan Pengguna
 
