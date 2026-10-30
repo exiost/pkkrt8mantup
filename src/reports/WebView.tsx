@@ -67,6 +67,7 @@ function analyse(tplId: string, page: PageSpec) {
     let hs = span.length
     const isNumRow = (r: Tpl['rows'][number]) => { const bc = r.c.filter((c) => bordered(c.s) && c.v !== undefined); return bc.length >= 2 && bc.every((c) => /^\(?\d+\)?$/.test(String(c.v).trim())) }
     while (hs > 0 && (rowBordered(span[hs - 1]) || (hs < span.length && isNumRow(span[hs]) && span[hs - 1].c.filter((c) => bordered(c.s)).length >= 2))) hs--
+    if (hs === span.length && hs > 0 && span[hs - 1].c.filter((c) => staticText(span[hs - 1], c)).length >= 3) hs--
     const headerRows = span.slice(hs)
     const topRows = span.slice(0, hs)
     const heading: string[] = []
@@ -81,6 +82,7 @@ function analyse(tplId: string, page: PageSpec) {
     headerRows.forEach((r) => r.c.forEach((c) => {
       const t = staticText(r, c)
       if (!t || isNum(t)) return
+      if (t.length > 28 && (c.cs ?? 1) < 3) { if (i === 0 && !infoRows.includes(t)) infoRows.push(t); return }
       for (let k = c.c; k < c.c + (c.cs ?? 1); k++) { const a = labels.get(k) ?? []; if (!a.includes(t)) a.push(t); labels.set(k, a) }
     }))
     const next = regs[i + 1]
@@ -123,10 +125,10 @@ function isHeaderish(tpl: Tpl, r: number) {
 /* ---------- tabel generik ---------- */
 function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]; tplId: string }) {
   const tpl = TEMPLATES[tplId]
-  const data = rows.filter((r) => Object.entries(r).some(([k, v]) => k !== 'A' && v !== '' && v !== null && v !== undefined))
+  const data = rows.filter((r) => Object.entries(r).some(([k, v]) => k !== 'A' && v !== '' && v !== null && v !== undefined && !(typeof v === 'object' && (v.v === '' || v.v === null || v.v === undefined))))
   const hasNo = rows.some((r) => typeof r.A === 'number')
   const letters = tpl.cols.map((_, i) => colLetter(i))
-  const cols = letters.filter((L, i) => b.labels.has(i) && (data.length === 0 || data.some((r) => r[L] !== undefined && r[L] !== '') || b.footer.some((f) => f[L] !== undefined)) || (L === 'A' && hasNo))
+  const cols = letters.filter((L, i) => b.labels.has(i) || (L === 'A' && hasNo))
   if (!cols.length) return null
   const label = (L: string) => { const a = b.labels.get(letters.indexOf(L)) ?? (L === 'A' ? ['NO'] : []); return a }
   return (
@@ -139,7 +141,7 @@ function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]
               {cols.map((L, i) => {
                 const a = label(L)
                 return (
-                  <th key={L} className={`sticky top-0 z-10 whitespace-nowrap border-b border-violet-100 bg-gradient-to-b from-violet-50 to-violet-100/70 px-3 py-2 text-left align-bottom text-[11px] font-bold uppercase tracking-wide text-violet-800 dark:border-white/10 dark:from-violet-500/20 dark:to-violet-500/10 dark:text-violet-200 ${i === 0 ? 'rounded-tl-2xl' : ''} ${i === cols.length - 1 ? 'rounded-tr-2xl' : ''}`}>
+                  <th key={L} className={`${L === 'A' ? 'w-px ' : ''}sticky top-0 z-10 whitespace-nowrap border-b border-violet-100 bg-gradient-to-b from-violet-50 to-violet-100/70 px-3 py-2 text-left align-bottom text-[11px] font-bold uppercase tracking-wide text-violet-800 dark:border-white/10 dark:from-violet-500/20 dark:to-violet-500/10 dark:text-violet-200 ${i === 0 ? 'rounded-tl-2xl' : ''} ${i === cols.length - 1 ? 'rounded-tr-2xl' : ''}`}>
                     {a.length > 1 && <div className="text-[9px] font-semibold normal-case tracking-normal text-violet-400">{a.slice(0, -1).join(' › ')}</div>}
                     {a[a.length - 1] ?? ''}
                   </th>
@@ -152,7 +154,7 @@ function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]
             {data.map((r, ri) => (
               <motion.tr key={ri} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(ri, 20) * 0.01 }} className="group even:bg-slate-50/60 hover:bg-violet-50/70 dark:even:bg-white/[0.03] dark:hover:bg-white/5">
                 {cols.map((L) => (
-                  <td key={L} className={`whitespace-nowrap border-b border-slate-100 px-3 py-2 dark:border-white/5 ${isRight(r[L]) ? 'text-right tabular-nums' : ''} ${L === 'A' ? 'w-10 text-slate-400' : ''}`}>
+                  <td key={L} className={`whitespace-nowrap border-b border-slate-100 px-3 py-2 dark:border-white/5 ${isRight(r[L]) ? 'text-right tabular-nums' : ''} ${L === 'A' ? 'w-px text-slate-400' : ''}`}>
                     {L === 'A' && typeof r.A === 'number' ? ri + 1 : <Cell v={r[L]} />}
                   </td>
                 ))}
@@ -163,7 +165,7 @@ function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]
             <tfoot>
               {b.footer.map((f, fi) => (
                 <tr key={fi} className="bg-violet-50/80 font-bold dark:bg-violet-500/10">
-                  {cols.map((L) => <td key={L} className={`whitespace-nowrap px-3 py-2 ${isRight(f[L]) ? 'text-right tabular-nums' : ''}`}>{f[L] !== undefined ? <Cell v={f[L]} /> : ''}</td>)}
+                  {cols.map((L) => <td key={L} className={`whitespace-nowrap px-3 py-2 ${L === 'A' ? 'w-px ' : ''}${isRight(f[L]) ? 'text-right tabular-nums' : ''}`}>{f[L] !== undefined ? <Cell v={f[L]} /> : ''}</td>)}
                 </tr>
               ))}
             </tfoot>
