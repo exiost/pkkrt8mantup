@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CalendarRange, ChevronLeft, ChevronRight, Info, Save, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useStore } from '@/lib/store'
+import { useLive, useStore } from '@/lib/store'
 import { BULAN } from '@/lib/options'
 import { Button, Modal } from '@/components/ui'
 import { ymOf } from '@/lib/rules'
@@ -41,6 +41,25 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
       return [...rest, next].sort((a, b) => a.bulan.localeCompare(b.bulan))
     })
   }
+  const lahir = useLive('kelahiran').filter((k) => k.namaIbu.trim().toLowerCase() === w.nama.trim().toLowerCase() && k.tglLahir)
+  /** Isi otomatis dari data Kelahiran: hamil 9 bulan sebelumnya, melahirkan, nifas, lalu menyusui (bulan yang sudah terisi tidak ditimpa) */
+  const isiDariKelahiran = () => {
+    const nowYm = ymOf(now.getFullYear(), now.getMonth())
+    setRows((cur) => {
+      const map = new Map(cur.map((r) => [r.bulan, r]))
+      const add = (d: Date, e: Omit<RiwayatIbu, 'bulan'>) => { const ym = ymOf(d.getFullYear(), d.getMonth()); if (!map.has(ym)) map.set(ym, { bulan: ym, ...e }) }
+      for (const k of lahir) {
+        const t = new Date(k.tglLahir + 'T00:00:00')
+        const g = (n: number) => new Date(t.getFullYear(), t.getMonth() + n, 1)
+        for (let n = -9; n < 0; n++) add(g(n), { status: 'Hamil' })
+        add(g(0), { status: 'Melahirkan', tetapHamil: true })
+        add(g(1), { status: 'Nifas', juga: ['Menyusui'] })
+        for (let n = 2; n <= 23; n++) if (ymOf(g(n).getFullYear(), g(n).getMonth()) <= nowYm) add(g(n), { status: 'Menyusui' })
+      }
+      return [...map.values()].sort((a, b) => a.bulan.localeCompare(b.bulan))
+    })
+    toast.success('Terisi dari data kelahiran — periksa lalu Simpan')
+  }
   const isiRentang = () => {
     for (let b = Math.min(dari, sampai); b <= Math.max(dari, sampai); b++) put(b, { status: isi })
   }
@@ -62,6 +81,13 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
         <p>Setiap bulan punya catatannya sendiri. Laporan memakai catatan bulan yang dipilih. Bulan tanpa catatan tidak dilaporkan. Untuk persalinan <b>SC</b>, pilih <b>Melahirkan</b> → cara <b>SC</b>; kotak <b>“tetap dilaporkan Hamil”</b> akan tercentang agar laporan tahunan tetap menulis Hamil.</p>
       </div>
 
+      {lahir.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-sky-50 p-2.5 text-xs text-sky-900 dark:bg-sky-500/10 dark:text-sky-100">
+          <Wand2 size={14} className="shrink-0" />
+          <span className="min-w-0 flex-1">Ada {lahir.length} data kelahiran atas nama ibu ini ({lahir.map((k) => k.namaBayi).join(', ')}).</span>
+          <Button size="sm" variant="outline" onClick={isiDariKelahiran}>Isi otomatis dari data kelahiran</Button>
+        </div>
+      )}
       <div className="mb-3 flex items-center justify-center gap-2">
         <Button size="sm" variant="outline" icon={ChevronLeft} aria-label="Tahun sebelumnya" onClick={() => setTahun(tahun - 1)}>{''}</Button>
         <div className="font-display text-lg font-extrabold tabular-nums">{tahun}</div>

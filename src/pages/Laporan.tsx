@@ -79,7 +79,7 @@ function ReportView({ slug }: { slug: string }) {
   const zoomRef = useRef<HTMLDivElement>(null)
 
   // laporan rentang bulan: awalnya Januari–Desember (setahun penuh)
-  useEffect(() => { if (def.uses.includes('rentang')) setP({ bulan: 0, bulanSampai: 11 }) }, [def]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (def.uses.includes('rentang')) setP({ bulan: 0, bulanSampai: def.uses.includes('acuan') ? new Date().getMonth() : 11, tahun: new Date().getFullYear() }) }, [def]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // dasawisma wajib untuk rekap per dasawisma
   useEffect(() => {
@@ -92,7 +92,7 @@ function ReportView({ slug }: { slug: string }) {
   const kunci = settings.kunci
   const pe: ReportParams = useMemo(() => (viewer && kunci?.aktif ? { ...p, acuan: kunci.acuan, bulan: kunci.bulan, bulanSampai: kunci.bulanSampai ?? 11, tahun: kunci.tahun } : p), [viewer, kunci, p])
   const periode = ymOf(pe.tahun, pe.bulan)
-  const ym = def.uses.includes('bulan') ? periode : def.uses.includes('acuan') ? pe.acuan.slice(0, 7) : periode
+  const ym = def.uses.includes('rentang') ? `${periode}~${ymOf(pe.tahun, Math.max(pe.bulan, pe.bulanSampai ?? 11))}` : def.uses.includes('bulan') ? periode : def.uses.includes('acuan') ? pe.acuan.slice(0, 7) : periode
   const ctx: Ctx = useMemo(
     () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, pe, o, ym),
     [pe, o, ym, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
