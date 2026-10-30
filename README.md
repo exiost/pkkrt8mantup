@@ -2,7 +2,7 @@
 
 Aplikasi web (desktop + HP) pengganti file Excel `Data_Warga_mantup_RT_8_VB.xlsm`: data warga, keluarga, ibu & anak, pekarangan/IRT, dan **19 tab laporan** yang bisa dicetak atau disimpan sebagai PDF.
 
-Dokumen perencanaan: [docs/PRD.md](docs/PRD.md) · [docs/PLAN.md](docs/PLAN.md) · [docs/KEPUTUSAN.md](docs/KEPUTUSAN.md)
+Panduan cPanel: [docs/CPANEL.md](docs/CPANEL.md) · Dokumen perencanaan: [docs/PRD.md](docs/PRD.md) · [docs/PLAN.md](docs/PLAN.md) · [docs/KEPUTUSAN.md](docs/KEPUTUSAN.md)
 
 ## Fitur
 
