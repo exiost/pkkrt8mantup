@@ -1,5 +1,7 @@
 # PRD — SIWARGA PKK RT 08 Mantup
 
+> **Pembaruan v1.1:** laporan kini direplikasi persis dari desain Excel, keluarga mengikuti ID (kolom DE), ada pengaturan cetak (skala/area cetak), dan tersedia mode server SQLite + login. Rincian keputusan: [KEPUTUSAN.md](./KEPUTUSAN.md), pemasangan server: [SERVER.md](./SERVER.md). Bagian di bawah adalah rencana awal.
+
 **Sistem Informasi Data Warga & Laporan PKK berbasis Web (Desktop + Mobile)**
 
 | | |

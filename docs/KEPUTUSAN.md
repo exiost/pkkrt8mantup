@@ -10,7 +10,7 @@ Pemilik proyek menyerahkan keputusan teknis ("yang penting jadi dulu"). Berikut 
 | K4 | Dasawisma "Drupadi" (tanpa I/II) | Diimpor apa adanya sebagai dasawisma terpisah + muncul di "Perlu Perhatian" | Perlu diputuskan orang yang tahu warganya. Perbaiki lewat **Data Warga → pilih → Ubah massal → dasawisma** |
 | K5 | Batas umur | Balita < 5 th, **Lansia ≥ 50 th** | Sama dengan rumus Excel (EDATE(acuan, -600)); bisa diubah di Pengaturan |
 | K6 | Rentang rumus Excel (`$2:$179`) | Aplikasi menghitung **semua** warga | Memperbaiki bug warga baris terakhir tidak ikut rekap |
-| K7 | Data rumah & sanitasi | Disimpan **per KK** (bukan per orang) | Di Excel diisi berulang tiap baris anggota |
+| K7 | Data rumah & sanitasi | Disimpan **per keluarga** (bukan per orang) | Di Excel diisi berulang tiap baris anggota |
 | K8 | Pekarangan & IRT | Disimpan sebagai **daftar item** (kategori, komoditi, jumlah) | Menggantikan teks `"Cabe, 2 pot;"` + makro VBA |
 | K9 | Warga "Tidak Ikut PKK" | Tetap tersimpan, tidak dihitung di laporan PKK | Sama dengan rumus Excel |
 | K10 | Rekap Dawis 1/2, rekap ibu hamil dawis 1/2/CUSTOM | Digabung jadi satu laporan dengan pilihan Dasawisma | Tidak perlu tab duplikat; dasawisma baru otomatis didukung |
@@ -24,7 +24,7 @@ Pemilik proyek menyerahkan keputusan teknis ("yang penting jadi dulu"). Berikut 
 | Ukuran | Excel | Aplikasi |
 |---|---|---|
 | Warga | 181 | 181 |
-| No KK | 61 | 61 |
+| Keluarga (ID, kolom DE) | 57 | 57 |
 | Penduduk 15–59 | 111 | 111 |
 | WUS | 43 | 43 |
 | PUS | 24 | 24 |
