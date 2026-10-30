@@ -1,5 +1,7 @@
 export type JK = 'L' | 'P'
 export type StatusWarga = 'Aktif' | 'Pindah' | 'Meninggal'
+/** Sama seperti isian di Excel: "Ya", "Tidak", atau kosong (belum diisi) */
+export type YT = 'Ya' | 'Tidak' | ''
 
 export interface Meta {
   id: string
@@ -21,13 +23,18 @@ export interface ItemIRT {
 }
 
 export interface Warga extends Meta {
-  // A. Identitas
+  /** Urutan baris seperti di sheet DATA WARGA (anggota keluarga mengikuti kepala keluarga) */
+  urut: number
+  /** Keluarga (ID di kolom DE). Satu ID = satu keluarga walau No KK-nya beda */
+  keluargaId: string
+  /** No Registrasi = kolom "NO" di DATA WARGA */
+  noReg: number
   noKK: string
   nik: string
   nama: string
   jk: JK
   tempatLahir: string
-  tglLahir: string // ISO yyyy-mm-dd
+  tglLahir: string // yyyy-mm-dd
   agama: string
   pendidikan: string
   pekerjaan: string
@@ -37,74 +44,74 @@ export interface Warga extends Meta {
   statusKeluarga: string
   statusWarga: StatusWarga
   catatan: string
-  // B. Wilayah
+  // wilayah
   dasawisma: string
   alamat: string
+  desa: string
+  kecamatan: string
+  kabupaten: string
+  provinsi: string
   dusun: string
-  // D. Kegiatan PKK & warga
+  // kegiatan PKK & warga
   ikutPKK: boolean
   jabatan: string
-  ppp: boolean
+  ppp: YT
   kegiatanDiikuti: string
-  kerjaBakti: boolean
+  kerjaBakti: YT
   kerjaBaktiJenis: string
-  rukunKematian: boolean
+  rukunKematian: YT
   rukunKematianJenis: string
-  keagamaan: boolean
+  keagamaan: YT
   keagamaanJenis: string
-  jimpitan: boolean
-  arisan: boolean
-  barkas: boolean
-  apotekHidup: boolean
-  jumantik: boolean
-  // E. Kesehatan & KB
+  jimpitan: YT
+  arisan: YT
+  barkas: YT
+  apotekHidup: YT
+  jumantik: YT
+  // kesehatan & KB
   kontrasepsi: string
   riwayatSakit: string
-  posyandu: boolean
+  posyandu: YT
   frekPosyandu: string
-  bkb: boolean
-  perencanaanSehat: boolean
-  // F. Ibu
+  bkb: YT
+  perencanaanSehat: YT
+  // ibu
   hamil: boolean
   hamilKe: string
   hpl: string
   melahirkan: boolean
   menyusui: boolean
   nifas: boolean
-  // G. Pendidikan & ekonomi
+  // pendidikan & ekonomi
   tigaButa: boolean
-  berkebutuhanKhusus: boolean
-  tabungan: boolean
-  kelompokBelajar: boolean
-  jenisKelompokBelajar: string
-  paud: boolean
-  koperasi: boolean
+  berkebutuhanKhusus: string
+  tabungan: YT
+  kelompokBelajar: YT
+  paket: string[] // 'Paket A' | 'Paket B' | 'Paket C' | 'KF'
+  paud: YT
+  koperasi: YT
   jenisKoperasi: string
-  pendidikanKetrampilan: boolean
-  sandang: boolean
-  pangan: boolean
-  // H/I
+  pendidikanKetrampilan: YT
+  sandang: YT
+  up2k: YT
+  jenisUp2k: string
+  // pekarangan & industri rumah tangga
   pekarangan: ItemPekarangan[]
   irt: ItemIRT[]
   tags: string[]
 }
 
 export interface Keluarga extends Meta {
-  noKK: string
-  dasawisma: string
-  alamat: string
+  /** Nomor urut keluarga (ID keluarga, kolom DE) */
+  nomor: number
   sumberAir: string
-  spal: boolean
-  kamarMandi: boolean
+  spal: YT
+  kamarMandi: string
   jumlahWC: string
-  mckSeptic: boolean
   makananPokok: string
   kriteriaRumah: string // Layak Huni / Tidak Layak Huni
   rumahSehat: string // Sehat / Kurang Sehat
-  tps: boolean
-  up2k: boolean
-  jenisUp2k: string
-  kesehatanLingkungan: boolean
+  tps: string // Ada / Tidak
 }
 
 export interface Kelahiran extends Meta {
@@ -141,6 +148,14 @@ export interface PesertaKB extends Meta {
   jenisAlkon: string
 }
 
+export interface PUSBaru extends Meta {
+  namaIstri: string
+  umur: string
+  namaSuami: string
+  tanggal: string
+  keterangan: string
+}
+
 export interface Dasawisma extends Meta {
   nama: string
   ketua: string
@@ -154,7 +169,7 @@ export interface Tag extends Meta {
 
 export interface KampungKBManual extends Meta {
   periode: string // yyyy-mm
-  nilai: Record<string, number>
+  nilai: Record<string, number | string>
 }
 
 export interface Arsip extends Meta {
@@ -172,12 +187,11 @@ export interface Settings {
   kapanewon: string
   kabupaten: string
   provinsi: string
-  ketuaPKK: string
-  sekretaris: string
-  tempatTTD: string
   umurBalita: number
   umurLansia: number
   pilihan: Record<string, string[]>
+  /** Ubahan teks tetap pada lembar laporan: "idLaporan!A1" → teks */
+  teks: Record<string, string>
   reduceMotion: boolean
   dark: boolean
 }
@@ -189,6 +203,7 @@ export interface AuditEntry {
   recordId: string
   aksi: 'Tambah' | 'Ubah' | 'Hapus' | 'Pulihkan' | 'Hapus Permanen'
   label: string
+  oleh?: string
 }
 
 export interface Collections {
@@ -197,6 +212,7 @@ export interface Collections {
   kelahiran: Kelahiran[]
   kematian: Kematian[]
   pesertaKB: PesertaKB[]
+  pusBaru: PUSBaru[]
   dasawisma: Dasawisma[]
   tags: Tag[]
   kampungKB: KampungKBManual[]
@@ -204,3 +220,13 @@ export interface Collections {
 }
 
 export type CollectionName = keyof Collections
+export const COLLECTION_NAMES: CollectionName[] = ['warga', 'keluarga', 'kelahiran', 'kematian', 'pesertaKB', 'pusBaru', 'dasawisma', 'tags', 'kampungKB', 'arsip']
+
+export type Role = 'admin' | 'editor' | 'viewer'
+export interface AppUser {
+  id: string
+  username: string
+  name: string
+  role: Role
+  active: boolean
+}

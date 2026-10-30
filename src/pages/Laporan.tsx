@@ -1,56 +1,201 @@
-import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { Archive, Eye, Trash2 } from 'lucide-react'
-import { REPORTS } from '@/lib/modules'
-import { useLive } from '@/lib/store'
-import { ReportShell, defaultParams, type ReportParams } from '@/reports/shell'
-import { Penduduk1559, PencatatanHamilKB, PUS, WUS } from '@/reports/daftar'
-import { KampungKB } from '@/reports/kampungkb'
-import { IbuHamilDawis, RegisterKelahiran, RekapCatatan, RekapIbuHamil } from '@/reports/rekap'
-import { CatatanKeluarga, DataKeluarga, DataWargaTPPKK, HTIRT } from '@/reports/formulir'
-import { Button, Card, Empty, Field, Modal, PageHeader, useConfirm } from '@/components/ui'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
+import { toast } from 'sonner'
+import { REPORTS } from '@/reports/registry'
+import { useStore, useLive } from '@/lib/store'
+import { useEditor } from '@/components/EditorHost'
+import { Avatar, Button, Card, Empty, Input, Modal, PageHeader, useConfirm } from '@/components/ui'
+import SheetView, { SheetCtx, type PrintArea } from '@/sheet/SheetView'
+import { TEMPLATES, colIndex } from '@/sheet/engine'
+import type { Ctx, ReportOpts, ReportParams } from '@/reports/common'
+import ReportControls, { ManualKB } from '@/reports/ReportControls'
+import PrintPanel from '@/reports/PrintPanel'
+import { effectiveScale, excelShrunk, pageGeometry, usePrintSettings } from '@/reports/usePrint'
+import { eksporTabel } from '@/lib/excel'
 import { hapusDenganUndo } from '@/lib/crud'
+import { todayISO } from '@/lib/format'
+import { BULAN } from '@/lib/options'
+import type { Warga } from '@/lib/types'
 
 let lastParams: ReportParams | null = null
+const initialParams = (): ReportParams => {
+  if (lastParams) return lastParams
+  const d = new Date()
+  return { acuan: todayISO(), bulan: d.getMonth(), tahun: d.getFullYear(), dawis: '', pick: '', semua: false, semuaPeriode: false }
+}
 
 export default function LaporanPage() {
   const { slug } = useParams()
-  const nav = useNavigate()
   const def = REPORTS.find((r) => r.slug === slug)
-  const [params, set] = useState<ReportParams>(() => lastParams ?? defaultParams())
-  const [status, setStatus] = useState('')
-  const setParams = (p: Partial<ReportParams>) => set((x) => (lastParams = { ...x, ...p }))
+  const nav = useNavigate()
   if (!def) return <Card><Empty title="Laporan tidak ditemukan" action={<Button onClick={() => nav('/laporan')}>Kembali</Button>} /></Card>
   if (def.slug === 'arsip') return <ArsipPage />
-  const S = (o: Partial<Parameters<typeof ReportShell>[0]>, child: React.ReactNode) => (
-    <ReportShell def={def} params={params} setParams={setParams} {...o}>{child}</ReportShell>
-  )
-  switch (def.slug) {
-    case 'penduduk-15-59': return S({ use: ['acuan', 'dawis'] }, <Penduduk1559 p={params} />)
-    case 'wus': return S({ use: ['acuan', 'dawis'] }, <WUS p={params} />)
-    case 'pus': return S({ use: ['acuan', 'dawis'] }, <PUS p={params} />)
-    case 'pencatatan-hamil-kb': return S({ use: ['acuan', 'bulan', 'dawis'] }, <PencatatanHamilKB p={params} />)
-    case 'kampung-kb': return S({ use: ['acuan', 'bulan', 'dawis'], orientation: 'landscape' }, <KampungKB p={params} />)
-    case 'rekap-catatan': return S({ use: ['acuan', 'dawis'], orientation: 'landscape' }, <RekapCatatan p={params} />)
-    case 'rekap-ibu-hamil': return S({ use: ['bulan'], orientation: 'landscape' }, <RekapIbuHamil p={params} />)
-    case 'ibu-hamil-dawis':
-      return S({
-        use: ['bulan', 'dawis'], orientation: 'landscape',
-        controls: (
-          <Field label="Status ibu">
-            <select className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="">Semua</option>{['Hamil', 'Melahirkan', 'Nifas', 'Menyusui'].map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </Field>
-        ),
-      }, <IbuHamilDawis p={params} status={status} />)
-    case 'register-kelahiran': return S({ use: ['dawis'], orientation: 'landscape' }, <RegisterKelahiran p={params} />)
-    case 'data-warga-tp-pkk': return S({ use: ['acuan', 'dawis'], multiPage: true }, <DataWargaTPPKK p={params} />)
-    case 'data-keluarga': return S({ use: ['acuan', 'dawis'], multiPage: true, orientation: 'landscape' }, <DataKeluarga p={params} />)
-    case 'catatan-keluarga': return S({ use: ['acuan', 'dawis'], multiPage: true, orientation: 'landscape' }, <CatatanKeluarga p={params} />)
-    case 'ht-irt': return S({ use: ['dawis'], multiPage: true }, <HTIRT p={params} />)
+  return <ReportView key={def.slug} slug={def.slug} />
+}
+
+function ReportView({ slug }: { slug: string }) {
+  const def = REPORTS.find((r) => r.slug === slug)!
+  const nav = useNavigate()
+  const [sp] = useSearchParams()
+  const st = useStore()
+  const { openWarga } = useEditor()
+  const warga = useLive('warga')
+  const keluarga = useLive('keluarga')
+  const kelahiran = useLive('kelahiran')
+  const kematian = useLive('kematian')
+  const pesertaKB = useLive('pesertaKB')
+  const pusBaru = useLive('pusBaru')
+  const dasawisma = useLive('dasawisma')
+  const kbAll = useStore((s) => s.kampungKB)
+  const settings = useStore((s) => s.settings)
+
+  const [p, setPState] = useState<ReportParams>(() => {
+    const x = initialParams()
+    const kk = sp.get('kk')
+    return kk ? { ...x, pick: kk, semua: false } : x
+  })
+  const setP = (x: Partial<ReportParams>) => setPState((o) => (lastParams = { ...o, ...x }))
+  const [o, setOState] = useState<ReportOpts>({ barisKosong: def.defaults?.barisKosong ?? false, isiKosong: false })
+  const setO = (x: Partial<ReportOpts>) => setOState((v) => ({ ...v, ...x }))
+  const [ps, setPs, resetPs] = usePrintSettings(slug, def.tpl)
+  const [panel, setPanel] = useState(false)
+  const [editText, setEditText] = useState(false)
+  const [drillState, setDrill] = useState<{ title: string; list: Warga[] } | null>(null)
+  const [edit, setEdit] = useState<{ key: string; cur: string } | null>(null)
+  const [zoom, setZoom] = useState<number | 'fit'>('fit')
+  const [nat, setNat] = useState({ w: 0, h: 0 })
+  const [stageW, setStageW] = useState(0)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const zoomRef = useRef<HTMLDivElement>(null)
+
+  // dasawisma wajib untuk rekap per dasawisma
+  useEffect(() => {
+    if (def.uses.includes('dawisWajib') && !p.dawis && dasawisma[0]) setP({ dawis: dasawisma[0].nama })
+  }, [def, p.dawis, dasawisma])
+
+  const aktif = useMemo(() => [...warga].filter((w) => w.statusWarga === 'Aktif').sort((a, b) => a.urut - b.urut), [warga])
+  const wargaSorted = useMemo(() => [...warga].sort((a, b) => a.urut - b.urut), [warga])
+  const periode = `${p.tahun}-${String(p.bulan + 1).padStart(2, '0')}`
+  const ctx: Ctx = useMemo(() => ({
+    p, o, warga: wargaSorted, aktif, keluarga, fam: new Map(keluarga.map((k) => [k.id, k])), kelahiran, kematian, pesertaKB, pusBaru, dasawisma,
+    kb: kbAll.find((x) => x.periode === periode && !x.deletedAt), settings,
+  }), [p, o, wargaSorted, aktif, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, periode, settings])
+  const pages = useMemo(() => def.build(ctx), [def, ctx])
+
+  const tpl = TEMPLATES[def.tpl]
+  const area: PrintArea | null = ps.areaOn ? { c1: Math.max(0, colIndex(ps.c1 || 'A')), c2: Math.max(0, colIndex(ps.c2 || 'A')), r1: ps.r1, r2: ps.r2 } : null
+  const g = pageGeometry(ps)
+  const eff = effectiveScale(ps, nat)
+  const pagesAcross = nat.w ? Math.max(1, Math.ceil((nat.w * eff) / g.printW - 0.001)) : 1
+  const pagesDown = nat.h ? Math.max(1, Math.ceil((nat.h * eff) / g.printH - 0.001)) : 1
+  const screenZoom = panel && ps.guides ? eff : zoom === 'fit' ? (stageW && nat.w ? Math.min(1, (stageW - 24) / nat.w) : 1) : zoom
+
+  // ukuran asli tabel (tanpa zoom) untuk perhitungan skala
+  useLayoutEffect(() => {
+    const el = zoomRef.current
+    if (!el) return
+    let w = tpl.cols.reduce((a, b) => a + b, 0)
+    if (area) w = tpl.cols.slice(area.c1, area.c2 + 1).reduce((a, b) => a + b, 0)
+    let h = 0
+    // tinggi asli dihitung dari rasio lebar (tidak tergantung zoom layar/cetak)
+    el.querySelectorAll<HTMLElement>('.sheet-page > table').forEach((t) => { const r = t.getBoundingClientRect(); if (r.width > 0) h = Math.max(h, (r.height * w) / r.width) })
+    setNat((x) => (Math.abs(x.w - w) < 1 && Math.abs(x.h - h) < 1 ? x : { w, h }))
+  })
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setStageW(el.clientWidth))
+    ro.observe(el)
+    setStageW(el.clientWidth)
+    return () => ro.disconnect()
+  }, [])
+
+  const printCss = `@page { size: ${g.pageW}mm ${g.pageH}mm; margin: ${ps.mt}mm ${ps.mr}mm ${ps.mb}mm ${ps.ml}mm; } @media print { .sheet-zoom { zoom: ${eff} !important; } }`
+
+  const overrides = settings.teks
+  const actions = useMemo(() => ({ drill: (title: string, list: Warga[]) => setDrill({ title, list }), editWarga: (id: string) => openWarga(id) }), [openWarga])
+
+  function arsipkan() {
+    if (!zoomRef.current) return
+    const label = `${BULAN[p.bulan]} ${p.tahun}`
+    st.create('arsip', { judul: `${def.title} — ${label}`, jenis: def.slug, periode: label, html: zoomRef.current.innerHTML, deletedAt: null }, def.title)
+    toast.success('Laporan disimpan ke Arsip 📁')
   }
-  return null
+
+  const single = pages.length === 1
+  return (
+    <SheetCtx.Provider value={actions}>
+      <style>{printCss}</style>
+      <div className="no-print mb-3">
+        <button onClick={() => nav('/laporan')} className="mb-2 flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-violet-600"><ArrowLeft size={16} /> Semua laporan</button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg"><def.icon size={22} /></div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-lg font-extrabold leading-tight sm:text-xl">{def.title}</h1>
+            <p className="text-xs text-slate-500">Sama dengan sheet Excel: <i>{def.sheet}</i></p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm">Ubah teks</Button>
+            <Button variant="outline" icon={FileSpreadsheet} size="sm" onClick={() => zoomRef.current && (eksporTabel(zoomRef.current, def.title) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}>Excel</Button>
+            {def.uses.includes('bulan') && <Button variant="outline" icon={Archive} size="sm" onClick={arsipkan}>Arsipkan</Button>}
+            <Button variant={panel ? 'soft' : 'outline'} icon={Settings2} size="sm" onClick={() => setPanel(!panel)}>Atur cetak</Button>
+            <Button icon={Printer} size="sm" onClick={() => window.print()}>Cetak / PDF</Button>
+          </div>
+        </div>
+        {editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
+        <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctx} />
+        {def.uses.includes('manualKB') && <ManualKB periode={periode} />}
+        {panel && <PrintPanel tplId={def.tpl} ps={ps} set={setPs} reset={resetPs} eff={eff} pagesAcross={pagesAcross} pagesDown={pagesDown} shrunk={excelShrunk(ps, nat)} />}
+        <div className="mt-3 flex items-center justify-end gap-1 text-xs text-slate-500">
+          <ZoomIn size={14} /> Tampilan layar
+          <Button size="sm" variant="outline" aria-label="Perkecil" onClick={() => setZoom(Math.max(0.2, +(screenZoom - 0.1).toFixed(2)))}>{''}<Minus size={14} /></Button>
+          <span className="w-12 text-center font-semibold tabular-nums">{Math.round(screenZoom * 100)}%</span>
+          <Button size="sm" variant="outline" aria-label="Perbesar" onClick={() => setZoom(Math.min(2, +(screenZoom + 0.1).toFixed(2)))}>{''}<Plus size={14} /></Button>
+          <Button size="sm" variant="ghost" onClick={() => setZoom('fit')}>Pas layar</Button>
+          <Button size="sm" variant="ghost" onClick={() => setZoom(1)}>100%</Button>
+        </div>
+      </div>
+
+      <div ref={stageRef} className={`sheet-stage mt-2 ${editText ? 'xl-edit-mode' : ''} ${ps.hc ? 'hc' : ''}`}>
+        <div ref={zoomRef} className={`sheet-zoom ${ps.mono ? 'mono' : ''}`} style={{ zoom: screenZoom }}>
+          {pages.length === 0 && <Empty title="Tidak ada data" />}
+          {pages.map((pg) => (
+            <div key={pg.key} className="sheet-page">
+              <SheetView {...pg} overrides={overrides} editText={editText} onEditText={(key, cur) => setEdit({ key, cur })} area={area} repeatHeader={ps.repeat} />
+              {single && panel && ps.guides && nat.w > 0 && (
+                <>
+                  {Array.from({ length: Math.max(0, pagesAcross - 1) }, (_, i) => <div key={'v' + i} className="sheet-guide-v no-print" data-label={`hal. kolom ${i + 2}`} style={{ left: ((i + 1) * g.printW) / eff }} />)}
+                  {Array.from({ length: Math.max(0, pagesDown - 1) }, (_, i) => <div key={'h' + i} className="sheet-guide-h no-print" data-label={`hal. ${i + 2}`} style={{ top: ((i + 1) * g.printH) / eff }} />)}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Modal open={!!drillState} onClose={() => setDrill(null)} title={`${drillState?.title ?? ''} (${drillState?.list.length ?? 0})`} icon={Users}>
+        <div className="divide-y divide-slate-100 dark:divide-white/5">
+          {drillState?.list.map((w) => (
+            <button key={w.id} onClick={() => { setDrill(null); openWarga(w.id) }} className="flex w-full items-center gap-3 py-2 text-left hover:bg-violet-50 dark:hover:bg-white/5">
+              <Avatar nama={w.nama} jk={w.jk} />
+              <div><div className="text-sm font-semibold">{w.nama}</div><div className="text-xs text-slate-500">{w.statusKeluarga} · {w.dasawisma}</div></div>
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      <Modal open={!!edit} onClose={() => setEdit(null)} title="Ubah teks lembar" size="sm" icon={PencilLine}
+        footer={<>
+          {edit && overrides[edit.key] !== undefined && <Button variant="ghost" onClick={() => { const t = { ...overrides }; delete t[edit.key]; st.setSettings({ teks: t }); setEdit(null) }}>Kembalikan ke Excel</Button>}
+          <Button variant="ghost" onClick={() => setEdit(null)}>Batal</Button>
+          <Button onClick={() => { if (edit) { st.setSettings({ teks: { ...overrides, [edit.key]: edit.cur } }); toast.success('Teks diubah'); setEdit(null) } }}>Simpan</Button>
+        </>}>
+        <Input autoFocus value={edit?.cur ?? ''} onChange={(e) => edit && setEdit({ ...edit, cur: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && edit && (st.setSettings({ teks: { ...overrides, [edit.key]: edit.cur } }), setEdit(null))} />
+        <p className="mt-2 text-xs text-slate-400">Cell: {edit?.key}</p>
+      </Modal>
+    </SheetCtx.Provider>
+  )
 }
 
 function ArsipPage() {
@@ -60,21 +205,21 @@ function ArsipPage() {
   const a = arsip.find((x) => x.id === view)
   return (
     <div>
-      <PageHeader title="Arsip Laporan" subtitle="Snapshot laporan bulanan (angka terkunci)" icon={Archive} color="slate" />
-      {arsip.length === 0 ? <Card><Empty title="Belum ada arsip" desc='Buka laporan bulanan lalu klik "Arsipkan".' icon={Archive} /></Card> : (
+      <PageHeader title="Arsip Laporan" subtitle="Laporan bulanan yang sudah disimpan (angka terkunci)" icon={Archive} color="slate" />
+      {arsip.length === 0 ? <Card><Empty title="Belum ada arsip" desc='Buka laporan yang ada pilihan bulan, lalu klik "Arsipkan".' icon={Archive} /></Card> : (
         <div className="grid gap-3 md:grid-cols-2">
           {arsip.map((x) => (
             <Card key={x.id} className="flex items-center gap-3 p-4">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-600 dark:bg-white/10"><Archive size={18} /></div>
               <div className="min-w-0 flex-1"><div className="truncate font-semibold">{x.judul}</div><div className="text-xs text-slate-500">Disimpan {new Date(x.createdAt).toLocaleString('id-ID')}</div></div>
               <Button size="sm" variant="soft" icon={Eye} onClick={() => setView(x.id)}>Lihat</Button>
-              <Button size="sm" variant="ghost" icon={Trash2} onClick={async () => { if (await confirm({ title: 'Hapus arsip?', message: x.judul, danger: true, okText: 'Hapus' })) hapusDenganUndo('arsip', x.id, x.judul) }}>{''}</Button>
+              <Button size="sm" variant="ghost" icon={Trash2} aria-label="Hapus" onClick={async () => { if (await confirm({ title: 'Hapus arsip?', message: x.judul, danger: true, okText: 'Hapus' })) hapusDenganUndo('arsip', x.id, x.judul) }}>{''}</Button>
             </Card>
           ))}
         </div>
       )}
-      <Modal open={!!a} onClose={() => setView(null)} title={a?.judul ?? ''} size="full" footer={<Button onClick={() => window.print()}>Cetak</Button>}>
-        <div className="overflow-x-auto"><div className="paper landscape" dangerouslySetInnerHTML={{ __html: a?.html ?? '' }} /></div>
+      <Modal open={!!a} onClose={() => setView(null)} title={a?.judul ?? ''} size="full" footer={<Button icon={Printer} onClick={() => window.print()}>Cetak</Button>}>
+        <div className="sheet-stage"><div className="sheet-zoom" dangerouslySetInnerHTML={{ __html: a?.html ?? '' }} /></div>
       </Modal>
     </div>
   )

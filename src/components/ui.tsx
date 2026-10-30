@@ -240,6 +240,22 @@ export function Select({ options, value, onChange, placeholder = '— pilih —'
   )
 }
 
+/** Isian Ya / Tidak / (belum diisi) seperti di Excel */
+export function YesNo({ value, onChange, label }: { value: 'Ya' | 'Tidak' | ''; onChange: (v: 'Ya' | 'Tidak' | '') => void; label: string }) {
+  const opts: ['Ya' | 'Tidak' | '', string][] = [['Ya', 'Ya'], ['Tidak', 'Tidak'], ['', '–']]
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-1.5 dark:bg-white/5">
+      <span className="min-w-0 flex-1 text-sm text-slate-700 dark:text-slate-200">{label}</span>
+      <div className="inline-flex shrink-0 rounded-lg bg-white p-0.5 shadow-sm dark:bg-slate-800">
+        {opts.map(([v, l]) => (
+          <button key={l} type="button" onClick={() => onChange(v)} title={v === '' ? 'Belum diisi' : l}
+            className={`min-w-[2.25rem] rounded-md px-2 py-1 text-xs font-semibold transition ${value === v ? (v === 'Ya' ? 'bg-emerald-500 text-white' : v === 'Tidak' ? 'bg-rose-500 text-white' : 'bg-slate-400 text-white') : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10'}`}>{l}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (b: boolean) => void; label?: string }) {
   return (
     <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-2 text-left text-sm text-slate-700 dark:text-slate-200">

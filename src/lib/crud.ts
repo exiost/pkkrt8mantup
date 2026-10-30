@@ -13,6 +13,17 @@ export function hapusDenganUndo(k: CollectionName, id: string, label: string) {
   })
 }
 
+/** Hapus satu keluarga beserta semua anggotanya (bisa diurungkan) */
+export function hapusKeluargaDenganAnggota(st: ReturnType<typeof useStore.getState>, keluargaId: string, label: string) {
+  const anggota = useStore.getState().warga.filter((w) => w.keluargaId === keluargaId && !w.deletedAt)
+  anggota.forEach((w) => st.remove('warga', w.id, w.nama))
+  st.remove('keluarga', keluargaId, label)
+  toast.success(`Keluarga ${label} dipindah ke Tempat Sampah`, {
+    action: { label: 'Urungkan', onClick: () => { const s = useStore.getState(); s.restore('keluarga', keluargaId, label); anggota.forEach((w) => s.restore('warga', w.id, w.nama)) } },
+    duration: 6000,
+  })
+}
+
 export function rayakan() {
   if (useStore.getState().settings.reduceMotion) return
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return

@@ -227,7 +227,7 @@ function BulkEdit({ open, ids, onClose }: { open: boolean; ids: string[]; onClos
         st.update('warga', id, { tags: nt }, w.nama)
       })
     } else {
-      const v = val === 'Ya' ? true : val === 'Tidak' ? false : val
+      const v = field === 'ikutPKK' ? val === 'Ya' : val
       st.bulkUpdate('warga', ids, { [field]: v } as Partial<Warga>)
     }
     toast.success(`${ids.length} warga diperbarui`)

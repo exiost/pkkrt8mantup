@@ -45,12 +45,11 @@ function Wilayah() {
     <Field label={label}><Input value={String(d[k] ?? '')} onChange={(e) => setD({ ...d, [k]: e.target.value })} /></Field>
   )
   return (
-    <Section title="Identitas Wilayah (kop laporan) & Penanda Tangan" icon={MapPin} color="teal"
+    <Section title="Identitas Wilayah (isian awal data warga baru)" icon={MapPin} color="teal"
       actions={<Button size="sm" icon={Save} onClick={() => { st.setSettings({ ...d, umurBalita: Number(d.umurBalita) || 5, umurLansia: Number(d.umurLansia) || 60 }); toast.success('Pengaturan disimpan') }}>Simpan</Button>}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {F('rt', 'RT')}{F('rw', 'RW')}{F('padukuhan', 'Padukuhan / Dusun')}{F('kalurahan', 'Kalurahan / Desa')}
-        {F('kapanewon', 'Kapanewon / Kecamatan')}{F('kabupaten', 'Kabupaten')}{F('provinsi', 'Provinsi')}{F('tempatTTD', 'Tempat tanda tangan')}
-        {F('ketuaPKK', 'Nama Ketua TP PKK')}{F('sekretaris', 'Nama Sekretaris / Pembuat')}
+        {F('kapanewon', 'Kapanewon / Kecamatan')}{F('kabupaten', 'Kabupaten')}{F('provinsi', 'Provinsi')}
         <Field label="Batas umur balita (< tahun)"><Input type="number" value={d.umurBalita} onChange={(e) => setD({ ...d, umurBalita: +e.target.value })} /></Field>
         <Field label="Umur lansia (≥ tahun)"><Input type="number" value={d.umurLansia} onChange={(e) => setD({ ...d, umurLansia: +e.target.value })} /></Field>
       </div>
@@ -72,7 +71,6 @@ function Dasawisma() {
         // ganti nama dasawisma → ikut diperbarui di semua warga & KK
         if (isNew || !prev || prev.nama === r.nama) return
         st.warga.filter((w) => w.dasawisma === prev.nama).forEach((w) => st.update('warga', w.id, { dasawisma: String(r.nama) }, w.nama))
-        st.keluarga.filter((k) => k.dasawisma === prev.nama).forEach((k) => st.update('keluarga', k.id, { dasawisma: String(r.nama) }, `KK ${k.noKK}`))
       }} />
   )
 }

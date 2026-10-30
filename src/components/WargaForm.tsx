@@ -6,11 +6,11 @@ import {
 } from 'lucide-react'
 import { useStore, useLive } from '@/lib/store'
 import { blankWarga } from '@/lib/factories'
-import { infoDariNIK, hitungUmur } from '@/lib/rules'
+import { infoDariNIK, hitungUmur, isKepala, kepalaKeluarga } from '@/lib/rules'
 import { todayISO } from '@/lib/format'
 import { rayakan } from '@/lib/crud'
 import type { Warga } from '@/lib/types'
-import { Button, Field, Input, Modal, Select, Textarea, Toggle, Chip, col } from './ui'
+import { Button, Field, Input, Modal, Select, Textarea, Toggle, YesNo, Chip, col } from './ui'
 
 type Draft = Omit<Warga, 'id' | 'createdAt' | 'updatedAt'>
 
@@ -36,9 +36,14 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
   const dasawisma = useLive('dasawisma')
   const tags = useLive('tags')
   const semuaWarga = useLive('warga')
+  const keluarga = useLive('keluarga')
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }))
   const umur = hitungUmur(d.tglLahir, todayISO())
   const kkList = useMemo(() => [...new Set(semuaWarga.map((w) => w.noKK).filter(Boolean))], [semuaWarga])
+  const famOptions = useMemo(
+    () => keluarga.slice().sort((a, b) => a.nomor - b.nomor).map((k) => ({ id: k.id, label: `${k.nomor}. ${kepalaKeluarga(k.id, semuaWarga)?.nama ?? '(belum ada kepala)'}` })),
+    [keluarga, semuaWarga],
+  )
 
   function validate(): boolean {
     const e: Record<string, string> = {}
@@ -59,22 +64,25 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
   function save(again = false) {
     if (!validate()) return
     if (existing) {
-      st.update('warga', existing.id, d, d.nama)
+      const { keluargaId, ...rest } = d
+      st.update('warga', existing.id, rest, d.nama)
+      if (keluargaId !== existing.keluargaId) st.pindahWarga(existing.id, keluargaId)
       toast.success(`Data ${d.nama} diperbarui ✨`)
     } else {
-      st.create('warga', { ...d, deletedAt: null }, d.nama)
+      const { urut: _u, noReg, ...baru } = d
+      st.tambahWarga({ ...baru, noReg: noReg || undefined, deletedAt: null } as never)
       toast.success(`${d.nama} ditambahkan 🎉`)
       rayakan()
     }
-    if (d.noKK) st.ensureKeluarga(d.noKK, d.dasawisma)
     if (again) {
-      setD({ ...blankWarga(), noKK: d.noKK, dasawisma: d.dasawisma, alamat: d.alamat, dusun: d.dusun } as Draft)
+      setD({ ...blankWarga(), keluargaId: d.keluargaId, noKK: d.noKK, dasawisma: d.dasawisma, alamat: d.alamat, dusun: d.dusun, desa: d.desa, kecamatan: d.kecamatan, kabupaten: d.kabupaten, provinsi: d.provinsi } as Draft)
       setStep(0)
     } else onClose()
   }
 
   const nikInfo = infoDariNIK(d.nik)
   const S = STEPS[step]
+  const Y = (label: string, k: keyof Draft) => <YesNo key={k as string} label={label} value={d[k] as never} onChange={(v) => set(k, v as never)} />
 
   return (
     <Modal open onClose={onClose} size="xl" title={existing ? `Ubah Data: ${existing.nama}` : 'Tambah Warga Baru'} icon={existing ? IdCard : UserPlus}
@@ -86,7 +94,6 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
         </>
       }>
       <div className="flex flex-col gap-4 md:flex-row">
-        {/* langkah */}
         <div className="-mx-1 flex gap-1 overflow-x-auto pb-1 md:mx-0 md:w-52 md:shrink-0 md:flex-col md:overflow-visible">
           {STEPS.map((s, i) => {
             const c = col(s.color)
@@ -139,19 +146,30 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
                 <Field label="Status Perkawinan"><Select options={P.statusKawin} value={d.statusKawin} onChange={(v) => set('statusKawin', v)} /></Field>
                 <Field label="Tanggal Nikah / Cerai"><Input type="date" value={d.tglNikahCerai} onChange={(e) => set('tglNikahCerai', e.target.value)} /></Field>
                 <Field label="Status Warga"><Select options={['Aktif', 'Pindah', 'Meninggal']} value={d.statusWarga} onChange={(v) => set('statusWarga', (v || 'Aktif') as Warga['statusWarga'])} /></Field>
+                <Field label="No Registrasi" hint="Kolom NO di DATA WARGA. Kosongkan untuk otomatis."><Input inputMode="numeric" value={d.noReg || ''} onChange={(e) => set('noReg', Number(e.target.value.replace(/\D/g, '')) || 0)} /></Field>
               </>
             )}
             {S.key === 'wilayah' && (
               <>
-                <Field label="No Kartu Keluarga" error={errors.noKK} hint="Anggota dengan No KK sama otomatis jadi satu keluarga">
+                <Field label="Keluarga (ID keluarga)" hint="Orang dalam keluarga yang sama dicetak bersama di Data Keluarga & Catatan Keluarga" className="sm:col-span-2">
+                  <select value={d.keluargaId} onChange={(e) => set('keluargaId', e.target.value)} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800">
+                    <option value="">➕ Buat keluarga baru</option>
+                    {famOptions.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Status dalam Keluarga"><Select options={P.statusKeluarga} value={d.statusKeluarga} onChange={(v) => set('statusKeluarga', v)} /></Field>
+                <Field label="No Kartu Keluarga" error={errors.noKK} hint="Boleh beda dengan anggota lain dalam satu keluarga">
                   <Input list="kk-list" inputMode="numeric" maxLength={16} value={d.noKK} onChange={(e) => set('noKK', e.target.value.replace(/\D/g, ''))} />
                   <datalist id="kk-list">{kkList.map((k) => <option key={k} value={k} />)}</datalist>
                 </Field>
-                <Field label="Status dalam Keluarga"><Select options={P.statusKeluarga} value={d.statusKeluarga} onChange={(v) => set('statusKeluarga', v)} /></Field>
                 <Field label="Dasawisma"><Select options={dasawisma.map((x) => x.nama)} value={d.dasawisma} onChange={(v) => set('dasawisma', v)} /></Field>
                 <Field label="Dusun / Padukuhan"><Input value={d.dusun} onChange={(e) => set('dusun', e.target.value)} /></Field>
                 <Field label="Alamat" className="sm:col-span-2"><Input value={d.alamat} onChange={(e) => set('alamat', e.target.value)} /></Field>
-                <p className="text-xs text-slate-500 sm:col-span-2">💡 Data rumah & sanitasi (sumber air, SPAL, jamban, kriteria rumah) diisi sekali per KK di menu <b>Keluarga</b>.</p>
+                <Field label="Desa / Kelurahan"><Input value={d.desa} onChange={(e) => set('desa', e.target.value)} /></Field>
+                <Field label="Kecamatan"><Input value={d.kecamatan} onChange={(e) => set('kecamatan', e.target.value)} /></Field>
+                <Field label="Kabupaten / Kota"><Input value={d.kabupaten} onChange={(e) => set('kabupaten', e.target.value)} /></Field>
+                <Field label="Provinsi"><Input value={d.provinsi} onChange={(e) => set('provinsi', e.target.value)} /></Field>
+                <p className="text-xs text-slate-500 sm:col-span-2">💡 Data rumah & sanitasi (sumber air, SPAL, jamban, kriteria rumah) diisi sekali per keluarga di menu <b>Keluarga</b>.</p>
               </>
             )}
             {S.key === 'kegiatan' && (
@@ -159,30 +177,30 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
                 <div className="sm:col-span-2"><Toggle checked={d.ikutPKK} onChange={(b) => set('ikutPKK', b)} label="Ikut kegiatan PKK (jika tidak, tidak dihitung di laporan PKK)" /></div>
                 <Field label="Jabatan"><Select options={P.jabatan} value={d.jabatan} onChange={(v) => set('jabatan', v)} allowCustom /></Field>
                 <Field label="Kegiatan yang diikuti" hint="mis. Syawalan, Tirakatan HUT RI, Merti Dusun"><Input value={d.kegiatanDiikuti} onChange={(e) => set('kegiatanDiikuti', e.target.value)} /></Field>
-                <Toggle checked={d.ppp} onChange={(b) => set('ppp', b)} label="Penghayatan & Pengamalan Pancasila" />
-                <Toggle checked={d.jumantik} onChange={(b) => set('jumantik', b)} label="Jumantik" />
-                <Toggle checked={d.kerjaBakti} onChange={(b) => set('kerjaBakti', b)} label="Kerja Bakti" />
-                {d.kerjaBakti ? <Field label="Jenis kerja bakti"><Select options={P.kerjaBaktiJenis} value={d.kerjaBaktiJenis} onChange={(v) => set('kerjaBaktiJenis', v)} allowCustom /></Field> : <div />}
-                <Toggle checked={d.rukunKematian} onChange={(b) => set('rukunKematian', b)} label="Rukun Kematian" />
-                {d.rukunKematian ? <Field label="Jenis rukun kematian"><Input value={d.rukunKematianJenis} onChange={(e) => set('rukunKematianJenis', e.target.value)} /></Field> : <div />}
-                <Toggle checked={d.keagamaan} onChange={(b) => set('keagamaan', b)} label="Kegiatan Keagamaan" />
-                {d.keagamaan ? <Field label="Jenis keagamaan"><Select options={P.keagamaanJenis} value={d.keagamaanJenis} onChange={(v) => set('keagamaanJenis', v)} allowCustom /></Field> : <div />}
-                <Toggle checked={d.jimpitan} onChange={(b) => set('jimpitan', b)} label="Jimpitan" />
-                <Toggle checked={d.arisan} onChange={(b) => set('arisan', b)} label="Arisan" />
-                <Toggle checked={d.barkas} onChange={(b) => set('barkas', b)} label="Pengumpulan Barang Bekas" />
-                <Toggle checked={d.apotekHidup} onChange={(b) => set('apotekHidup', b)} label="Apotek Hidup" />
+                {Y('Penghayatan & Pengamalan Pancasila', 'ppp')}
+                {Y('Jumantik (usaha kesehatan lingkungan)', 'jumantik')}
+                {Y('Kerja Bakti', 'kerjaBakti')}
+                <Field label="Jenis kerja bakti"><Select options={P.kerjaBaktiJenis} value={d.kerjaBaktiJenis} onChange={(v) => set('kerjaBaktiJenis', v)} allowCustom /></Field>
+                {Y('Rukun Kematian', 'rukunKematian')}
+                <Field label="Jenis rukun kematian"><Input value={d.rukunKematianJenis} onChange={(e) => set('rukunKematianJenis', e.target.value)} /></Field>
+                {Y('Kegiatan Keagamaan', 'keagamaan')}
+                <Field label="Jenis keagamaan"><Select options={P.keagamaanJenis} value={d.keagamaanJenis} onChange={(v) => set('keagamaanJenis', v)} allowCustom /></Field>
+                {Y('Jimpitan', 'jimpitan')}
+                {Y('Arisan', 'arisan')}
+                {Y('Pengumpulan Barang Bekas', 'barkas')}
+                {Y('Apotek Hidup', 'apotekHidup')}
               </>
             )}
             {S.key === 'kesehatan' && (
               <>
                 <Field label="Kontrasepsi / Akseptor KB"><Select options={P.kontrasepsi} value={d.kontrasepsi} onChange={(v) => set('kontrasepsi', v)} placeholder="Tidak ber-KB" /></Field>
                 <Field label="Riwayat Sakit"><Select options={P.riwayatSakit} value={d.riwayatSakit} onChange={(v) => set('riwayatSakit', v)} placeholder="Tidak ada" allowCustom /></Field>
-                <Toggle checked={d.posyandu} onChange={(b) => set('posyandu', b)} label="Aktif dalam Posyandu" />
-                {d.posyandu ? <Field label="Frekuensi posyandu (kali/bulan)"><Input inputMode="numeric" value={d.frekPosyandu} onChange={(e) => set('frekPosyandu', e.target.value)} /></Field> : <div />}
-                <Toggle checked={d.bkb} onChange={(b) => set('bkb', b)} label="Bina Keluarga Balita (BKB)" />
-                <Toggle checked={d.perencanaanSehat} onChange={(b) => set('perencanaanSehat', b)} label="Perencanaan Sehat" />
-                <Toggle checked={d.berkebutuhanKhusus} onChange={(b) => set('berkebutuhanKhusus', b)} label="Berkebutuhan Khusus" />
+                {Y('Aktif dalam Posyandu', 'posyandu')}
+                <Field label="Frekuensi posyandu (kali/bulan)"><Input inputMode="numeric" value={d.frekPosyandu} onChange={(e) => set('frekPosyandu', e.target.value)} /></Field>
+                {Y('Bina Keluarga Balita (BKB)', 'bkb')}
+                {Y('Perencanaan Sehat', 'perencanaanSehat')}
                 <Toggle checked={d.tigaButa} onChange={(b) => set('tigaButa', b)} label="3 Buta (aksara, angka, bahasa)" />
+                <Field label="Berkebutuhan khusus" hint="Kosongkan jika tidak ada"><Input value={d.berkebutuhanKhusus} onChange={(e) => set('berkebutuhanKhusus', e.target.value)} /></Field>
               </>
             )}
             {S.key === 'ibu' && (
@@ -196,7 +214,7 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
                     <Field label="HPL (Hari Perkiraan Lahir)"><Input type="date" value={d.hpl} onChange={(e) => set('hpl', e.target.value)} /></Field>
                   </>
                 )}
-                <Toggle checked={d.melahirkan} onChange={(b) => set('melahirkan', b)} label="Melahirkan (bulan ini)" />
+                <Toggle checked={d.melahirkan} onChange={(b) => set('melahirkan', b)} label="Melahirkan" />
                 <Toggle checked={d.nifas} onChange={(b) => set('nifas', b)} label="Nifas" />
                 <Toggle checked={d.menyusui} onChange={(b) => set('menyusui', b)} label="Menyusui" />
                 <p className="text-xs text-slate-500 sm:col-span-2">💡 Data bayi lahir & kematian dicatat di menu <b>Ibu & Anak, KB</b>.</p>
@@ -204,40 +222,35 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
             )}
             {S.key === 'pendidikan' && (
               <>
-                <Toggle checked={d.tabungan} onChange={(b) => set('tabungan', b)} label="Memiliki Tabungan" />
-                <Toggle checked={d.paud} onChange={(b) => set('paud', b)} label="Mengikuti PAUD / sejenis" />
-                <Toggle checked={d.kelompokBelajar} onChange={(b) => set('kelompokBelajar', b)} label="Mengikuti Kelompok Belajar" />
-                {d.kelompokBelajar ? <Field label="Jenis kelompok belajar"><Select options={P.kelompokBelajar} value={d.jenisKelompokBelajar} onChange={(v) => set('jenisKelompokBelajar', v)} /></Field> : <div />}
-                <Toggle checked={d.koperasi} onChange={(b) => set('koperasi', b)} label="Ikut Kegiatan Koperasi" />
-                {d.koperasi ? <Field label="Jenis / nama koperasi"><Input value={d.jenisKoperasi} onChange={(e) => set('jenisKoperasi', e.target.value)} /></Field> : <div />}
-                <Toggle checked={d.pendidikanKetrampilan} onChange={(b) => set('pendidikanKetrampilan', b)} label="Pendidikan & Ketrampilan" />
-                <Toggle checked={d.pangan} onChange={(b) => set('pangan', b)} label="Pangan" />
-                <Toggle checked={d.sandang} onChange={(b) => set('sandang', b)} label="Sandang" />
+                {Y('Memiliki Tabungan', 'tabungan')}
+                {Y('Mengikuti PAUD / sejenis', 'paud')}
+                {Y('Mengikuti Kelompok Belajar', 'kelompokBelajar')}
+                <div>
+                  <div className="mb-1 text-xs font-semibold text-slate-600 dark:text-slate-300">Jenis kelompok belajar</div>
+                  <div className="flex flex-wrap gap-2">
+                    {P.kelompokBelajar.map((x) => {
+                      const on = d.paket.includes(x)
+                      return <button key={x} type="button" onClick={() => set('paket', on ? d.paket.filter((y) => y !== x) : [...d.paket, x])} className={`rounded-full px-3 py-1 text-xs font-semibold ${on ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300'}`}>{x}</button>
+                    })}
+                  </div>
+                </div>
+                {Y('Ikut Kegiatan Koperasi', 'koperasi')}
+                <Field label="Jenis / nama koperasi"><Input value={d.jenisKoperasi} onChange={(e) => set('jenisKoperasi', e.target.value)} /></Field>
+                {Y('Pendidikan & Ketrampilan', 'pendidikanKetrampilan')}
+                {Y('Sandang', 'sandang')}
+                {Y('Aktivitas UP2K', 'up2k')}
+                <Field label="Jenis usaha UP2K"><Input value={d.jenisUp2k} onChange={(e) => set('jenisUp2k', e.target.value)} /></Field>
               </>
             )}
             {S.key === 'pekarangan' && (
-              <ItemEditor
-                rows={d.pekarangan}
-                onChange={(r) => set('pekarangan', r)}
-                cols={[
-                  { key: 'kategori', label: 'Kategori', options: P.kategoriPekarangan },
-                  { key: 'komoditi', label: 'Komoditi', placeholder: 'mis. Cabe' },
-                  { key: 'jumlah', label: 'Jumlah', placeholder: 'mis. 2 pot' },
-                ]}
-                empty={{ kategori: 'Warung Hidup', komoditi: '', jumlah: '' }}
-              />
+              <ItemEditor rows={d.pekarangan} onChange={(r) => set('pekarangan', r)}
+                cols={[{ key: 'kategori', label: 'Kategori', options: P.kategoriPekarangan }, { key: 'komoditi', label: 'Komoditi', placeholder: 'mis. Cabe' }, { key: 'jumlah', label: 'Jumlah', placeholder: 'mis. 2 pot' }]}
+                empty={{ kategori: 'Warung Hidup', komoditi: '', jumlah: '' }} />
             )}
             {S.key === 'irt' && (
-              <ItemEditor
-                rows={d.irt}
-                onChange={(r) => set('irt', r)}
-                cols={[
-                  { key: 'kategori', label: 'Kategori', options: P.kategoriIRT },
-                  { key: 'komoditi', label: 'Komoditi', placeholder: 'mis. Pembuatan Kue' },
-                  { key: 'volume', label: 'Volume', placeholder: 'mis. 20 pcs per hari' },
-                ]}
-                empty={{ kategori: 'Pangan / Catering', komoditi: '', volume: '' }}
-              />
+              <ItemEditor rows={d.irt} onChange={(r) => set('irt', r)}
+                cols={[{ key: 'kategori', label: 'Kategori', options: P.kategoriIRT }, { key: 'komoditi', label: 'Komoditi', placeholder: 'mis. Pembuatan Kue' }, { key: 'volume', label: 'Volume', placeholder: 'mis. 20 pcs per hari' }]}
+                empty={{ kategori: 'Pangan / Catering', komoditi: '', volume: '' }} />
             )}
             {S.key === 'tag' && (
               <>
@@ -274,7 +287,7 @@ export function ItemEditor<T extends Record<string, string>>({ rows, onChange, c
     <div className="space-y-2 sm:col-span-2">
       {rows.length === 0 && <div className="rounded-xl border-2 border-dashed border-slate-200 p-6 text-center text-sm text-slate-400 dark:border-white/10">Belum ada item</div>}
       {rows.map((r, i) => (
-        <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl bg-slate-50 p-2 dark:bg-white/5 sm:grid-cols-[1fr_1fr_1fr_auto]">
+        <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 gap-2 rounded-xl bg-slate-50 p-2 dark:bg-white/5 sm:grid-cols-[1fr_1fr_1fr_auto]">
           {cols.map((c) =>
             c.options ? (
               <Select key={c.key} options={c.options} value={r[c.key]} allowCustom onChange={(v) => onChange(rows.map((x, j) => (j === i ? { ...x, [c.key]: v } : x)))} />
@@ -282,10 +295,12 @@ export function ItemEditor<T extends Record<string, string>>({ rows, onChange, c
               <Input key={c.key} placeholder={c.placeholder ?? c.label} value={r[c.key]} onChange={(e) => onChange(rows.map((x, j) => (j === i ? { ...x, [c.key]: e.target.value } : x)))} />
             ),
           )}
-          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="row-start-1 grid h-10 w-10 place-items-center rounded-xl text-red-500 hover:bg-red-50 sm:row-auto" aria-label="Hapus item"><Trash2 size={16} /></button>
+          <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} className="grid h-10 w-full place-items-center rounded-xl text-red-500 hover:bg-red-50 sm:w-10" aria-label="Hapus item"><Trash2 size={16} /></button>
         </motion.div>
       ))}
       <Button variant="soft" icon={Plus} onClick={() => onChange([...rows, { ...empty }])}>Tambah item</Button>
     </div>
   )
 }
+
+export { isKepala }

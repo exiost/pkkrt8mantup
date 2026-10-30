@@ -1,4 +1,4 @@
-import type { Warga, Settings } from './types'
+import type { Keluarga, Settings, Warga } from './types'
 
 /** Umur dalam tahun penuh pada tanggal acuan (setara DATEDIF(...,"Y")). null jika lahir setelah acuan / kosong. */
 export function hitungUmur(tglLahir: string, acuan: string): number | null {
@@ -12,7 +12,7 @@ export function hitungUmur(tglLahir: string, acuan: string): number | null {
   return u
 }
 
-/** Umur dalam bulan penuh (untuk balita 1 - <2 th dsb.). */
+/** Umur dalam bulan penuh. */
 export function hitungUmurBulan(tglLahir: string, acuan: string): number | null {
   if (!tglLahir) return null
   const l = new Date(tglLahir + 'T00:00:00')
@@ -25,23 +25,24 @@ export function hitungUmurBulan(tglLahir: string, acuan: string): number | null 
 
 export const aktif = (w: Warga) => !w.deletedAt && w.statusWarga === 'Aktif'
 export const isKepala = (w: Warga) => /kepala/i.test(w.statusKeluarga)
+export const isYa = (v: string | undefined) => (v ?? '').trim().toLowerCase() === 'ya'
 
-/** R2 — Penduduk 15–59 th yang ikut PKK */
+/** AD — Penduduk 15–59 th (ikut PKK) */
 export function isPenduduk1559(w: Warga, acuan: string) {
   const u = hitungUmur(w.tglLahir, acuan)
   return u !== null && u >= 15 && u <= 59 && w.ikutPKK
 }
 
-/** R3 — WUS: perempuan 15–49 th, ikut PKK */
+/** AE — WUS: perempuan 15–49 th, ikut PKK */
 export function isWUS(w: Warga, acuan: string) {
   const u = hitungUmur(w.tglLahir, acuan)
   return w.jk === 'P' && u !== null && u >= 15 && u <= 49 && w.ikutPKK
 }
 
-/** R4 — PUS: istri, kawin tercatat, umur ≤ 49, ikut PKK */
+/** AF — PUS: istri, kawin tercatat, umur ≤ 49, ikut PKK */
 export function isPUS(w: Warga, acuan: string) {
   const u = hitungUmur(w.tglLahir, acuan)
-  return /istri/i.test(w.statusKeluarga) && w.statusKawin === 'Kawin Tercatat' && u !== null && u <= 49 && w.ikutPKK
+  return /^istri$/i.test(w.statusKeluarga.trim()) && w.statusKawin === 'Kawin Tercatat' && u !== null && u <= 49 && w.ikutPKK
 }
 
 export function kelompokUmurPUS(u: number | null): '<15' | '15-19' | '20-34' | '35-49' | null {
@@ -53,17 +54,19 @@ export function kelompokUmurPUS(u: number | null): '<15' | '15-19' | '20-34' | '
   return null
 }
 
+/** Balita: lahir setelah (acuan − 5 tahun) dan ≤ acuan */
 export function isBalita(w: Warga, acuan: string, s: Pick<Settings, 'umurBalita'>) {
   const u = hitungUmur(w.tglLahir, acuan)
   return u !== null && u < s.umurBalita
 }
 
+/** Lansia: di Excel = umur ≥ 50 (EDATE(acuan, -600)) */
 export function isLansia(w: Warga, acuan: string, s: Pick<Settings, 'umurLansia'>) {
   const u = hitungUmur(w.tglLahir, acuan)
   return u !== null && u >= s.umurLansia
 }
 
-/** R7 — status ibu untuk tampilan (prioritas Hamil > Melahirkan > Nifas > Menyusui) */
+/** Status ibu untuk tampilan (prioritas Hamil > Melahirkan > Nifas > Menyusui) */
 export function statusIbu(w: Warga): string {
   if (w.hamil) return 'Hamil'
   if (w.melahirkan) return 'Melahirkan'
@@ -72,23 +75,32 @@ export function statusIbu(w: Warga): string {
   return ''
 }
 
-/** R6 — nama suami = kepala keluarga laki-laki / suami dalam KK yang sama */
-export function namaSuami(w: Warga, semua: Warga[]): string {
-  if (!w.noKK) return ''
-  const kk = semua.filter((x) => x.noKK === w.noKK && x.id !== w.id && !x.deletedAt)
-  const s = kk.find((x) => /suami/i.test(x.statusKeluarga)) ?? kk.find((x) => isKepala(x) && x.jk === 'L')
-  return s?.nama ?? ''
+/** Anggota satu keluarga (ID keluarga sama), urut seperti di DATA WARGA */
+export function anggotaKeluarga(keluargaId: string, semua: Warga[]): Warga[] {
+  return semua.filter((x) => x.keluargaId === keluargaId && !x.deletedAt).sort((a, b) => a.urut - b.urut)
 }
 
-/** R11 — pemetaan pendidikan ke kelompok Kampung KB */
-export function kelompokPendidikan(p: string): string {
-  const s = p.toLowerCase()
-  if (!s || s.includes('tidak / belum')) return 'TDK SEKOLAH'
-  if (s.includes('belum tamat sd')) return 'TIDAK LULUS SD'
-  if (s.includes('sd')) return 'SD'
-  if (s.includes('sltp')) return 'SLTP'
-  if (s.includes('slta')) return 'SLTA'
-  return 'PERGURUAN TINGGI'
+export function kepalaKeluarga(keluargaId: string, semua: Warga[]): Warga | undefined {
+  const a = anggotaKeluarga(keluargaId, semua)
+  return a.find(isKepala) ?? a[0]
+}
+
+/** Nama suami = kepala keluarga dalam keluarga yang sama (rumus LOOKUP kepala terdekat di atas) */
+export function namaSuami(w: Warga, semua: Warga[]): string {
+  if (!w.keluargaId) return ''
+  const k = anggotaKeluarga(w.keluargaId, semua).find(isKepala)
+  return k && k.id !== w.id ? k.nama : (k ? '-' : '-')
+}
+
+/** Jumlah KK dalam satu keluarga = 1, jadi 2 jika ada anggota dengan No KK berbeda (rumus E13 "Data Keluarga") */
+export function jumlahKK(anggota: Warga[]): number {
+  if (!anggota.length) return 0
+  const first = anggota[0].noKK
+  return 1 + (anggota.slice(1).some((w) => w.noKK !== first) ? 1 : 0)
+}
+
+export function keluargaOf(w: Warga, keluarga: Keluarga[]): Keluarga | undefined {
+  return keluarga.find((k) => k.id === w.keluargaId && !k.deletedAt)
 }
 
 /** Ekstrak saran tanggal lahir & JK dari NIK (digit 7–12: DDMMYY, perempuan DD+40). */

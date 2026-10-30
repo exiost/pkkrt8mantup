@@ -33,24 +33,28 @@ export default function DataPage() {
     if (!hasil) return
     if (mode === 'ganti' && st.warga.some((w) => !w.deletedAt) && !(await confirm({ title: 'Ganti semua data?', message: 'Data warga, KK, dan kelahiran yang ada sekarang akan diganti dengan hasil impor. Sebaiknya unduh cadangan dulu.', danger: true, okText: 'Ganti' }))) return
     const now = new Date().toISOString()
-    const stamp = <T,>(x: T) => ({ ...x, createdAt: now, updatedAt: now }) as T & { createdAt: string; updatedAt: string }
     const dwsExisting = st.dasawisma.filter((d) => !d.deletedAt).map((d) => d.nama)
     const warnaBaru = ['teal', 'orange', 'violet', 'sky', 'lime', 'rose']
-    const dwsNew = hasil.dasawisma.filter((d) => !dwsExisting.includes(d)).map((nama, i) => stamp({ id: uid(), nama, ketua: '', warna: nama === 'Drupadi' ? 'slate' : warnaBaru[i % warnaBaru.length], deletedAt: null }))
-    const w = hasil.warga.map(stamp), k = hasil.keluarga.map(stamp), l = hasil.kelahiran.map(stamp)
-    const c: Partial<Collections> =
-      mode === 'ganti'
-        ? { warga: w, keluarga: k, kelahiran: l, dasawisma: [...st.dasawisma, ...dwsNew] }
-        : { warga: [...st.warga, ...w], keluarga: [...st.keluarga, ...k.filter((x) => !st.keluarga.some((y) => y.noKK === x.noKK))], kelahiran: [...st.kelahiran, ...l], dasawisma: [...st.dasawisma, ...dwsNew] }
+    const dwsNew = hasil.dasawisma.filter((d) => !dwsExisting.includes(d)).map((nama, i) => ({ id: uid(), nama, ketua: '', warna: nama === 'Drupadi' ? 'slate' : warnaBaru[i % warnaBaru.length], deletedAt: null, createdAt: now, updatedAt: now }))
+    const tambah = mode === 'tambah'
+    const maxOf = (xs: number[]) => xs.reduce((a, b) => (b > a ? b : a), 0)
+    const offNomor = tambah ? maxOf(st.keluarga.map((k) => k.nomor)) : 0
+    const offUrut = tambah ? maxOf(st.warga.map((w) => w.urut)) : 0
+    const offReg = tambah ? maxOf(st.warga.map((w) => w.noReg)) : 0
+    const w = hasil.warga.map((x) => ({ ...x, urut: x.urut + offUrut, noReg: x.noReg + offReg }))
+    const k = hasil.keluarga.map((x) => ({ ...x, nomor: x.nomor + offNomor }))
+    const c: Partial<Collections> = tambah
+      ? { warga: [...st.warga, ...w], keluarga: [...st.keluarga, ...k], kelahiran: [...st.kelahiran, ...hasil.kelahiran], kematian: [...st.kematian, ...hasil.kematian], dasawisma: [...st.dasawisma, ...dwsNew] }
+      : { warga: w, keluarga: k, kelahiran: hasil.kelahiran, kematian: hasil.kematian, dasawisma: [...st.dasawisma, ...dwsNew] }
     st.replaceAll(c)
-    toast.success(`Impor berhasil: ${w.length} warga, ${k.length} KK 🎉`)
+    toast.success(`Impor berhasil: ${w.length} warga, ${k.length} keluarga 🎉`)
     rayakan()
     setHasil(null)
   }
 
   function cadangan() {
     const s = useStore.getState()
-    const data = { versi: 1, dibuat: new Date().toISOString(), settings: s.settings, warga: s.warga, keluarga: s.keluarga, kelahiran: s.kelahiran, kematian: s.kematian, pesertaKB: s.pesertaKB, dasawisma: s.dasawisma, tags: s.tags, kampungKB: s.kampungKB, arsip: s.arsip }
+    const data = { versi: 2, dibuat: new Date().toISOString(), settings: s.settings, warga: s.warga, keluarga: s.keluarga, kelahiran: s.kelahiran, kematian: s.kematian, pesertaKB: s.pesertaKB, pusBaru: s.pusBaru, dasawisma: s.dasawisma, tags: s.tags, kampungKB: s.kampungKB, arsip: s.arsip }
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }))
     a.download = `cadangan-siwarga-${new Date().toISOString().slice(0, 10)}.json`
@@ -107,7 +111,7 @@ export default function DataPage() {
             <h3 className="mb-3 flex items-center gap-2 font-display text-lg font-bold"><CheckCircle2 className="text-emerald-500" /> Hasil pembacaan file</h3>
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatCard label="Warga" value={hasil.warga.length} icon={Users} color="indigo" />
-              <StatCard label="Kartu Keluarga" value={hasil.keluarga.length} icon={House} color="amber" i={1} />
+              <StatCard label="Keluarga" value={hasil.keluarga.length} icon={House} color="amber" i={1} />
               <StatCard label="Bayi lahir" value={hasil.kelahiran.length} icon={Baby} color="cyan" i={2} />
               <StatCard label="Peringatan" value={hasil.peringatan.length} icon={AlertTriangle} color="red" i={3} />
             </div>

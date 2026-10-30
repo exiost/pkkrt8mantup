@@ -4,24 +4,24 @@ type NoMeta<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
 
 export function blankWarga(): NoMeta<Warga> {
   return {
-    noKK: '', nik: '', nama: '', jk: 'L', tempatLahir: '', tglLahir: '', agama: 'Islam', pendidikan: '', pekerjaan: '',
-    golDarah: '', statusKawin: 'Belum Kawin', tglNikahCerai: '', statusKeluarga: 'Anak', statusWarga: 'Aktif', catatan: '',
-    dasawisma: '', alamat: 'Mantup RT 08', dusun: 'Mantup',
-    ikutPKK: true, jabatan: 'Anggota', ppp: true, kegiatanDiikuti: '', kerjaBakti: true, kerjaBaktiJenis: '',
-    rukunKematian: false, rukunKematianJenis: '', keagamaan: true, keagamaanJenis: '', jimpitan: false, arisan: false,
-    barkas: false, apotekHidup: false, jumantik: false,
-    kontrasepsi: '', riwayatSakit: '', posyandu: false, frekPosyandu: '', bkb: false, perencanaanSehat: false,
+    urut: 0, keluargaId: '', noReg: 0, noKK: '', nik: '', nama: '', jk: 'L', tempatLahir: '', tglLahir: '', agama: 'Islam',
+    pendidikan: '', pekerjaan: '', golDarah: '', statusKawin: 'Belum Kawin', tglNikahCerai: '', statusKeluarga: 'Anak',
+    statusWarga: 'Aktif', catatan: '',
+    dasawisma: '', alamat: 'Mantup RT 08', desa: 'Baturetno', kecamatan: 'Banguntapan', kabupaten: 'Bantul', provinsi: 'DIY', dusun: 'Mantup',
+    ikutPKK: true, jabatan: 'Anggota', ppp: 'Ya', kegiatanDiikuti: '', kerjaBakti: 'Ya', kerjaBaktiJenis: '',
+    rukunKematian: 'Tidak', rukunKematianJenis: '', keagamaan: 'Ya', keagamaanJenis: '', jimpitan: 'Tidak', arisan: 'Tidak',
+    barkas: 'Tidak', apotekHidup: 'Tidak', jumantik: 'Ya',
+    kontrasepsi: '', riwayatSakit: '', posyandu: 'Tidak', frekPosyandu: '', bkb: 'Tidak', perencanaanSehat: 'Ya',
     hamil: false, hamilKe: '', hpl: '', melahirkan: false, menyusui: false, nifas: false,
-    tigaButa: false, berkebutuhanKhusus: false, tabungan: false, kelompokBelajar: false, jenisKelompokBelajar: '',
-    paud: false, koperasi: false, jenisKoperasi: '', pendidikanKetrampilan: false, sandang: false, pangan: true,
+    tigaButa: false, berkebutuhanKhusus: '', tabungan: 'Ya', kelompokBelajar: 'Tidak', paket: [], paud: 'Tidak',
+    koperasi: 'Tidak', jenisKoperasi: '', pendidikanKetrampilan: 'Tidak', sandang: 'Ya', up2k: 'Tidak', jenisUp2k: '',
     pekarangan: [], irt: [], tags: [],
   }
 }
 
 export function blankKeluarga(): NoMeta<Keluarga> {
   return {
-    noKK: '', dasawisma: '', alamat: 'Mantup RT 08', sumberAir: 'Sumur', spal: true, kamarMandi: true, jumlahWC: '1',
-    mckSeptic: true, makananPokok: 'Beras', kriteriaRumah: 'Layak Huni', rumahSehat: 'Sehat', tps: true,
-    up2k: false, jenisUp2k: '', kesehatanLingkungan: true,
+    nomor: 0, sumberAir: 'Sumur', spal: 'Ya', kamarMandi: '1', jumlahWC: '1', makananPokok: 'Beras',
+    kriteriaRumah: 'Layak Huni', rumahSehat: 'Sehat', tps: 'Ada',
   }
 }

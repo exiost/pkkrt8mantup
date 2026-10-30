@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Baby, HeartCrack, ShieldCheck, Stethoscope, CalendarHeart } from 'lucide-react'
+import { Baby, HeartCrack, ShieldCheck, Stethoscope, CalendarHeart, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
@@ -8,7 +8,7 @@ import { Avatar, Card, Chip, Empty, Input, PageHeader, SearchBox, Segmented, Tog
 import { hariMenujuHPL, hitungUmur, isPUS, isWUS, namaSuami } from '@/lib/rules'
 import { todayISO } from '@/lib/format'
 
-type Tab = 'status' | 'kelahiran' | 'kematian' | 'kb'
+type Tab = 'status' | 'kelahiran' | 'kematian' | 'kb' | 'pus'
 
 export default function IbuAnak() {
   const [tab, setTab] = useState<Tab>('status')
@@ -27,6 +27,7 @@ export default function IbuAnak() {
           { value: 'kelahiran', label: 'Kelahiran', icon: Baby },
           { value: 'kematian', label: 'Kematian', icon: HeartCrack },
           { value: 'kb', label: 'Peserta KB Baru', icon: ShieldCheck },
+          { value: 'pus', label: 'PUS Baru/Pindah', icon: Users },
         ]} />
       </div>
       {tab === 'status' && <StatusIbu />}
@@ -47,7 +48,7 @@ export default function IbuAnak() {
             const ibu = warga.find((w) => w.nama === r.namaIbu)
             toast('Tambahkan bayi sebagai warga?', {
               description: ibu ? `Masuk ke KK ${ibu.nama}` : undefined,
-              action: { label: 'Tambahkan', onClick: () => openWarga(undefined, { nama: String(r.namaBayi), jk: r.jk as 'L' | 'P', tglLahir: String(r.tglLahir), noKK: ibu?.noKK ?? '', dasawisma: String(r.dasawisma || ibu?.dasawisma || ''), statusKeluarga: 'Anak', pendidikan: 'Tidak / Belum Sekolah', pekerjaan: 'Belum / Tidak Bekerja', agama: ibu?.agama ?? 'Islam' }) },
+              action: { label: 'Tambahkan', onClick: () => openWarga(undefined, { nama: String(r.namaBayi), jk: r.jk as 'L' | 'P', tglLahir: String(r.tglLahir), keluargaId: ibu?.keluargaId ?? '', noKK: ibu?.noKK ?? '', alamat: ibu?.alamat ?? '', dusun: ibu?.dusun ?? '', desa: ibu?.desa ?? '', kecamatan: ibu?.kecamatan ?? '', kabupaten: ibu?.kabupaten ?? '', provinsi: ibu?.provinsi ?? '', dasawisma: String(r.dasawisma || ibu?.dasawisma || ''), statusKeluarga: 'Anak', pendidikan: 'Tidak / Belum Sekolah', pekerjaan: 'Belum / Tidak Bekerja', agama: ibu?.agama ?? 'Islam' }) },
               duration: 10000,
             })
           }} />
@@ -70,6 +71,16 @@ export default function IbuAnak() {
               toast('Ubah status warga jadi "Meninggal"?', { action: { label: 'Ya', onClick: () => st.update('warga', w.id, { statusWarga: 'Meninggal' }, w.nama) } })
             }
           }} />
+      )}
+      {tab === 'pus' && (
+        <SimpleCrud koleksi="pusBaru" title="PUS Baru/Pindah" icon={Users} color="rose" labelOf={(r) => String(r.namaIstri)}
+          fields={[
+            { key: 'namaIstri', label: 'Nama Istri', required: true, suggestions: ibuNames },
+            { key: 'umur', label: 'Umur', type: 'number' },
+            { key: 'namaSuami', label: 'Nama Suami' },
+            { key: 'tanggal', label: 'Tanggal', type: 'date' },
+            { key: 'keterangan', label: 'Keterangan (baru / pindah dari / pindah ke)', full: true },
+          ]} />
       )}
       {tab === 'kb' && (
         <SimpleCrud koleksi="pesertaKB" title="Peserta KB Baru" icon={ShieldCheck} color="emerald" labelOf={(r) => String(r.namaIstri)} defaults={{ rt: st.settings.rt }}

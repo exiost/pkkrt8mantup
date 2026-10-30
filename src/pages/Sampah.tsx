@@ -6,10 +6,11 @@ import type { CollectionName } from '@/lib/types'
 
 const KOL: { k: CollectionName; label: string; icon: typeof Users; name: (r: Record<string, unknown>) => string }[] = [
   { k: 'warga', label: 'Warga', icon: Users, name: (r) => String(r.nama) },
-  { k: 'keluarga', label: 'Keluarga', icon: House, name: (r) => `KK ${r.noKK}` },
+  { k: 'keluarga', label: 'Keluarga', icon: House, name: (r) => `Keluarga ${r.nomor}` },
   { k: 'kelahiran', label: 'Kelahiran', icon: Baby, name: (r) => String(r.namaBayi) },
   { k: 'kematian', label: 'Kematian', icon: HeartCrack, name: (r) => String(r.nama) },
   { k: 'pesertaKB', label: 'Peserta KB', icon: ShieldCheck, name: (r) => String(r.namaIstri) },
+  { k: 'pusBaru', label: 'PUS Baru', icon: Users, name: (r) => String(r.namaIstri) },
   { k: 'dasawisma', label: 'Dasawisma', icon: Users, name: (r) => String(r.nama) },
   { k: 'tags', label: 'Tag', icon: Tags, name: (r) => String(r.nama) },
   { k: 'arsip', label: 'Arsip', icon: Archive, name: (r) => String(r.judul) },
@@ -36,7 +37,11 @@ export default function Sampah() {
               <div className="grid h-9 w-9 place-items-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/15"><c.icon size={16} /></div>
               <div className="min-w-0 flex-1"><div className="truncate font-semibold">{c.name(r)}</div><div className="text-xs text-slate-500">Dihapus {new Date(String(r.deletedAt)).toLocaleString('id-ID')}</div></div>
               <Chip>{c.label}</Chip>
-              <Button size="sm" variant="soft" icon={RotateCcw} onClick={() => { st.restore(c.k, String(r.id), c.name(r)); toast.success(`${c.name(r)} dipulihkan`) }}>Pulihkan</Button>
+              <Button size="sm" variant="soft" icon={RotateCcw} onClick={() => {
+                st.restore(c.k, String(r.id), c.name(r))
+                if (c.k === 'warga') { const fam = st.keluarga.find((f) => f.id === r.keluargaId && f.deletedAt); if (fam) st.restore('keluarga', fam.id) }
+                toast.success(`${c.name(r)} dipulihkan`)
+              }}>Pulihkan</Button>
               <Button size="sm" variant="ghost" icon={Trash2} className="text-red-500" onClick={async () => {
                 if (await confirm({ title: 'Hapus permanen?', message: c.name(r), danger: true, okText: 'Hapus' })) st.purge(c.k, String(r.id), c.name(r))
               }}>Permanen</Button>

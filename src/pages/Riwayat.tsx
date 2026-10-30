@@ -3,7 +3,7 @@ import { useStore } from '@/lib/store'
 import { Card, Chip, Empty, PageHeader } from '@/components/ui'
 
 const WARNA: Record<string, string> = { Tambah: 'emerald', Ubah: 'sky', Hapus: 'red', Pulihkan: 'violet', 'Hapus Permanen': 'rose' }
-const NAMA: Record<string, string> = { warga: 'Warga', keluarga: 'Keluarga', kelahiran: 'Kelahiran', kematian: 'Kematian', pesertaKB: 'Peserta KB', dasawisma: 'Dasawisma', tags: 'Tag', kampungKB: 'Kampung KB', arsip: 'Arsip' }
+const NAMA: Record<string, string> = { warga: 'Warga', keluarga: 'Keluarga', kelahiran: 'Kelahiran', kematian: 'Kematian', pesertaKB: 'Peserta KB', pusBaru: 'PUS Baru', dasawisma: 'Dasawisma', tags: 'Tag', kampungKB: 'Kampung KB', arsip: 'Arsip' }
 
 export default function Riwayat() {
   const audit = useStore((s) => s.audit).slice(0, 300)

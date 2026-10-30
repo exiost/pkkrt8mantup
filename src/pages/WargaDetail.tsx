@@ -8,6 +8,7 @@ import { Avatar, Button, Card, Empty, Section, useConfirm, Chip } from '@/compon
 import { TagList } from '@/lib/tags'
 import { hitungUmur, statusIbu } from '@/lib/rules'
 import { maskNIK, tglIndo, todayISO, yt } from '@/lib/format'
+import { anggotaKeluarga, keluargaOf } from '@/lib/rules'
 import { hapusDenganUndo } from '@/lib/crud'
 
 function KV({ k, v }: { k: string; v: ReactNode }) {
@@ -33,8 +34,8 @@ export default function WargaDetail() {
   if (!w) return <Card><Empty title="Warga tidak ditemukan" action={<Button onClick={() => nav('/warga')}>Kembali</Button>} /></Card>
   const acuan = todayISO()
   const umur = hitungUmur(w.tglLahir, acuan)
-  const anggota = semua.filter((x) => x.noKK && x.noKK === w.noKK && x.id !== w.id)
-  const kk = useStore.getState().keluarga.find((k) => k.noKK === w.noKK && !k.deletedAt)
+  const anggota = anggotaKeluarga(w.keluargaId, semua).filter((x) => x.id !== w.id)
+  const kk = keluargaOf(w, useStore.getState().keluarga)
 
   return (
     <div>
@@ -73,32 +74,33 @@ export default function WargaDetail() {
           <KV k="Pekerjaan" v={w.pekerjaan} />
           <KV k="Gol. Darah" v={w.golDarah} />
           <KV k="Status Kawin" v={w.statusKawin} />
-          <KV k="Alamat" v={w.alamat} />
+          <KV k="Alamat" v={[w.alamat, w.desa, w.kecamatan, w.kabupaten, w.provinsi].filter(Boolean).join(', ')} />
         </Section>
         <Section title="Kegiatan PKK & Warga" icon={Users} color="violet">
           <KV k="Ikut PKK" v={yt(w.ikutPKK)} />
+          <KV k="No Registrasi" v={String(w.noReg)} />
           <KV k="Jabatan" v={w.jabatan} />
-          <KV k="Penghayatan Pancasila" v={yt(w.ppp)} />
-          <KV k="Kerja Bakti" v={w.kerjaBakti ? w.kerjaBaktiJenis || 'Ya' : 'Tidak'} />
-          <KV k="Keagamaan" v={w.keagamaan ? w.keagamaanJenis || 'Ya' : 'Tidak'} />
-          <KV k="Rukun Kematian" v={yt(w.rukunKematian)} />
-          <KV k="Jimpitan / Arisan" v={`${yt(w.jimpitan)} / ${yt(w.arisan)}`} />
-          <KV k="Barkas / Apotek Hidup" v={`${yt(w.barkas)} / ${yt(w.apotekHidup)}`} />
+          <KV k="Penghayatan Pancasila" v={w.ppp} />
+          <KV k="Kerja Bakti" v={[w.kerjaBakti, w.kerjaBaktiJenis].filter(Boolean).join(' · ')} />
+          <KV k="Keagamaan" v={[w.keagamaan, w.keagamaanJenis].filter(Boolean).join(' · ')} />
+          <KV k="Rukun Kematian" v={w.rukunKematian} />
+          <KV k="Jimpitan / Arisan" v={`${w.jimpitan || '-'} / ${w.arisan || '-'}`} />
+          <KV k="Barkas / Apotek Hidup" v={`${w.barkas || '-'} / ${w.apotekHidup || '-'}`} />
           <KV k="Kegiatan diikuti" v={w.kegiatanDiikuti} />
         </Section>
         <Section title="Kesehatan, KB & Ibu" icon={HeartPulse} color="red">
           <KV k="Kontrasepsi" v={w.kontrasepsi} />
           <KV k="Riwayat Sakit" v={w.riwayatSakit} />
-          <KV k="Posyandu" v={w.posyandu ? `Ya (${w.frekPosyandu || '-'}x/bln)` : 'Tidak'} />
-          <KV k="BKB" v={yt(w.bkb)} />
+          <KV k="Posyandu" v={w.posyandu ? `${w.posyandu}${w.posyandu === 'Ya' ? ` (${w.frekPosyandu || '-'}x/bln)` : ''}` : ''} />
+          <KV k="BKB" v={w.bkb} />
           <KV k="Status Ibu" v={statusIbu(w)} />
           {w.hamil && <KV k="Hamil ke / HPL" v={`${w.hamilKe || '-'} / ${tglIndo(w.hpl)}`} />}
-          <KV k="Tabungan / Koperasi" v={`${yt(w.tabungan)} / ${w.koperasi ? w.jenisKoperasi || 'Ya' : 'Tidak'}`} />
-          <KV k="Kelompok Belajar / PAUD" v={`${w.kelompokBelajar ? w.jenisKelompokBelajar || 'Ya' : 'Tidak'} / ${yt(w.paud)}`} />
+          <KV k="Tabungan / Koperasi" v={`${w.tabungan || '-'} / ${w.koperasi || '-'}${w.jenisKoperasi ? ` (${w.jenisKoperasi})` : ''}`} />
+          <KV k="Kelompok Belajar / PAUD" v={`${w.kelompokBelajar || '-'}${w.paket.length ? ` (${w.paket.join(', ')})` : ''} / ${w.paud || '-'}`} />
         </Section>
 
-        <Section title={`Anggota Keluarga (${anggota.length + 1})`} icon={House} color="amber" actions={kk && <Link to={`/keluarga/${kk.id}`} className="text-xs font-semibold text-amber-600 hover:underline">Lihat KK →</Link>}>
-          {anggota.length === 0 && <p className="text-sm text-slate-400">Tidak ada anggota lain dengan No KK sama.</p>}
+        <Section title={`Anggota Keluarga (${anggota.length + 1})`} icon={House} color="amber" actions={kk && <Link to={`/keluarga/${kk.id}`} className="text-xs font-semibold text-amber-600 hover:underline">Lihat keluarga →</Link>}>
+          {anggota.length === 0 && <p className="text-sm text-slate-400">Tidak ada anggota lain dalam keluarga ini.</p>}
           {anggota.map((a) => (
             <Link key={a.id} to={`/warga/${a.id}`} className="flex items-center gap-3 rounded-xl p-2 hover:bg-amber-50 dark:hover:bg-white/5">
               <Avatar nama={a.nama} jk={a.jk} />
