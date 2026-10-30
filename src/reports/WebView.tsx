@@ -42,6 +42,8 @@ function analyse(tplId: string, page: PageSpec) {
     const bc = r.c.filter((c) => bordered(c.s))
     if (bc.length < 2) return false
     if (bc.some((c) => (c.rs ?? 1) > 1 && c.v !== undefined)) return true
+    // baris bergaris selebar tabel (hampir semua kolom) = bagian header tabel
+    if (bc.reduce((a, c) => a + (c.cs ?? 1), 0) >= tpl.cols.length * 0.6) return true
     if (bc.some((c) => STYLES[c.s].b)) return bc.filter((c) => STYLES[c.s].b || c.v === undefined).length >= 2
     // baris kosong bergaris / baris nomor kolom (1, 2, 3 …) di bawah header
     return bc.every((c) => c.v === undefined || /^\(?\d+\)?$/.test(String(c.v).trim()))
@@ -63,7 +65,8 @@ function analyse(tplId: string, page: PageSpec) {
     const span = rowsIn(cursor, reg.start - 1)
     // header tabel = deretan baris bergaris yang menempel tepat di atas data (bukan kotak isian di bagian atas formulir)
     let hs = span.length
-    while (hs > 0 && rowBordered(span[hs - 1])) hs--
+    const isNumRow = (r: Tpl['rows'][number]) => { const bc = r.c.filter((c) => bordered(c.s) && c.v !== undefined); return bc.length >= 2 && bc.every((c) => /^\(?\d+\)?$/.test(String(c.v).trim())) }
+    while (hs > 0 && (rowBordered(span[hs - 1]) || (hs < span.length && isNumRow(span[hs]) && span[hs - 1].c.filter((c) => bordered(c.s)).length >= 2))) hs--
     const headerRows = span.slice(hs)
     const topRows = span.slice(0, hs)
     const heading: string[] = []
