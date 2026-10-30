@@ -8,7 +8,8 @@ bukaBrowser() { (xdg-open "$URL" || open "$URL") >/dev/null 2>&1 || true; }
 # Kalau sudah berjalan, cukup buka browser
 if curl -fs -m 2 "$URL/api/health" >/dev/null 2>&1; then echo "SIWARGA PKK sudah berjalan. Membuka browser..."; bukaBrowser; exit 0; fi
 [ -d node_modules ] || npm install
-[ -d dist ] || npm run build
+echo 'Membangun aplikasi versi terbaru...'
+npm run build
 echo "Server berjalan: http://localhost:3000"
 (sleep 3; bukaBrowser) &
 exec node --disable-warning=ExperimentalWarning server/index.mjs

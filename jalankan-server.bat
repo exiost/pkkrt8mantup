@@ -18,9 +18,12 @@ if not exist node_modules (
   echo Memasang paket ^(hanya sekali, perlu internet^)...
   call npm install
 )
-if not exist dist (
-  echo Membangun aplikasi ^(hanya sekali^)...
-  call npm run build
+echo Membangun aplikasi versi terbaru ^(sekitar 10-30 detik^)...
+call npm run build
+if errorlevel 1 (
+  echo Gagal membangun aplikasi.
+  pause
+  exit /b 1
 )
 echo.
 echo Server berjalan. Buka di browser: http://localhost:3000
