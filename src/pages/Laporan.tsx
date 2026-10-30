@@ -92,7 +92,7 @@ function ReportView({ slug }: { slug: string }) {
   const kunci = settings.kunci
   const pe: ReportParams = useMemo(() => (viewer && kunci?.aktif ? { ...p, acuan: kunci.acuan, bulan: kunci.bulan, bulanSampai: kunci.bulanSampai ?? 11, tahun: kunci.tahun } : p), [viewer, kunci, p])
   const periode = ymOf(pe.tahun, pe.bulan)
-  const ym = def.uses.includes('bulan') || def.uses.includes('tahun') ? periode : def.uses.includes('acuan') ? pe.acuan.slice(0, 7) : periode
+  const ym = def.uses.includes('bulan') ? periode : def.uses.includes('acuan') ? pe.acuan.slice(0, 7) : periode
   const ctx: Ctx = useMemo(
     () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, pe, o, ym),
     [pe, o, ym, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],

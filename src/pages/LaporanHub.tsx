@@ -16,8 +16,8 @@ export default function LaporanHub() {
     try { localStorage.setItem(FAV_KEY, JSON.stringify(n)) } catch { /* abaikan */ }
   }
   const groups: [string, typeof REPORTS][] = [
-    ...(fav.length ? [['⭐ Favorit', REPORTS.filter((r) => fav.includes(r.slug))] as [string, typeof REPORTS]] : []),
-    ...REPORT_GROUPS.map((g) => [g, REPORTS.filter((r) => r.group === g)] as [string, typeof REPORTS]),
+    ...(fav.length ? [['⭐ Favorit', REPORTS.filter((r) => !r.hidden && fav.includes(r.slug))] as [string, typeof REPORTS]] : []),
+    ...REPORT_GROUPS.map((g) => [g, REPORTS.filter((r) => !r.hidden && r.group === g)] as [string, typeof REPORTS]),
   ]
   let i = 0
   return (

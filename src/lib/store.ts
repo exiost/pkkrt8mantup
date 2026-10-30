@@ -4,6 +4,7 @@ import { COLLECTION_NAMES, type AuditEntry, type CollectionName, type Collection
 import { DEFAULT_PILIHAN } from './options'
 import { uid } from './format'
 import { blankKeluarga } from './factories'
+import { selarasRiwayat } from './rules'
 
 type Rec<K extends CollectionName> = Collections[K][number]
 type NewRec<K extends CollectionName> = Omit<Rec<K>, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
@@ -117,6 +118,10 @@ export const useStore = create<State>()(
           [k]: (s[k] as Rec<typeof k>[]).map((r) => {
             if (r.id !== id) return r
             next = { ...r, ...patch, updatedAt: now() }
+            // saklar status ibu berubah → selaraskan catatan bulan ini (riwayat untuk laporan)
+            if (k === 'warga' && ['hamil', 'melahirkan', 'nifas', 'menyusui'].some((x) => x in (patch as object)) && !('riwayatIbu' in (patch as object))) {
+              ;(next as unknown as Warga).riwayatIbu = selarasRiwayat(next as unknown as Warga)
+            }
             return next
           }),
         }) as Partial<State>)

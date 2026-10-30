@@ -35,6 +35,7 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
       if (p === null) return rest
       const old = cur.find((r) => r.bulan === ym)
       const next: RiwayatIbu = { bulan: ym, status: 'Hamil', ...old, ...p }
+      if (p.status) delete next.juga
       if (next.status !== 'Melahirkan') { delete next.cara; delete next.tetapHamil }
       if (next.status === 'Melahirkan' && p.cara === 'SC' && old?.cara !== 'SC') next.tetapHamil = true
       return [...rest, next].sort((a, b) => a.bulan.localeCompare(b.bulan))
@@ -47,7 +48,7 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
     const patch: Partial<Warga> = { riwayatIbu: rows }
     // samakan saklar status ibu dengan catatan bulan ini (bila ada), supaya kartu & penanda tetap cocok
     const e = rows.find((r) => r.bulan === ymOf(now.getFullYear(), now.getMonth()))
-    if (e) Object.assign(patch, { hamil: e.status === 'Hamil', melahirkan: e.status === 'Melahirkan', nifas: e.status === 'Nifas', menyusui: e.status === 'Menyusui' })
+    if (e) { const semua = [e.status, ...(e.juga ?? [])]; Object.assign(patch, { hamil: semua.includes('Hamil'), melahirkan: semua.includes('Melahirkan'), nifas: semua.includes('Nifas'), menyusui: semua.includes('Menyusui') }) }
     st.update('warga', w.id, patch, w.nama)
     toast.success('Catatan bulanan ibu disimpan 🤰')
     onClose()

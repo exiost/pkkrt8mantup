@@ -106,10 +106,10 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
   const res = useMemo(() => {
     const s = q.toLowerCase().trim()
     const menu = menuBoleh(peran)
-    if (!s) return { w: [], r: REPORTS.slice(0, 6), n: menu.slice(0, 5) }
+    if (!s) return { w: [], r: REPORTS.filter((r) => !r.hidden).slice(0, 6), n: menu.slice(0, 5) }
     return {
       w: peran === 'viewer' ? [] : warga.filter((w) => w.nama.toLowerCase().includes(s) || w.nik.includes(s) || w.noKK.includes(s)).slice(0, 8),
-      r: REPORTS.filter((r) => r.title.toLowerCase().includes(s) || r.sheet.toLowerCase().includes(s)),
+      r: REPORTS.filter((r) => !r.hidden && r.title.toLowerCase().includes(s) || r.sheet.toLowerCase().includes(s)),
       n: menu.filter((n) => n.label.toLowerCase().includes(s)),
     }
   }, [q, warga, peran])

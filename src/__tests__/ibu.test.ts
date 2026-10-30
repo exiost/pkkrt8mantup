@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { statusIbuPada, ymOf } from '@/lib/rules'
+import { selarasRiwayat, statusIbuPada, ymOf } from '@/lib/rules'
 import { blankWarga } from '@/lib/factories'
 import type { Warga } from '@/lib/types'
 
@@ -7,7 +7,7 @@ const w = (p: Partial<Warga>): Warga => ({ ...blankWarga(), id: 'x', createdAt: 
 
 describe('status ibu per bulan (kasus melahirkan SC)', () => {
   const sc = w({
-    hamil: false, nifas: true,
+    hamil: false, nifas: false,
     riwayatIbu: [
       ...[1, 2, 3, 4, 5, 6, 7].map((m) => ({ bulan: `2026-${String(m).padStart(2, '0')}`, status: 'Hamil' as const })),
       { bulan: '2026-08', status: 'Melahirkan' as const, cara: 'SC' as const, tetapHamil: true },
@@ -48,5 +48,24 @@ describe('rekap rentang bulan / tahunan', () => {
   it('hanya rentang yang dipilih', () => {
     expect(statusIbuPada(ibu, '2026-01~2026-07')).toEqual({ hamil: true, melahirkan: false, nifas: false, menyusui: false })
     expect(statusIbuPada(ibu, '2026-09~2026-10')).toEqual({ hamil: false, melahirkan: false, nifas: true, menyusui: false })
+  })
+})
+
+describe('saklar status ibu ↔ laporan', () => {
+  const now = ymOf(new Date().getFullYear(), new Date().getMonth())
+  it('bulan ini selalu mengikuti saklar, walau ibu punya catatan bulan lain', () => {
+    const x = w({ hamil: true, menyusui: true, riwayatIbu: [{ bulan: '2020-01', status: 'Hamil' }] })
+    expect(statusIbuPada(x, now)).toMatchObject({ hamil: true, menyusui: true })
+  })
+  it('mengubah saklar menyelaraskan catatan bulan ini', () => {
+    const x = w({ hamil: true, menyusui: true })
+    const r = selarasRiwayat(x)
+    expect(r).toEqual([{ bulan: now, status: 'Hamil', juga: ['Menyusui'] }])
+    expect(selarasRiwayat({ ...x, riwayatIbu: r, hamil: false, menyusui: false } as Warga)).toEqual([])
+  })
+  it('rentang yang memuat bulan ini ikut saklar', () => {
+    const x = w({ menyusui: true, riwayatIbu: [{ bulan: '2020-01', status: 'Hamil' }] })
+    const y = new Date().getFullYear()
+    expect(statusIbuPada(x, `${y}-01~${y}-12`).menyusui).toBe(true)
   })
 })

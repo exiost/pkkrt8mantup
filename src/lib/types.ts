@@ -188,6 +188,8 @@ export interface RiwayatIbu {
   /** YYYY-MM */
   bulan: string
   status: StatusIbuLapor
+  /** status lain yang berlangsung bersamaan di bulan yang sama (mis. nifas + menyusui) */
+  juga?: StatusIbuLapor[]
   /** cara melahirkan (diisi bila status Melahirkan) */
   cara?: 'Normal' | 'SC' | 'Lainnya'
   /** laporan tahunan: bulan ini tetap ditulis "Hamil" walau sudah melahirkan (mis. SC) */

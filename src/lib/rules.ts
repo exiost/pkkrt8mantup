@@ -1,4 +1,4 @@
-import type { Keluarga, Settings, Warga } from './types'
+import type { Keluarga, RiwayatIbu, Settings, StatusIbuLapor, Warga } from './types'
 
 /** Umur dalam tahun penuh pada tanggal acuan (setara DATEDIF(...,"Y")). null jika lahir setelah acuan / kosong. */
 export function hitungUmur(tglLahir: string, acuan: string): number | null {
@@ -80,36 +80,69 @@ export const ymOf = (tahun: number, bulan: number) => `${tahun}-${String(bulan +
 
 export interface FlagIbu { hamil: boolean; melahirkan: boolean; nifas: boolean; menyusui: boolean }
 
+const KUNCI_IBU: [keyof FlagIbu, StatusIbuLapor][] = [['hamil', 'Hamil'], ['melahirkan', 'Melahirkan'], ['nifas', 'Nifas'], ['menyusui', 'Menyusui']]
+const flagsOf = (w: Warga): FlagIbu => ({ hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui })
+const ymSekarang = () => { const d = new Date(); return ymOf(d.getFullYear(), d.getMonth()) }
+
+function dariEntri(e: RiwayatIbu | undefined, o: FlagIbu, laporan: boolean) {
+  if (!e) return
+  const semua = [e.status, ...(e.juga ?? [])]
+  if (laporan && e.tetapHamil) { o.hamil = true; return }
+  for (const [k, s] of KUNCI_IBU) if (semua.includes(s)) o[k] = true
+  if (e.tetapHamil) o.hamil = true
+}
+
 /**
- * Status ibu yang DILAPORKAN pada bulan `ym` (YYYY-MM).
- * Bila ibu punya catatan per bulan, hanya catatan itu yang dipakai (bulan tanpa catatan = tidak dilaporkan,
- * dan "tetap hamil" membuat yang sudah melahirkan SC tetap tertulis Hamil). Tanpa catatan: pakai saklar biasa.
+ * Status ibu yang DILAPORKAN pada bulan `ym` (YYYY-MM), atau rentang "YYYY-MM~YYYY-MM".
+ * - Bulan ini (dan sesudahnya): mengikuti saklar di kartu ibu (selalu terbaru).
+ * - Bulan yang sudah lewat: memakai catatan bulanan ibu itu; bulan tanpa catatan tidak dilaporkan.
+ *   "Tetap dilaporkan Hamil" membuat yang sudah melahirkan (mis. SC) tetap tertulis Hamil.
+ * - Ibu tanpa catatan sama sekali: memakai saklar (sama seperti Excel).
  */
 export function statusIbuPada(w: Warga, ym: string): FlagIbu {
   const r = w.riwayatIbu
-  if (!r?.length) return { hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui }
+  if (!r?.length) return flagsOf(w)
   if (ym.includes('~')) { const [a, b] = ym.split('~'); return statusIbuRentang(w, a, b) }
+  const now = ymSekarang()
   const e = r.find((x) => x.bulan === ym)
-  const s = e ? (e.tetapHamil ? 'Hamil' : e.status) : ''
-  return { hamil: s === 'Hamil', melahirkan: s === 'Melahirkan', nifas: s === 'Nifas', menyusui: s === 'Menyusui' }
+  if (ym >= now) {
+    const o = flagsOf(w)
+    if (e?.tetapHamil && w.melahirkan) o.hamil = true
+    return o
+  }
+  const o: FlagIbu = { hamil: false, melahirkan: false, nifas: false, menyusui: false }
+  dariEntri(e, o, true)
+  return o
 }
 
 /**
  * Laporan RENTANG BULAN (mis. Januari–Desember = tahunan): seorang ibu dihitung di setiap status yang pernah
- * ia alami dalam rentang itu (hamil, melahirkan, nifas, menyusui bisa sekaligus). "Tetap dilaporkan hamil" ikut menghitung Hamil.
+ * ia alami dalam rentang itu (hamil, melahirkan, nifas, menyusui bisa sekaligus).
  */
 export function statusIbuRentang(w: Warga, dari: string, sampai: string): FlagIbu {
   const r = w.riwayatIbu
-  if (!r?.length) return { hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui }
+  if (!r?.length) return flagsOf(w)
   const o: FlagIbu = { hamil: false, melahirkan: false, nifas: false, menyusui: false }
-  for (const e of r) {
-    if (e.bulan < dari || e.bulan > sampai) continue
-    if (e.status === 'Hamil' || e.tetapHamil) o.hamil = true
-    if (e.status === 'Melahirkan') o.melahirkan = true
-    if (e.status === 'Nifas') o.nifas = true
-    if (e.status === 'Menyusui') o.menyusui = true
-  }
+  const now = ymSekarang()
+  for (const e of r) if (e.bulan >= dari && e.bulan <= sampai && e.bulan !== now) dariEntri(e, o, false)
+  if (dari <= now && now <= sampai) { const f = flagsOf(w); for (const [k] of KUNCI_IBU) if (f[k]) o[k] = true }
   return o
+}
+
+/**
+ * Menyelaraskan catatan bulan ini dengan saklar status ibu (dipanggil tiap saklar berubah),
+ * supaya bulan-bulan yang lewat otomatis tersimpan sebagai riwayat untuk laporan bulanan/tahunan.
+ */
+export function selarasRiwayat(w: Warga): RiwayatIbu[] {
+  const ym = ymSekarang()
+  const lama = w.riwayatIbu?.find((r) => r.bulan === ym)
+  const rest = (w.riwayatIbu ?? []).filter((r) => r.bulan !== ym)
+  const aktif = KUNCI_IBU.filter(([k]) => w[k]).map(([, s]) => s)
+  if (!aktif.length) return rest
+  const e: RiwayatIbu = { bulan: ym, status: aktif[0], ...(aktif.length > 1 ? { juga: aktif.slice(1) } : {}) }
+  if (lama?.catatan) e.catatan = lama.catatan
+  if (aktif.includes('Melahirkan') && lama) { if (lama.cara) e.cara = lama.cara; if (lama.tetapHamil) e.tetapHamil = true }
+  return [...rest, e].sort((a, b) => a.bulan.localeCompare(b.bulan))
 }
 
 /** Anggota satu keluarga (ID keluarga sama), urut seperti di DATA WARGA */
