@@ -1,6 +1,6 @@
 import { TEMPLATES, n, dt, type Val, type CellObj } from '@/sheet/engine'
 import { BULAN } from '@/lib/options'
-import { isBalita, isKepala, isLansia, isPUS, isWUS, namaSuami, statusIbuPada, ymOf } from '@/lib/rules'
+import { isBalita, isKepala, isLansia, isPUS, isWUS, namaSuami, statusIbuPada, ymOf, catatanIbu } from '@/lib/rules'
 import type { Keluarga, Warga } from '@/lib/types'
 import { type Builder, type Ctx, drill, has, inMonth, link, yes } from './common'
 
@@ -135,15 +135,21 @@ export const bIbuHamilDawis: Builder = (c) => {
     const status = c.ym.includes('~')
       ? [si.hamil && 'Hamil', si.melahirkan && 'Melahirkan', si.nifas && 'Nifas', si.menyusui && 'Menyusui'].filter(Boolean).join(', ')
       : si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : 'Melahirkan'
-    const base: Record<string, Val> = { B: link(w), C: namaSuami(w, c.warga), D: status }
+    const ket = catatanIbu(w, c.ym, BULAN)
+    const base: Record<string, Val> = { B: link(w), C: namaSuami(w, c.warga), D: status, ...(ket ? { Q: ket } : {}) }
     if (!babies.length) left.push(base)
-    babies.forEach((b) => left.push({ ...base, ...babyCols(b) }))
+    babies.forEach((b, i) => left.push({ ...base, ...(i > 0 ? { Q: undefined } : {}), ...babyCols(b) }))
   }
   for (const k of lahir) if (!used.has(k.id)) left.push({ B: k.namaIbu, C: k.namaSuami, D: 'Melahirkan', ...babyCols(k) })
   const right: Record<string, Val>[] = mati.map((m) => ({
     K: m.nama, L: m.kategori.toUpperCase(), M: m.jk === 'L' ? 'V' : '', N: m.jk === 'P' ? 'V' : '', O: dt(m.tgl), P: m.sebab, Q: m.keterangan,
   }))
-  const rows = Array.from({ length: Math.max(left.length, right.length) }, (_, i) => ({ ...(left[i] ?? {}), ...(right[i] ?? {}) }))
+  // kolom KET. (Q) dipakai bersama: catatan ibu (kiri) dan keterangan kematian (kanan) digabung bila sebaris
+  const rows = Array.from({ length: Math.max(left.length, right.length) }, (_, i) => {
+    const l = left[i] ?? {}, r = right[i] ?? {}
+    const q = [l.Q, r.Q].filter((x) => x !== undefined && x !== '').join(' · ')
+    return { ...l, ...r, ...(q ? { Q: q } : {}) }
+  })
   const cntL = lahir.filter((k) => k.jk === 'L').length, cntP = lahir.filter((k) => k.jk === 'P').length
   const values: Record<string, Val> = {
     L3: `: ${dawis || 'Semua'}`, A8: `BULAN : ${namaRentang(c)}`, A9: `TAHUN : ${c.p.tahun}`,

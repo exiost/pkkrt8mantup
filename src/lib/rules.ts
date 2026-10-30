@@ -128,6 +128,16 @@ export function statusIbuRentang(w: Warga, dari: string, sampai: string): FlagIb
   return o
 }
 
+/** Catatan bulanan (kolom Keterangan): satu bulan → teksnya; rentang bulan → "Jan: …; Feb: …" */
+export function catatanIbu(w: Warga, ym: string, namaBulan: string[]): string {
+  const r = w.riwayatIbu
+  if (!r?.length) return ''
+  if (!ym.includes('~')) return r.find((x) => x.bulan === ym)?.catatan?.trim() ?? ''
+  const [a, b] = ym.split('~')
+  const ada = r.filter((x) => x.bulan >= a && x.bulan <= b && x.catatan?.trim())
+  return ada.map((x) => (ada.length > 1 ? `${namaBulan[Number(x.bulan.slice(5)) - 1].slice(0, 3)}: ` : '') + x.catatan!.trim()).join('; ')
+}
+
 /**
  * Menyelaraskan catatan bulan ini dengan saklar status ibu (dipanggil tiap saklar berubah),
  * supaya bulan-bulan yang lewat otomatis tersimpan sebagai riwayat untuk laporan bulanan/tahunan.
