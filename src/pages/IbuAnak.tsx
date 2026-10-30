@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowUpWideNarrow, Baby, CalendarRange, Droplets, HeartCrack, HeartPulse, Milk, ShieldCheck, Stethoscope, CalendarHeart, Users } from 'lucide-react'
+import { AlertTriangle, ArrowUpWideNarrow, Baby, CalendarRange, Droplets, HeartCrack, HeartPulse, Milk, ShieldCheck, Stethoscope, CalendarHeart, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
@@ -128,6 +128,7 @@ function StatusIbu() {
   const [q, setQ] = useState('')
   const [semua, setSemua] = useState(false)
   const [riwayat, setRiwayat] = useState<Warga | null>(null)
+  const dws = useLive('dasawisma').map((d) => d.nama)
   const acuan = todayISO()
   const ym = acuan.slice(0, 7)
   const base = warga
@@ -169,6 +170,24 @@ function StatusIbu() {
                     </div>
                     {w.hamil && d !== null && <Chip color={d <= 30 ? 'red' : 'fuchsia'} pulse={d <= 30} icon={CalendarHeart}>HPL {d >= 0 ? `${d} hari lagi` : `lewat ${-d} hari`}</Chip>}
                   </div>
+                  {(!w.ikutPKK || !dws.includes(w.dasawisma)) && (
+                    <div className="mt-3 space-y-1.5 rounded-xl bg-amber-50 p-2 text-xs text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:ring-amber-500/30">
+                      {!w.ikutPKK && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AlertTriangle size={14} className="shrink-0" /> <span className="flex-1"><b>Tidak ikut PKK</b> — tidak ikut dihitung di laporan.</span>
+                          <Button size="sm" variant="outline" onClick={() => upd(w.id, w.nama, { ikutPKK: true })}>Ikutkan PKK</Button>
+                        </div>
+                      )}
+                      {!dws.includes(w.dasawisma) && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <AlertTriangle size={14} className="shrink-0" /> <span className="flex-1"><b>Dasawisma {w.dasawisma ? `“${w.dasawisma}” tidak terdaftar` : 'belum diisi'}</b> — tidak masuk rekap per dasawisma.</span>
+                          <select className="h-8 rounded-lg border border-amber-300 bg-white px-2 text-xs text-slate-800" value="" onChange={(e) => e.target.value && upd(w.id, w.nama, { dasawisma: e.target.value })}>
+                            <option value="">pilih dasawisma…</option>{dws.map((d) => <option key={d}>{d}</option>)}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {STATUS_KEYS.map((k) => {
                       const on = w[k.key]
