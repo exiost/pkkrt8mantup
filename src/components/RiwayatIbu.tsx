@@ -37,7 +37,6 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
       const next: RiwayatIbu = { bulan: ym, status: 'Hamil', ...old, ...p }
       if (p.status) delete next.juga
       if (next.status !== 'Melahirkan') { delete next.cara; delete next.tetapHamil }
-      if (next.status === 'Melahirkan' && p.cara === 'SC' && old?.cara !== 'SC') next.tetapHamil = true
       return [...rest, next].sort((a, b) => a.bulan.localeCompare(b.bulan))
     })
   }
@@ -52,7 +51,7 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
         const t = new Date(k.tglLahir + 'T00:00:00')
         const g = (n: number) => new Date(t.getFullYear(), t.getMonth() + n, 1)
         for (let n = -9; n < 0; n++) add(g(n), { status: 'Hamil' })
-        add(g(0), { status: 'Melahirkan', tetapHamil: true })
+        add(g(0), { status: 'Melahirkan' })
         add(g(1), { status: 'Nifas', juga: ['Menyusui'] })
         for (let n = 2; n <= 23; n++) if (ymOf(g(n).getFullYear(), g(n).getMonth()) <= nowYm) add(g(n), { status: 'Menyusui' })
       }
@@ -78,7 +77,7 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
       footer={<><Button variant="ghost" onClick={onClose}>Batal</Button><Button icon={Save} onClick={simpan}>Simpan</Button></>}>
       <div className="mb-3 flex items-start gap-2 rounded-xl bg-fuchsia-50 p-3 text-xs text-fuchsia-900 dark:bg-fuchsia-500/10 dark:text-fuchsia-100">
         <Info size={16} className="mt-0.5 shrink-0" />
-        <p>Setiap bulan punya catatannya sendiri. Laporan memakai catatan bulan yang dipilih. Bulan tanpa catatan tidak dilaporkan. Untuk persalinan <b>SC</b>, pilih <b>Melahirkan</b> → cara <b>SC</b>; kotak <b>“tetap dilaporkan Hamil”</b> akan tercentang agar laporan tahunan tetap menulis Hamil.</p>
+        <p>Setiap bulan punya catatannya sendiri. Laporan memakai catatan bulan yang dipilih. Bulan tanpa catatan tidak dilaporkan. Laporan satu bulan menampilkan status bulan itu apa adanya (Agustus = Melahirkan). Laporan <b>tahunan / rentang bulan</b> menghitung ibu di semua status yang dialami (Hamil Jan–Jul, Melahirkan Agustus, dst.). Centang <b>“hitung juga sebagai Hamil”</b> bila bulan melahirkan (mis. SC) harus ikut terhitung Hamil di laporan tahunan.</p>
       </div>
 
       {lahir.length > 0 && (
@@ -121,7 +120,7 @@ export default function RiwayatIbuModal({ w, onClose }: { w: Warga; onClose: () 
                   </select>
                   <label className="flex items-center gap-1.5 text-xs font-semibold">
                     <input type="checkbox" checked={!!r.tetapHamil} onChange={(e) => put(b, { tetapHamil: e.target.checked })} />
-                    tetap dilaporkan Hamil
+                    hitung juga sebagai Hamil di laporan tahunan
                   </label>
                 </>
               )}

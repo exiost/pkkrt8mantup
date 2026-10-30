@@ -84,19 +84,19 @@ const KUNCI_IBU: [keyof FlagIbu, StatusIbuLapor][] = [['hamil', 'Hamil'], ['mela
 const flagsOf = (w: Warga): FlagIbu => ({ hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui })
 const ymSekarang = () => { const d = new Date(); return ymOf(d.getFullYear(), d.getMonth()) }
 
-function dariEntri(e: RiwayatIbu | undefined, o: FlagIbu, laporan: boolean) {
+function dariEntri(e: RiwayatIbu | undefined, o: FlagIbu, pakaiTetapHamil: boolean) {
   if (!e) return
   const semua = [e.status, ...(e.juga ?? [])]
-  if (laporan && e.tetapHamil) { o.hamil = true; return }
   for (const [k, s] of KUNCI_IBU) if (semua.includes(s)) o[k] = true
-  if (e.tetapHamil) o.hamil = true
+  if (pakaiTetapHamil && e.tetapHamil) o.hamil = true
 }
 
 /**
  * Status ibu yang DILAPORKAN pada bulan `ym` (YYYY-MM), atau rentang "YYYY-MM~YYYY-MM".
  * - Bulan ini (dan sesudahnya): mengikuti saklar di kartu ibu (selalu terbaru).
  * - Bulan yang sudah lewat: memakai catatan bulanan ibu itu; bulan tanpa catatan tidak dilaporkan.
- *   "Tetap dilaporkan Hamil" membuat yang sudah melahirkan (mis. SC) tetap tertulis Hamil.
+ *   Laporan satu bulan menampilkan status sebenarnya bulan itu (Melahirkan tetap Melahirkan).
+ *   "Tetap dihitung Hamil" hanya berlaku di laporan rentang bulan/tahunan.
  * - Ibu tanpa catatan sama sekali: memakai saklar (sama seperti Excel).
  */
 export function statusIbuPada(w: Warga, ym: string): FlagIbu {
@@ -107,11 +107,10 @@ export function statusIbuPada(w: Warga, ym: string): FlagIbu {
   const e = r.find((x) => x.bulan === ym)
   if (ym >= now) {
     const o = flagsOf(w)
-    if (e?.tetapHamil && w.melahirkan) o.hamil = true
     return o
   }
   const o: FlagIbu = { hamil: false, melahirkan: false, nifas: false, menyusui: false }
-  dariEntri(e, o, true)
+  dariEntri(e, o, false)
   return o
 }
 
@@ -124,7 +123,7 @@ export function statusIbuRentang(w: Warga, dari: string, sampai: string): FlagIb
   if (!r?.length) return flagsOf(w)
   const o: FlagIbu = { hamil: false, melahirkan: false, nifas: false, menyusui: false }
   const now = ymSekarang()
-  for (const e of r) if (e.bulan >= dari && e.bulan <= sampai && e.bulan !== now) dariEntri(e, o, false)
+  for (const e of r) if (e.bulan >= dari && e.bulan <= sampai && e.bulan !== now) dariEntri(e, o, true)
   if (dari <= now && now <= sampai) { const f = flagsOf(w); for (const [k] of KUNCI_IBU) if (f[k]) o[k] = true }
   return o
 }

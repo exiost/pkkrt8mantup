@@ -208,7 +208,7 @@ function StatusIbu() {
                   )}
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2 dark:border-white/10">
                     <Button size="sm" variant="soft" icon={CalendarRange} onClick={() => setRiwayat(w)}>Catatan bulanan{w.riwayatIbu?.length ? ` (${w.riwayatIbu.length})` : ''}</Button>
-                    {catatan && <Chip color="fuchsia" icon={Stethoscope}>Bulan ini: {catatan.tetapHamil && catatan.status !== 'Hamil' ? `${catatan.status}${catatan.cara ? ' ' + catatan.cara : ''} → lapor Hamil` : catatan.status}</Chip>}
+                    {catatan && <Chip color="fuchsia" icon={Stethoscope}>Bulan ini: {catatan.status}{catatan.cara ? ` ${catatan.cara}` : ''}</Chip>}
                   </div>
                 </Card>
               </motion.div>

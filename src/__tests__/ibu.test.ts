@@ -14,19 +14,24 @@ describe('status ibu per bulan (kasus melahirkan SC)', () => {
       { bulan: '2026-09', status: 'Nifas' as const },
     ],
   })
-  it('Januari–Juli hamil, Agustus SC tetap dilaporkan hamil', () => {
+  it('Januari–Juli hamil, Agustus (SC) dilaporkan Melahirkan di laporan bulanan', () => {
     expect(statusIbuPada(sc, ymOf(2026, 0)).hamil).toBe(true)
     expect(statusIbuPada(sc, '2026-07').hamil).toBe(true)
-    expect(statusIbuPada(sc, '2026-08').hamil).toBe(true)
-    expect(statusIbuPada(sc, '2026-08').melahirkan).toBe(false)
+    expect(statusIbuPada(sc, '2026-08').melahirkan).toBe(true)
+    expect(statusIbuPada(sc, '2026-08').hamil).toBe(false)
+  })
+  it('laporan rentang menghitung hamil dari Januari–Juli sekaligus melahirkan', () => {
+    expect(statusIbuPada(sc, '2026-08~2026-08')).toMatchObject({ hamil: true, melahirkan: true }) // tetap hamil dicentang
+    expect(statusIbuPada(sc, '2026-01~2026-07')).toMatchObject({ hamil: true, melahirkan: false })
   })
   it('bulan setelahnya mengikuti catatan; bulan tanpa catatan tidak dilaporkan', () => {
     expect(statusIbuPada(sc, '2026-09').nifas).toBe(true)
     expect(statusIbuPada(sc, '2026-12')).toEqual({ hamil: false, melahirkan: false, nifas: false, menyusui: false })
   })
-  it('Melahirkan SC tanpa centang "tetap hamil" dilaporkan melahirkan', () => {
+  it('Melahirkan SC tanpa centang tidak ikut dihitung hamil di rentang', () => {
     const x = w({ riwayatIbu: [{ bulan: '2026-08', status: 'Melahirkan', cara: 'SC' }] })
     expect(statusIbuPada(x, '2026-08').melahirkan).toBe(true)
+    expect(statusIbuPada(x, '2026-08~2026-08').hamil).toBe(false)
   })
   it('tanpa catatan bulanan: pakai saklar biasa (sama seperti Excel)', () => {
     expect(statusIbuPada(w({ hamil: true }), '2026-03').hamil).toBe(true)
