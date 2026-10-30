@@ -221,6 +221,8 @@ export interface Settings {
   teks: Record<string, string>
   /** Kunci tanggal laporan untuk akun viewer (diatur admin) */
   kunci?: KunciTanggal
+  /** Laporan favorit (urutan diatur admin, dipakai semua akun) */
+  favorit?: string[]
 }
 
 export interface AuditEntry {
