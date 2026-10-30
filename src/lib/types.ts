@@ -200,6 +200,7 @@ export interface KunciTanggal {
   aktif: boolean
   acuan: string // yyyy-mm-dd
   bulan: number // 0-11
+  bulanSampai?: number // laporan rentang bulan (0-11)
   tahun: number
 }
 

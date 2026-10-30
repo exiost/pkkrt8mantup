@@ -1,10 +1,11 @@
 import { TEMPLATES, n, dt, type Val, type CellObj } from '@/sheet/engine'
 import { BULAN } from '@/lib/options'
-import { isBalita, isKepala, isLansia, isPUS, isWUS, namaSuami, statusIbuPada } from '@/lib/rules'
+import { isBalita, isKepala, isLansia, isPUS, isWUS, namaSuami, statusIbuPada, ymOf } from '@/lib/rules'
 import type { Keluarga, Warga } from '@/lib/types'
 import { type Builder, type Ctx, drill, has, inMonth, link, yes } from './common'
 
 type Col = Warga[] | number
+const namaRentang = (c: Ctx) => (c.p.rentang ? (c.p.bulan === (c.p.bulanSampai ?? 11) ? BULAN[c.p.bulan] : `${BULAN[c.p.bulan]} – ${BULAN[c.p.bulanSampai ?? 11]}`) : BULAN[c.p.bulan])
 const sehat = (k: Keluarga) => has(k.rumahSehat, 'sehat') && !has(k.rumahSehat, 'tidak')
 
 /* ============ Rekap Catatan Data & Kegiatan — tingkat RT (baris = dasawisma) ============ */
@@ -108,7 +109,7 @@ export const bRekapIbuHamil: Builder = (c) => {
     LET.forEach((L, j) => (r[L] = st[j]))
     return r
   })
-  const values: Record<string, Val> = { K4: BULAN[c.p.bulan], K5: String(c.p.tahun) }
+  const values: Record<string, Val> = { K4: namaRentang(c), K5: String(c.p.tahun) }
   LET.forEach((L, j) => (values[`${L}26`] = n(c.dasawisma.reduce((t, d) => t + Number((stat(d.nama)[j] as CellObj).v), 0))))
   return [{ key: 'rekapibuhamil', tplId: 'rekapibuhamil', values, regions: { main: rows } }]
 }
@@ -129,7 +130,9 @@ export const bIbuHamilDawis: Builder = (c) => {
     const babies = lahir.filter((k) => k.namaIbu.trim().toLowerCase() === w.nama.trim().toLowerCase())
     babies.forEach((b) => used.add(b.id))
     const si = sI(w)
-    const status = si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : 'Melahirkan'
+    const status = c.ym.includes('~')
+      ? [si.hamil && 'Hamil', si.melahirkan && 'Melahirkan', si.nifas && 'Nifas', si.menyusui && 'Menyusui'].filter(Boolean).join(', ')
+      : si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : 'Melahirkan'
     const base: Record<string, Val> = { B: link(w), C: namaSuami(w, c.warga), D: status }
     if (!babies.length) left.push(base)
     babies.forEach((b) => left.push({ ...base, ...babyCols(b) }))
@@ -141,7 +144,7 @@ export const bIbuHamilDawis: Builder = (c) => {
   const rows = Array.from({ length: Math.max(left.length, right.length) }, (_, i) => ({ ...(left[i] ?? {}), ...(right[i] ?? {}) }))
   const cntL = lahir.filter((k) => k.jk === 'L').length, cntP = lahir.filter((k) => k.jk === 'P').length
   const values: Record<string, Val> = {
-    L3: `: ${dawis || 'Semua'}`, A8: `BULAN : ${BULAN[c.p.bulan]}`, A9: `TAHUN : ${c.p.tahun}`,
+    L3: `: ${dawis || 'Semua'}`, A8: `BULAN : ${namaRentang(c)}`, A9: `TAHUN : ${c.p.tahun}`,
     F28: n(cntL), G28: n(cntP), I28: n(lahir.filter((k) => k.akte).length), J28: n(lahir.filter((k) => !k.akte).length),
     M28: n(mati.filter((m) => m.jk === 'L').length), N28: n(mati.filter((m) => m.jk === 'P').length),
     D31: `: ${mothers.filter((w) => sI(w).hamil).length}`, D32: `: ${mothers.filter((w) => !sI(w).hamil && !sI(w).nifas).length}`, D33: `: ${mothers.filter((w) => !sI(w).hamil && sI(w).nifas).length}`,
@@ -149,3 +152,11 @@ export const bIbuHamilDawis: Builder = (c) => {
   }
   return [{ key: 'ibuhamildawis', tplId: 'ibuhamildawis', values, regions: { main: rows }, rowsShown: { main: Math.max(rows.length, TEMPLATES.ibuhamildawis.regions[0].size) } }]
 }
+
+/* ============ Versi TAHUNAN (Ibu & Anak): status yang pernah dialami sepanjang tahun ============ */
+const tahunan = (b: Builder): Builder => (c) => {
+  const sampai = Math.max(c.p.bulan, c.p.bulanSampai ?? 11)
+  return b({ ...c, p: { ...c.p, rentang: true, bulanSampai: sampai }, ym: `${ymOf(c.p.tahun, c.p.bulan)}~${ymOf(c.p.tahun, sampai)}` })
+}
+export const bRekapIbuHamilTahunan = tahunan(bRekapIbuHamil)
+export const bIbuHamilDawisTahunan = tahunan(bIbuHamilDawis)

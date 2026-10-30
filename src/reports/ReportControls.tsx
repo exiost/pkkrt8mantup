@@ -28,7 +28,7 @@ interface Props {
 function KunciBox({ p }: { p: ReportParams }) {
   const st = useStore()
   const k = st.settings.kunci
-  const set = (aktif: boolean) => { st.setSettings({ kunci: { aktif, acuan: p.acuan, bulan: p.bulan, tahun: p.tahun } }); toast.success(aktif ? 'Tanggal dikunci untuk viewer 🔒' : 'Kunci dibuka') }
+  const set = (aktif: boolean) => { st.setSettings({ kunci: { aktif, acuan: p.acuan, bulan: p.bulan, bulanSampai: p.bulanSampai ?? 11, tahun: p.tahun } }); toast.success(aktif ? 'Tanggal dikunci untuk viewer 🔒' : 'Kunci dibuka') }
   return (
     <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-amber-100">
       {k?.aktif ? <Lock size={16} className="shrink-0 text-amber-600" /> : <LockOpen size={16} className="shrink-0 text-amber-600" />}
@@ -46,7 +46,7 @@ function KunciBox({ p }: { p: ReportParams }) {
 export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, admin }: Props) {
   const dws = useLive('dasawisma')
   const server = useSession((s) => s.server)
-  const bertanggal = uses.includes('acuan') || uses.includes('bulan') || uses.includes('tahun')
+  const bertanggal = uses.includes('acuan') || uses.includes('bulan') || uses.includes('tahun') || uses.includes('rentang')
   const sel = 'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800'
   const items = useMemo(() => {
     if (uses.includes('warga')) return ctx.aktif.filter((w) => !p.dawis || w.dasawisma === p.dawis).map((w) => ({ id: w.id, label: `${w.noReg}. ${w.nama}` }))
@@ -66,6 +66,13 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
         {!viewer && uses.includes('bulan') && (
           <>
             <Field label="Bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
+            <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
+          </>
+        )}
+        {!viewer && uses.includes('rentang') && (
+          <>
+            <Field label="Dari bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value, bulanSampai: Math.max(+e.target.value, p.bulanSampai ?? 11) })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
+            <Field label="Sampai bulan"><select className={sel} value={p.bulanSampai ?? 11} onChange={(e) => setP({ bulanSampai: +e.target.value, bulan: Math.min(+e.target.value, p.bulan) })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
             <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
           </>
         )}

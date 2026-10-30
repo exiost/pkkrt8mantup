@@ -11,6 +11,9 @@ export interface ReportParams {
   pick: string // id warga / keluarga terpilih
   semua: boolean // cetak semua (formulir per orang/keluarga)
   semuaPeriode: boolean // register: tanpa filter bulan
+  /** laporan rentang bulan (mis. tahunan): sampai bulan ke-berapa (0-11), mulai dari `bulan` */
+  bulanSampai?: number
+  rentang?: boolean
 }
 
 export interface ReportOpts {
@@ -54,10 +57,11 @@ export const yes = (x: string) => x.trim().toLowerCase() === 'ya'
 export const tidak = (x: string) => x.trim().toLowerCase() === 'tidak'
 export const has = (x: string, sub: string) => x.toLowerCase().includes(sub.toLowerCase())
 
-export function inMonth(iso: string, p: Pick<ReportParams, 'bulan' | 'tahun' | 'semuaPeriode'>): boolean {
+export function inMonth(iso: string, p: Pick<ReportParams, 'bulan' | 'tahun' | 'semuaPeriode' | 'bulanSampai' | 'rentang'>): boolean {
   if (p.semuaPeriode) return true
   if (!iso) return false
   const d = new Date(iso + (iso.length === 10 ? 'T00:00:00' : ''))
+  if (p.rentang) return d.getFullYear() === p.tahun && d.getMonth() >= p.bulan && d.getMonth() <= (p.bulanSampai ?? 11)
   return d.getMonth() === p.bulan && d.getFullYear() === p.tahun
 }
 

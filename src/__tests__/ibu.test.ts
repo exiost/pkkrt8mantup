@@ -32,3 +32,21 @@ describe('status ibu per bulan (kasus melahirkan SC)', () => {
     expect(statusIbuPada(w({ hamil: true }), '2026-03').hamil).toBe(true)
   })
 })
+
+describe('rekap rentang bulan / tahunan', () => {
+  const ibu = w({
+    riwayatIbu: [
+      { bulan: '2026-02', status: 'Hamil' },
+      { bulan: '2026-08', status: 'Melahirkan', cara: 'SC', tetapHamil: true },
+      { bulan: '2026-09', status: 'Nifas' },
+      { bulan: '2026-11', status: 'Menyusui' },
+    ],
+  })
+  it('Januari–Desember: ibu terhitung di semua status sekaligus', () => {
+    expect(statusIbuPada(ibu, '2026-01~2026-12')).toEqual({ hamil: true, melahirkan: true, nifas: true, menyusui: true })
+  })
+  it('hanya rentang yang dipilih', () => {
+    expect(statusIbuPada(ibu, '2026-01~2026-07')).toEqual({ hamil: true, melahirkan: false, nifas: false, menyusui: false })
+    expect(statusIbuPada(ibu, '2026-09~2026-10')).toEqual({ hamil: false, melahirkan: false, nifas: true, menyusui: false })
+  })
+})

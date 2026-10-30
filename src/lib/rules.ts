@@ -88,9 +88,28 @@ export interface FlagIbu { hamil: boolean; melahirkan: boolean; nifas: boolean; 
 export function statusIbuPada(w: Warga, ym: string): FlagIbu {
   const r = w.riwayatIbu
   if (!r?.length) return { hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui }
+  if (ym.includes('~')) { const [a, b] = ym.split('~'); return statusIbuRentang(w, a, b) }
   const e = r.find((x) => x.bulan === ym)
   const s = e ? (e.tetapHamil ? 'Hamil' : e.status) : ''
   return { hamil: s === 'Hamil', melahirkan: s === 'Melahirkan', nifas: s === 'Nifas', menyusui: s === 'Menyusui' }
+}
+
+/**
+ * Laporan RENTANG BULAN (mis. Januari–Desember = tahunan): seorang ibu dihitung di setiap status yang pernah
+ * ia alami dalam rentang itu (hamil, melahirkan, nifas, menyusui bisa sekaligus). "Tetap dilaporkan hamil" ikut menghitung Hamil.
+ */
+export function statusIbuRentang(w: Warga, dari: string, sampai: string): FlagIbu {
+  const r = w.riwayatIbu
+  if (!r?.length) return { hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui }
+  const o: FlagIbu = { hamil: false, melahirkan: false, nifas: false, menyusui: false }
+  for (const e of r) {
+    if (e.bulan < dari || e.bulan > sampai) continue
+    if (e.status === 'Hamil' || e.tetapHamil) o.hamil = true
+    if (e.status === 'Melahirkan') o.melahirkan = true
+    if (e.status === 'Nifas') o.nifas = true
+    if (e.status === 'Menyusui') o.menyusui = true
+  }
+  return o
 }
 
 /** Anggota satu keluarga (ID keluarga sama), urut seperti di DATA WARGA */
