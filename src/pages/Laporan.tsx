@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { LayoutDashboard, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
+import { Info, LayoutDashboard, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { REPORTS } from '@/reports/registry'
 import { useStore, useLive } from '@/lib/store'
@@ -98,6 +98,11 @@ function ReportView({ slug }: { slug: string }) {
     [pe, o, ym, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
   )
   const pages = useMemo(() => def.build(ctx), [def, ctx])
+  // warga yang tidak ikut terhitung di laporan: beri tahu penyebabnya
+  const tidakTerhitung = useMemo(() => {
+    const dw = new Set(ctx.dasawisma.map((x) => x.nama))
+    return { pkk: ctx.aktif.filter((w) => !w.ikutPKK).length, dawis: ctx.aktif.filter((w) => w.ikutPKK && !dw.has(w.dasawisma)).length }
+  }, [ctx])
 
   const tpl = TEMPLATES[def.tpl]
   const area: PrintArea | null = ps.areaOn ? { c1: Math.max(0, colIndex(ps.c1 || 'A')), c2: Math.max(0, colIndex(ps.c2 || 'A')), r1: ps.r1, r2: ps.r2 } : null
@@ -189,6 +194,16 @@ function ReportView({ slug }: { slug: string }) {
         {!web && editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
         <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctx} viewer={!!viewer} admin={isAdmin} />
         {def.uses.includes('manualKB') && !viewer && <ManualKB periode={periode} />}
+        {!viewer && !def.uses.includes('warga') && !def.uses.includes('keluarga') && (tidakTerhitung.pkk > 0 || tidakTerhitung.dawis > 0) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
+            <Info size={16} className="shrink-0" />
+            <div className="min-w-0 flex-1">
+              {tidakTerhitung.pkk > 0 && <div><b>{tidakTerhitung.pkk} warga aktif “Tidak ikut PKK”</b> — tidak dihitung di laporan (sama seperti aturan Excel).</div>}
+              {tidakTerhitung.dawis > 0 && <div><b>{tidakTerhitung.dawis} warga belum punya dasawisma terdaftar</b> — tidak masuk rekap per dasawisma.</div>}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => nav('/warga')}>Periksa di Data Warga</Button>
+          </div>
+        )}
         {!web && panel && <PrintPanel tplId={def.tpl} ps={ps} set={setPs} reset={resetPs} eff={eff} pagesAcross={pagesAcross} pagesDown={pagesDown} shrunk={excelShrunk(ps, nat)} />}
         {!web && <div className="mt-3 flex items-center justify-end gap-1 text-xs text-slate-500">
           <ZoomIn size={14} /> <span className="hidden sm:inline">Tampilan layar</span><span className="sm:hidden">Cubit untuk zoom</span>

@@ -170,7 +170,7 @@ function StatusIbu() {
                     </div>
                     {w.hamil && d !== null && <Chip color={d <= 30 ? 'red' : 'fuchsia'} pulse={d <= 30} icon={CalendarHeart}>HPL {d >= 0 ? `${d} hari lagi` : `lewat ${-d} hari`}</Chip>}
                   </div>
-                  {(!w.ikutPKK || !dws.includes(w.dasawisma)) && (
+                  {(!w.ikutPKK || !dws.some((d) => d.trim().toLowerCase() === (w.dasawisma ?? '').trim().toLowerCase())) && (
                     <div className="mt-3 space-y-1.5 rounded-xl bg-amber-50 p-2 text-xs text-amber-900 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:text-amber-100 dark:ring-amber-500/30">
                       {!w.ikutPKK && (
                         <div className="flex flex-wrap items-center gap-2">
@@ -178,7 +178,7 @@ function StatusIbu() {
                           <Button size="sm" variant="outline" onClick={() => upd(w.id, w.nama, { ikutPKK: true })}>Ikutkan PKK</Button>
                         </div>
                       )}
-                      {!dws.includes(w.dasawisma) && (
+                      {!dws.some((d) => d.trim().toLowerCase() === (w.dasawisma ?? '').trim().toLowerCase()) && (
                         <div className="flex flex-wrap items-center gap-2">
                           <AlertTriangle size={14} className="shrink-0" /> <span className="flex-1"><b>Dasawisma {w.dasawisma ? `“${w.dasawisma}” tidak terdaftar` : 'belum diisi'}</b> — tidak masuk rekap per dasawisma.</span>
                           <select className="h-8 rounded-lg border border-amber-300 bg-white px-2 text-xs text-slate-800" value="" onChange={(e) => e.target.value && upd(w.id, w.nama, { dasawisma: e.target.value })}>
