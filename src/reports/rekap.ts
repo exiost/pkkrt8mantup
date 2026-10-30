@@ -126,6 +126,7 @@ export const bIbuHamilDawis: Builder = (c) => {
   const mati = c.kematian.filter((k) => inD(k.dasawisma) && inMonth(k.tgl, c.p))
   const left: Record<string, Val>[] = []
   const used = new Set<string>()
+  let no = 0 // nomor urut ibu (kolom NO)
   const babyCols = (k?: (typeof lahir)[number]): Record<string, Val> =>
     k ? { E: k.namaBayi, F: k.jk === 'L' ? 'V' : '', G: k.jk === 'P' ? 'V' : '', H: dt(k.tglLahir), I: k.akte ? 'V' : '', J: !k.akte ? 'V' : '' } : {}
   for (const w of mothers) {
@@ -136,11 +137,11 @@ export const bIbuHamilDawis: Builder = (c) => {
       ? [si.hamil && 'Hamil', si.melahirkan && 'Melahirkan', si.nifas && 'Nifas', si.menyusui && 'Menyusui'].filter(Boolean).join(', ')
       : si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : si.melahirkan ? 'Melahirkan' : 'Menyusui'
     const ket = catatanIbu(w, c.ym, BULAN)
-    const base: Record<string, Val> = { B: link(w), C: namaSuami(w, c.warga), D: status, ...(ket ? { Q: ket } : {}) }
+    const base: Record<string, Val> = { A: ++no, B: link(w), C: namaSuami(w, c.warga), D: status, ...(ket ? { Q: ket } : {}) }
     if (!babies.length) left.push(base)
-    babies.forEach((b, i) => left.push({ ...base, ...(i > 0 ? { Q: undefined } : {}), ...babyCols(b) }))
+    babies.forEach((b, i) => left.push({ ...base, ...(i > 0 ? { A: undefined, Q: undefined } : {}), ...babyCols(b) }))
   }
-  for (const k of lahir) if (!used.has(k.id)) left.push({ B: k.namaIbu, C: k.namaSuami, D: 'Melahirkan', ...babyCols(k) })
+  for (const k of lahir) if (!used.has(k.id)) left.push({ A: ++no, B: k.namaIbu, C: k.namaSuami, D: 'Melahirkan', ...babyCols(k) })
   const right: Record<string, Val>[] = mati.map((m) => ({
     K: m.nama, L: m.kategori.toUpperCase(), M: m.jk === 'L' ? 'V' : '', N: m.jk === 'P' ? 'V' : '', O: dt(m.tgl), P: m.sebab, Q: m.keterangan,
   }))
