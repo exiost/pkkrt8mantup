@@ -121,7 +121,7 @@ export const bIbuHamilDawis: Builder = (c) => {
   const dawis = c.p.dawis
   const inD = (d: string) => !dawis || d === dawis
   const sI = (w: Warga) => statusIbuPada(w, c.ym)
-  const mothers = c.aktif.filter((w) => { const s = sI(w); return (s.hamil || s.melahirkan || s.nifas) && w.ikutPKK && inD(w.dasawisma) })
+  const mothers = c.aktif.filter((w) => { const s = sI(w); return (s.hamil || s.melahirkan || s.nifas || s.menyusui) && w.ikutPKK && inD(w.dasawisma) })
   const lahir = c.kelahiran.filter((k) => inD(k.dasawisma) && inMonth(k.tglLahir, c.p))
   const mati = c.kematian.filter((k) => inD(k.dasawisma) && inMonth(k.tgl, c.p))
   const left: Record<string, Val>[] = []
@@ -134,7 +134,7 @@ export const bIbuHamilDawis: Builder = (c) => {
     const si = sI(w)
     const status = c.ym.includes('~')
       ? [si.hamil && 'Hamil', si.melahirkan && 'Melahirkan', si.nifas && 'Nifas', si.menyusui && 'Menyusui'].filter(Boolean).join(', ')
-      : si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : 'Melahirkan'
+      : si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : si.melahirkan ? 'Melahirkan' : 'Menyusui'
     const ket = catatanIbu(w, c.ym, BULAN)
     const base: Record<string, Val> = { B: link(w), C: namaSuami(w, c.warga), D: status, ...(ket ? { Q: ket } : {}) }
     if (!babies.length) left.push(base)
@@ -155,7 +155,7 @@ export const bIbuHamilDawis: Builder = (c) => {
     L3: `: ${dawis || 'Semua'}`, A8: `BULAN : ${namaRentang(c)}`, A9: `TAHUN : ${c.p.tahun}`,
     F28: n(cntL), G28: n(cntP), I28: n(lahir.filter((k) => k.akte).length), J28: n(lahir.filter((k) => !k.akte).length),
     M28: n(mati.filter((m) => m.jk === 'L').length), N28: n(mati.filter((m) => m.jk === 'P').length),
-    D31: `: ${mothers.filter((w) => sI(w).hamil).length}`, D32: `: ${mothers.filter((w) => !sI(w).hamil && !sI(w).nifas).length}`, D33: `: ${mothers.filter((w) => !sI(w).hamil && sI(w).nifas).length}`,
+    D31: `: ${mothers.filter((w) => sI(w).hamil).length}`, D32: `: ${mothers.filter((w) => sI(w).melahirkan && !sI(w).hamil && !sI(w).nifas).length}`, D33: `: ${mothers.filter((w) => !sI(w).hamil && sI(w).nifas).length}`,
     D34: `: ${mati.filter((m) => m.kategori === 'Ibu').length}`, D35: `: ${lahir.length}`, D36: `: ${mati.filter((m) => m.kategori === 'Bayi').length}`, D37: `: ${mati.filter((m) => m.kategori === 'Balita').length}`,
   }
   return [{ key: 'ibuhamildawis', tplId: 'ibuhamildawis', values, regions: { main: rows }, rowsShown: { main: Math.max(rows.length, TEMPLATES.ibuhamildawis.regions[0].size) } }]
