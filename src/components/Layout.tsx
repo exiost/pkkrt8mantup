@@ -9,20 +9,26 @@ import { useUi } from '@/lib/ui'
 import { useSession } from '@/lib/session'
 import { useEditor } from './EditorHost'
 import { REPORTS } from '@/lib/modules'
-import { Avatar } from './ui'
+import { Avatar, col } from './ui'
 
-const NAV = [
-  { to: '/', label: 'Beranda', icon: LayoutDashboard, group: '' },
-  { to: '/warga', label: 'Data Warga', icon: Users, group: 'Data' },
-  { to: '/keluarga', label: 'Keluarga (KK)', icon: House, group: 'Data' },
-  { to: '/ibu-anak', label: 'Ibu & Anak, KB', icon: Baby, group: 'Data' },
-  { to: '/pekarangan', label: 'Pekarangan & IRT', icon: Sprout, group: 'Data' },
-  { to: '/laporan', label: 'Laporan & Cetak', icon: FileText, group: 'Laporan' },
-  { to: '/data', label: 'Impor / Ekspor', icon: Database, group: 'Sistem' },
-  { to: '/pengaturan', label: 'Pengaturan', icon: Settings, group: 'Sistem' },
-  { to: '/sampah', label: 'Tempat Sampah', icon: Trash2, group: 'Sistem' },
-  { to: '/riwayat', label: 'Riwayat Perubahan', icon: History, group: 'Sistem' },
+const NAV: { to: string; color: string; label: string; icon: typeof Users; group: string }[] = [
+  { to: '/', color: 'violet', label: 'Beranda', icon: LayoutDashboard, group: '' },
+  { to: '/warga', color: 'sky', label: 'Data Warga', icon: Users, group: 'Data' },
+  { to: '/keluarga', color: 'emerald', label: 'Keluarga (KK)', icon: House, group: 'Data' },
+  { to: '/ibu-anak', color: 'fuchsia', label: 'Ibu & Anak, KB', icon: Baby, group: 'Data' },
+  { to: '/pekarangan', color: 'lime', label: 'Pekarangan & IRT', icon: Sprout, group: 'Data' },
+  { to: '/laporan', color: 'orange', label: 'Laporan & Cetak', icon: FileText, group: 'Laporan' },
+  { to: '/data', color: 'teal', label: 'Impor / Ekspor', icon: Database, group: 'Sistem' },
+  { to: '/pengaturan', color: 'slate', label: 'Pengaturan', icon: Settings, group: 'Sistem' },
+  { to: '/sampah', color: 'rose', label: 'Tempat Sampah', icon: Trash2, group: 'Sistem' },
+  { to: '/riwayat', color: 'indigo', label: 'Riwayat Perubahan', icon: History, group: 'Sistem' },
 ]
+
+export type Peran = 'admin' | 'editor' | 'viewer'
+/** Peran akun saat ini; tanpa server (mode lokal) pemakai = admin */
+export const usePeran = (): Peran => useSession((s) => (s.server ? s.user?.role ?? 'viewer' : 'admin'))
+/** Menu yang boleh dibuka: viewer hanya Laporan, Beranda khusus admin */
+export const menuBoleh = (peran: Peran) => NAV.filter((n) => (peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
 
 function SyncBadge() {
   const { server, sync, pending, user } = useSession()
@@ -51,9 +57,9 @@ function UserBox() {
 function Brand() {
   return (
     <div className="flex items-center gap-3 px-2">
-      <img src="./icon.svg" alt="" className="h-10 w-10 rounded-xl shadow-lg shadow-violet-500/30" />
+      <img src="./icon.svg" alt="" className="floaty h-10 w-10 rounded-xl shadow-lg shadow-violet-500/40 ring-2 ring-white dark:ring-slate-800" />
       <div className="leading-tight">
-        <div className="font-display text-base font-extrabold text-slate-900 dark:text-white">SIWARGA PKK</div>
+        <div className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text font-display text-base font-extrabold text-transparent">SIWARGA PKK</div>
         <div className="text-[11px] font-medium text-slate-500">RT 08 · Mantup</div>
       </div>
     </div>
@@ -62,23 +68,27 @@ function Brand() {
 
 function NavList({ onNav }: { onNav?: () => void }) {
   let last = ''
+  const peran = usePeran()
   return (
     <nav className="space-y-0.5">
-      {NAV.map((n) => {
+      {menuBoleh(peran).map((n) => {
         const head = n.group !== last ? n.group : ''
         last = n.group
         return (
           <div key={n.to}>
             {head && <div className="mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">{head}</div>}
             <NavLink to={n.to} end={n.to === '/'} onClick={onNav}
-              className={({ isActive }) => `group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition ${isActive ? 'text-violet-700 dark:text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5'}`}>
-              {({ isActive }) => (
-                <>
-                  {isActive && <motion.span layoutId="nav-active" className="absolute inset-0 rounded-xl bg-gradient-to-r from-violet-100 to-fuchsia-50 dark:from-violet-600/40 dark:to-fuchsia-600/20" />}
-                  <n.icon size={18} className="relative" />
-                  <span className="relative">{n.label}</span>
-                </>
-              )}
+              className={({ isActive }) => `group shine relative flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-semibold transition ${isActive ? 'text-white shadow-md' : 'text-slate-600 hover:bg-white/70 hover:shadow-sm dark:text-slate-300 dark:hover:bg-white/5'}`}>
+              {({ isActive }) => {
+                const c = col(n.color)
+                return (
+                  <>
+                    {isActive && <motion.span layoutId="nav-active" className={`absolute inset-0 rounded-xl bg-gradient-to-r ${c.banner}`} />}
+                    <span className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-lg transition group-hover:scale-110 group-hover:rotate-3 ${isActive ? 'bg-white/25 text-white ring-1 ring-white/40' : `bg-gradient-to-br text-white shadow ${c.grad}`}`}><n.icon size={17} /></span>
+                    <span className="relative">{n.label}</span>
+                  </>
+                )
+              }}
             </NavLink>
           </div>
         )
@@ -90,17 +100,19 @@ function NavList({ onNav }: { onNav?: () => void }) {
 function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [q, setQ] = useState('')
   const warga = useLive('warga')
+  const peran = usePeran()
   const nav = useNavigate()
   useEffect(() => setQ(''), [open])
   const res = useMemo(() => {
     const s = q.toLowerCase().trim()
-    if (!s) return { w: [], r: REPORTS.slice(0, 6), n: NAV.slice(0, 5) }
+    const menu = menuBoleh(peran)
+    if (!s) return { w: [], r: REPORTS.slice(0, 6), n: menu.slice(0, 5) }
     return {
-      w: warga.filter((w) => w.nama.toLowerCase().includes(s) || w.nik.includes(s) || w.noKK.includes(s)).slice(0, 8),
+      w: peran === 'viewer' ? [] : warga.filter((w) => w.nama.toLowerCase().includes(s) || w.nik.includes(s) || w.noKK.includes(s)).slice(0, 8),
       r: REPORTS.filter((r) => r.title.toLowerCase().includes(s) || r.sheet.toLowerCase().includes(s)),
-      n: NAV.filter((n) => n.label.toLowerCase().includes(s)),
+      n: menu.filter((n) => n.label.toLowerCase().includes(s)),
     }
-  }, [q, warga])
+  }, [q, warga, peran])
   const go = (to: string) => { nav(to); onClose() }
   return (
     <AnimatePresence>
@@ -145,7 +157,10 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [drawer, setDrawer] = useState(false)
   const [palette, setPalette] = useState(false)
   const { dark, set: setUi } = useUi()
-  const writable = useSession((x) => !x.server || x.user?.role !== 'viewer')
+  const peran = usePeran()
+  const writable = peran !== 'viewer'
+  const byTo = (t: string) => NAV.find((n) => n.to === t)!
+  const bawah = peran === 'admin' ? [byTo('/'), byTo('/warga'), byTo('/laporan'), byTo('/keluarga')] : peran === 'editor' ? [byTo('/warga'), byTo('/keluarga'), byTo('/laporan'), byTo('/ibu-anak')] : [byTo('/laporan')]
   const { openWarga } = useEditor()
 
   useEffect(() => {
@@ -189,6 +204,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <motion.aside initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-white p-4 dark:bg-slate-900">
               <div className="flex items-center justify-between"><Brand /><button onClick={() => setDrawer(false)} className="p-2"><X size={20} /></button></div>
               <div className="mt-4"><NavList onNav={() => setDrawer(false)} /></div>
+              <UserBox />
             </motion.aside>
           </div>
         )}
@@ -198,14 +214,14 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Bottom nav mobile */}
       <nav className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-slate-900/90 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-5 items-end">
-          {[NAV[0], NAV[1]].map((n) => <BottomItem key={n.to} {...n} />)}
-          <div className="flex justify-center">
-            {writable && <motion.button whileTap={{ scale: 0.9 }} onClick={() => openWarga()} className="-mt-6 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white shadow-xl shadow-violet-500/40" aria-label="Tambah warga">
+        <div className={`grid items-end ${writable ? 'grid-cols-5' : 'grid-cols-1'}`}>
+          {bawah.slice(0, 2).map((n) => <BottomItem key={n.to} {...n} />)}
+          {writable && <div className="flex justify-center">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openWarga()} className="-mt-6 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white shadow-xl shadow-violet-500/40" aria-label="Tambah warga">
               <Plus size={26} />
-            </motion.button>}
-          </div>
-          {[NAV[5], NAV[2]].map((n) => <BottomItem key={n.to} {...n} />)}
+            </motion.button>
+          </div>}
+          {bawah.slice(2).map((n) => <BottomItem key={n.to} {...n} />)}
         </div>
       </nav>
 

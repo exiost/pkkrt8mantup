@@ -1,6 +1,6 @@
 import { TEMPLATES, n, dt, type Val, type CellObj } from '@/sheet/engine'
 import { BULAN } from '@/lib/options'
-import { isBalita, isKepala, isLansia, isPUS, isWUS, namaSuami } from '@/lib/rules'
+import { isBalita, isKepala, isLansia, isPUS, isWUS, namaSuami, statusIbuPada } from '@/lib/rules'
 import type { Keluarga, Warga } from '@/lib/types'
 import { type Builder, type Ctx, drill, has, inMonth, link, yes } from './common'
 
@@ -9,6 +9,7 @@ const sehat = (k: Keluarga) => has(k.rumahSehat, 'sehat') && !has(k.rumahSehat, 
 
 /* ============ Rekap Catatan Data & Kegiatan — tingkat RT (baris = dasawisma) ============ */
 function rtCols(ws: Warga[], c: Ctx): Col[] {
+  const sI = (w: Warga) => statusIbuPada(w, c.ym)
   const s = c.settings, a = c.p.acuan
   const kepala = ws.filter(isKepala)
   const kc = (f: (k: Keluarga) => boolean) => kepala.filter((w) => { const k = c.fam.get(w.keluargaId); return !!k && f(k) })
@@ -16,7 +17,7 @@ function rtCols(ws: Warga[], c: Ctx): Col[] {
     kepala, kepala,
     ws.filter((w) => w.jk === 'L'), ws.filter((w) => w.jk === 'P'),
     ws.filter((w) => w.jk === 'L' && isBalita(w, a, s)), ws.filter((w) => w.jk === 'P' && isBalita(w, a, s)),
-    ws.filter((w) => isPUS(w, a)), ws.filter((w) => isWUS(w, a)), ws.filter((w) => w.hamil), ws.filter((w) => w.menyusui),
+    ws.filter((w) => isPUS(w, a)), ws.filter((w) => isWUS(w, a)), ws.filter((w) => sI(w).hamil), ws.filter((w) => sI(w).menyusui),
     ws.filter((w) => isLansia(w, a, s)), ws.filter((w) => w.tigaButa), ws.filter((w) => !!w.berkebutuhanKhusus),
     kc(sehat), kc((k) => has(k.rumahSehat, 'tidak')), kc((k) => has(k.tps, 'ada')), kc((k) => yes(k.spal)), kc((k) => (Number(k.kamarMandi) || 0) > 0),
     kc((k) => has(k.sumberAir, 'pdam')), kc((k) => has(k.sumberAir, 'sumur')),
@@ -62,7 +63,7 @@ export const bRekapDawis: Builder = (c) => {
     const t = b(has(kel?.sumberAir ?? '', 'pdam')), u = b(has(kel?.sumberAir ?? '', 'sumur'))
     const lists: (Warga[] | number)[] = [
       1, m((w) => w.jk === 'L'), m((w) => w.jk === 'P'), m((w) => w.jk === 'L' && isBalita(w, a, s)), m((w) => w.jk === 'P' && isBalita(w, a, s)),
-      m((w) => isPUS(w, a)), m((w) => isWUS(w, a)), m((w) => w.hamil), m((w) => w.menyusui), m((w) => isLansia(w, a, s)), m((w) => w.tigaButa), m((w) => !!w.berkebutuhanKhusus),
+      m((w) => isPUS(w, a)), m((w) => isWUS(w, a)), m((w) => statusIbuPada(w, c.ym).hamil), m((w) => statusIbuPada(w, c.ym).menyusui), m((w) => isLansia(w, a, s)), m((w) => w.tigaButa), m((w) => !!w.berkebutuhanKhusus),
       b(!!kel && sehat(kel)), b(!!kel && has(kel.rumahSehat, 'tidak')), b(has(kel?.tps ?? '', 'ada')), b(yes(kel?.spal ?? '')), b((Number(kel?.kamarMandi) || 0) > 0),
       t, u, b(!t && !u && !!kel?.sumberAir), b(has(kel?.makananPokok ?? '', 'beras')), b(!!kel?.makananPokok && !has(kel.makananPokok, 'beras')),
       b(fam.some((w) => yes(w.up2k))), b(fam.some((w) => yes(w.apotekHidup))), b(fam.some((w) => w.irt.length > 0)), fam.filter((w) => yes(w.kerjaBakti)).length,
@@ -86,13 +87,14 @@ export const bRekapIbuHamil: Builder = (c) => {
   const pkk = c.aktif.filter((w) => w.ikutPKK)
   const lahir = c.kelahiran.filter((k) => inMonth(k.tglLahir, c.p))
   const mati = c.kematian.filter((k) => inMonth(k.tgl, c.p))
+  const sI = (w: Warga) => statusIbuPada(w, c.ym)
   const stat = (d: string) => {
     const ws = pkk.filter((w) => w.dasawisma === d)
     const cnt = <T extends { dasawisma: string }>(xs: T[], f: (x: T) => boolean) => xs.filter((x) => x.dasawisma === d && f(x)).length
     return [
-      n(ws.filter((w) => w.hamil).length, drill(`Ibu hamil — ${d}`, ws.filter((w) => w.hamil))),
-      n(ws.filter((w) => w.melahirkan).length, drill(`Melahirkan — ${d}`, ws.filter((w) => w.melahirkan))),
-      n(ws.filter((w) => w.nifas).length, drill(`Nifas — ${d}`, ws.filter((w) => w.nifas))),
+      n(ws.filter((w) => sI(w).hamil).length, drill(`Ibu hamil — ${d}`, ws.filter((w) => sI(w).hamil))),
+      n(ws.filter((w) => sI(w).melahirkan).length, drill(`Melahirkan — ${d}`, ws.filter((w) => sI(w).melahirkan))),
+      n(ws.filter((w) => sI(w).nifas).length, drill(`Nifas — ${d}`, ws.filter((w) => sI(w).nifas))),
       n(cnt(mati, (m) => m.kategori === 'Ibu')),
       n(cnt(lahir, (k) => k.jk === 'L')), n(cnt(lahir, (k) => k.jk === 'P')), n(cnt(lahir, (k) => k.akte)), n(cnt(lahir, (k) => !k.akte)),
       n(cnt(mati, (m) => m.kategori === 'Bayi' && m.jk === 'L')), n(cnt(mati, (m) => m.kategori === 'Bayi' && m.jk === 'P')),
@@ -115,7 +117,8 @@ export const bRekapIbuHamil: Builder = (c) => {
 export const bIbuHamilDawis: Builder = (c) => {
   const dawis = c.p.dawis
   const inD = (d: string) => !dawis || d === dawis
-  const mothers = c.aktif.filter((w) => (w.hamil || w.melahirkan || w.nifas) && w.ikutPKK && inD(w.dasawisma))
+  const sI = (w: Warga) => statusIbuPada(w, c.ym)
+  const mothers = c.aktif.filter((w) => { const s = sI(w); return (s.hamil || s.melahirkan || s.nifas) && w.ikutPKK && inD(w.dasawisma) })
   const lahir = c.kelahiran.filter((k) => inD(k.dasawisma) && inMonth(k.tglLahir, c.p))
   const mati = c.kematian.filter((k) => inD(k.dasawisma) && inMonth(k.tgl, c.p))
   const left: Record<string, Val>[] = []
@@ -125,7 +128,8 @@ export const bIbuHamilDawis: Builder = (c) => {
   for (const w of mothers) {
     const babies = lahir.filter((k) => k.namaIbu.trim().toLowerCase() === w.nama.trim().toLowerCase())
     babies.forEach((b) => used.add(b.id))
-    const status = w.hamil ? 'Hamil' : w.nifas ? 'Nifas' : 'Melahirkan'
+    const si = sI(w)
+    const status = si.hamil ? 'Hamil' : si.nifas ? 'Nifas' : 'Melahirkan'
     const base: Record<string, Val> = { B: link(w), C: namaSuami(w, c.warga), D: status }
     if (!babies.length) left.push(base)
     babies.forEach((b) => left.push({ ...base, ...babyCols(b) }))
@@ -140,7 +144,7 @@ export const bIbuHamilDawis: Builder = (c) => {
     L3: `: ${dawis || 'Semua'}`, A8: `BULAN : ${BULAN[c.p.bulan]}`, A9: `TAHUN : ${c.p.tahun}`,
     F28: n(cntL), G28: n(cntP), I28: n(lahir.filter((k) => k.akte).length), J28: n(lahir.filter((k) => !k.akte).length),
     M28: n(mati.filter((m) => m.jk === 'L').length), N28: n(mati.filter((m) => m.jk === 'P').length),
-    D31: `: ${mothers.filter((w) => w.hamil).length}`, D32: `: ${mothers.filter((w) => !w.hamil && !w.nifas).length}`, D33: `: ${mothers.filter((w) => !w.hamil && w.nifas).length}`,
+    D31: `: ${mothers.filter((w) => sI(w).hamil).length}`, D32: `: ${mothers.filter((w) => !sI(w).hamil && !sI(w).nifas).length}`, D33: `: ${mothers.filter((w) => !sI(w).hamil && sI(w).nifas).length}`,
     D34: `: ${mati.filter((m) => m.kategori === 'Ibu').length}`, D35: `: ${lahir.length}`, D36: `: ${mati.filter((m) => m.kategori === 'Bayi').length}`, D37: `: ${mati.filter((m) => m.kategori === 'Balita').length}`,
   }
   return [{ key: 'ibuhamildawis', tplId: 'ibuhamildawis', values, regions: { main: rows }, rowsShown: { main: Math.max(rows.length, TEMPLATES.ibuhamildawis.regions[0].size) } }]

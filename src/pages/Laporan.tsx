@@ -4,6 +4,8 @@ import { LayoutDashboard, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSprea
 import { toast } from 'sonner'
 import { REPORTS } from '@/reports/registry'
 import { useStore, useLive } from '@/lib/store'
+import { useSession } from '@/lib/session'
+import { ymOf } from '@/lib/rules'
 import { useEditor } from '@/components/EditorHost'
 import { Avatar, Button, Card, Empty, Input, Modal, PageHeader, useConfirm } from '@/components/ui'
 import SheetView, { SheetCtx, type PrintArea } from '@/sheet/SheetView'
@@ -81,10 +83,16 @@ function ReportView({ slug }: { slug: string }) {
     if (def.uses.includes('dawisWajib') && !p.dawis && dasawisma[0]) setP({ dawis: dasawisma[0].nama })
   }, [def, p.dawis, dasawisma])
 
-  const periode = `${p.tahun}-${String(p.bulan + 1).padStart(2, '0')}`
+  // akun viewer selalu memakai tanggal yang dikunci admin (atau hari ini bila belum dikunci) dan tidak melihat kontrol tanggal
+  const viewer = useSession((s) => s.server && s.user?.role === 'viewer')
+  const isAdmin = useSession((s) => !s.server || s.user?.role === 'admin')
+  const kunci = settings.kunci
+  const pe: ReportParams = useMemo(() => (viewer && kunci?.aktif ? { ...p, acuan: kunci.acuan, bulan: kunci.bulan, tahun: kunci.tahun } : p), [viewer, kunci, p])
+  const periode = ymOf(pe.tahun, pe.bulan)
+  const ym = def.uses.includes('bulan') || def.uses.includes('tahun') ? periode : def.uses.includes('acuan') ? pe.acuan.slice(0, 7) : periode
   const ctx: Ctx = useMemo(
-    () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, p, o),
-    [p, o, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
+    () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, pe, o, ym),
+    [pe, o, ym, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
   )
   const pages = useMemo(() => def.build(ctx), [def, ctx])
 
@@ -140,11 +148,11 @@ function ReportView({ slug }: { slug: string }) {
   const printCss = `@page { size: ${g.pageW}mm ${g.pageH}mm; margin: ${ps.mt}mm ${ps.mr}mm ${ps.mb}mm ${ps.ml}mm; } @media print { .sheet-zoom { zoom: ${eff} !important; } }`
 
   const overrides = settings.teks
-  const actions = useMemo(() => ({ drill: (title: string, list: Warga[]) => setDrill({ title, list }), editWarga: (id: string) => openWarga(id) }), [openWarga])
+  const actions = useMemo(() => ({ drill: (title: string, list: Warga[]) => setDrill({ title, list }), editWarga: (id: string) => { if (!viewer) openWarga(id) } }), [openWarga, viewer])
 
   function arsipkan() {
     if (!zoomRef.current) return
-    const label = `${BULAN[p.bulan]} ${p.tahun}`
+    const label = `${BULAN[pe.bulan]} ${pe.tahun}`
     st.create('arsip', { judul: `${def.title} — ${label}`, jenis: def.slug, periode: label, html: zoomRef.current.innerHTML, deletedAt: null }, def.title)
     toast.success('Laporan disimpan ke Arsip 📁')
   }
@@ -163,9 +171,9 @@ function ReportView({ slug }: { slug: string }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {!web && <Button variant={skin ? 'soft' : 'outline'} icon={Sparkles} size="sm" aria-label="Tampilan cantik" title="Tampilan layar cantik (cetak tetap seperti Excel)" onClick={() => setSkin(!skin)}><span className="hidden sm:inline">{skin ? 'Tampilan cantik' : 'Seperti Excel'}</span></Button>}
-            {!web && <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm" aria-label="Ubah teks"><span className="hidden sm:inline">Ubah teks</span></Button>}
+            {!web && !viewer && <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm" aria-label="Ubah teks"><span className="hidden sm:inline">Ubah teks</span></Button>}
             <Button variant="outline" icon={FileSpreadsheet} size="sm" aria-label="Excel" onClick={() => zoomRef.current && (eksporTabel(zoomRef.current, def.title) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}><span className="hidden sm:inline">Excel</span></Button>
-            {def.uses.includes('bulan') && <Button variant="outline" icon={Archive} size="sm" aria-label="Arsipkan" onClick={arsipkan}><span className="hidden sm:inline">Arsipkan</span></Button>}
+            {def.uses.includes('bulan') && !viewer && <Button variant="outline" icon={Archive} size="sm" aria-label="Arsipkan" onClick={arsipkan}><span className="hidden sm:inline">Arsipkan</span></Button>}
             <Button variant={!web && panel ? 'soft' : 'outline'} icon={Settings2} size="sm" aria-label="Atur cetak" onClick={() => { if (web) { setView('sheet'); setPanel(true) } else setPanel(!panel) }}>Atur cetak</Button>
             <Button icon={Printer} size="sm" onClick={() => window.print()}>Cetak / PDF</Button>
           </div>
@@ -176,8 +184,8 @@ function ReportView({ slug }: { slug: string }) {
           ))}
         </div>
         {!web && editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
-        <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctx} />
-        {def.uses.includes('manualKB') && <ManualKB periode={periode} />}
+        <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctx} viewer={!!viewer} admin={isAdmin} />
+        {def.uses.includes('manualKB') && !viewer && <ManualKB periode={periode} />}
         {!web && panel && <PrintPanel tplId={def.tpl} ps={ps} set={setPs} reset={resetPs} eff={eff} pagesAcross={pagesAcross} pagesDown={pagesDown} shrunk={excelShrunk(ps, nat)} />}
         {!web && <div className="mt-3 flex items-center justify-end gap-1 text-xs text-slate-500">
           <ZoomIn size={14} /> <span className="hidden sm:inline">Tampilan layar</span><span className="sm:hidden">Cubit untuk zoom</span>
@@ -217,7 +225,7 @@ function ReportView({ slug }: { slug: string }) {
       <Modal open={!!drillState} onClose={() => setDrill(null)} title={`${drillState?.title ?? ''} (${drillState?.list.length ?? 0})`} icon={Users}>
         <div className="divide-y divide-slate-100 dark:divide-white/5">
           {drillState?.list.map((w) => (
-            <button key={w.id} onClick={() => { setDrill(null); openWarga(w.id) }} className="flex w-full items-center gap-3 py-2 text-left hover:bg-violet-50 dark:hover:bg-white/5">
+            <button key={w.id} onClick={() => { setDrill(null); if (!viewer) openWarga(w.id) }} className="flex w-full items-center gap-3 py-2 text-left hover:bg-violet-50 dark:hover:bg-white/5">
               <Avatar nama={w.nama} jk={w.jk} />
               <div><div className="text-sm font-semibold">{w.nama}</div><div className="text-xs text-slate-500">{w.statusKeluarga} · {w.dasawisma}</div></div>
             </button>
@@ -239,6 +247,7 @@ function ReportView({ slug }: { slug: string }) {
 }
 
 function ArsipPage() {
+  const viewer = useSession((s) => s.server && s.user?.role === 'viewer')
   const arsip = useLive('arsip').sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const [view, setView] = useState<string | null>(null)
   const confirm = useConfirm()
@@ -253,7 +262,7 @@ function ArsipPage() {
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-600 dark:bg-white/10"><Archive size={18} /></div>
               <div className="min-w-0 flex-1"><div className="truncate font-semibold">{x.judul}</div><div className="text-xs text-slate-500">Disimpan {new Date(x.createdAt).toLocaleString('id-ID')}</div></div>
               <Button size="sm" variant="soft" icon={Eye} onClick={() => setView(x.id)}>Lihat</Button>
-              <Button size="sm" variant="ghost" icon={Trash2} aria-label="Hapus" onClick={async () => { if (await confirm({ title: 'Hapus arsip?', message: x.judul, danger: true, okText: 'Hapus' })) hapusDenganUndo('arsip', x.id, x.judul) }}>{''}</Button>
+              {!viewer && <Button size="sm" variant="ghost" icon={Trash2} aria-label="Hapus" onClick={async () => { if (await confirm({ title: 'Hapus arsip?', message: x.judul, danger: true, okText: 'Hapus' })) hapusDenganUndo('arsip', x.id, x.judul) }}>{''}</Button>}
             </Card>
           ))}
         </div>

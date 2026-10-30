@@ -72,6 +72,13 @@ describe('server SIWARGA', () => {
     expect(d.data.full).toBe(false)
     expect(d.data.collections.warga.map((w) => w.nama)).toEqual(['Budi'])
   })
+  it('kunci tanggal laporan hanya bisa diubah admin', async () => {
+    const kunci = { aktif: true, acuan: '2026-10-01', bulan: 9, tahun: 2026 }
+    await j('/api/ops', { method: 'POST', token: admin, body: { ops: [{ t: 'settings', settings: { rt: 'RT 08', kunci } }] } })
+    await j('/api/ops', { method: 'POST', token: editor, body: { ops: [{ t: 'settings', settings: { rt: 'RT 08', kunci: { ...kunci, aktif: false, tahun: 1999 } } }] } })
+    expect((await j('/api/data', { token: viewer })).data.settings.kunci).toEqual(kunci)
+    await j('/api/ops', { method: 'POST', token: admin, body: { ops: [{ t: 'settings', settings: { rt: 'RT 08' } }] } })
+  })
   it('hapus permanen hanya admin', async () => {
     expect((await j('/api/ops', { method: 'POST', token: editor, body: { ops: [{ t: 'del', k: 'warga', id: 'w3' }] } })).status).toBe(400)
     expect((await j('/api/ops', { method: 'POST', token: viewer, body: { ops: [{ t: 'settings', settings: { rt: 'X' } }] } })).status).toBe(403)

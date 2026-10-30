@@ -98,7 +98,17 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     store.tx(() => {
       for (const op of ops) {
         if (op.t === 'del' && !admin) throw new Error('Hanya admin yang boleh menghapus permanen')
-        if (op.t === 'settings') { store.setMeta('settings', JSON.stringify(op.settings)); continue }
+        if (op.t === 'settings') {
+          // kunci tanggal laporan hanya boleh diubah admin
+          const next = { ...op.settings }
+          if (!admin) {
+            const cur = store.meta('settings')
+            const kunci = cur ? JSON.parse(cur).kunci : undefined
+            if (kunci === undefined) delete next.kunci; else next.kunci = kunci
+          }
+          store.setMeta('settings', JSON.stringify(next))
+          continue
+        }
         const c = store.applyOp(op, req.user.name || req.user.username)
         if (c) conflicts.push(c)
       }
@@ -165,7 +175,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   return { app, db, store }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.env.SIWARGA_LISTEN || (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))) {
   const port = Number(process.env.PORT) || 3000
   const { app } = createApp({ corsOrigin: process.env.CORS_ORIGIN ?? '*' })
   app.listen(port, () => console.log(`SIWARGA PKK berjalan di http://localhost:${port}`))

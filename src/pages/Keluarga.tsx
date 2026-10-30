@@ -46,7 +46,7 @@ export default function KeluargaPage() {
             const L = ang.filter((w) => w.jk === 'L').length
             return (
               <motion.div key={k.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 15) * 0.025 }} whileHover={{ y: -3 }}>
-                <Card className="cursor-pointer p-4 transition hover:shadow-lg" onClick={() => nav(`/keluarga/${k.id}`)}>
+                <Card tone="amber" className="cursor-pointer p-4" onClick={() => nav(`/keluarga/${k.id}`)}>
                   <div className="flex items-start gap-3">
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 font-display text-lg font-extrabold text-white shadow">{k.nomor}</div>
                     <div className="min-w-0 flex-1">

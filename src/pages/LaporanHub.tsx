@@ -25,15 +25,15 @@ export default function LaporanHub() {
       <PageHeader title="Laporan & Cetak" subtitle="Semua tab dari file Excel, siap dicetak atau disimpan sebagai PDF" icon={FileText} color="violet" />
       {groups.map(([g, rs]) => (
         <div key={g} className="mb-6">
-          <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">{g}</h2>
+          <h2 className="mb-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-violet-600 dark:text-violet-300"><span className="h-1.5 w-6 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />{g}</h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {rs.map((r) => {
               const c = col(r.color)
               return (
                 <motion.div key={g + r.slug} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i++ * 0.03 }} whileHover={{ y: -4 }} className="relative">
-                  <Link to={`/laporan/${r.slug}`} className="group relative flex h-full items-start gap-3 overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm transition hover:shadow-xl dark:border-white/10 dark:bg-slate-900">
-                    <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br opacity-10 transition group-hover:scale-150 ${c.grad}`} />
-                    <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-lg ${c.grad}`}><r.icon size={22} /></div>
+                  <Link to={`/laporan/${r.slug}`} className={`group shine relative flex h-full items-start gap-3 overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br p-4 shadow-sm ring-1 transition hover:shadow-xl ${c.wash} ${c.ring}`}>
+                    <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br opacity-20 transition duration-500 group-hover:scale-150 ${c.grad}`} />
+                    <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white shadow-lg transition duration-300 group-hover:-rotate-6 group-hover:scale-110 ${c.grad}`}><r.icon size={22} /></div>
                     <div className="min-w-0 pr-6">
                       <div className="font-display font-bold text-slate-900 dark:text-white">{r.title}</div>
                       <div className="text-xs text-slate-500">{r.desc}</div>

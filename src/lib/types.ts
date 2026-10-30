@@ -82,6 +82,8 @@ export interface Warga extends Meta {
   melahirkan: boolean
   menyusui: boolean
   nifas: boolean
+  /** Catatan status ibu per bulan (mis. hamil Jan–Jul, lahir SC Agustus tetap dilaporkan hamil). Kosong = pakai saklar di atas. */
+  riwayatIbu?: RiwayatIbu[]
   // pendidikan & ekonomi
   tigaButa: boolean
   berkebutuhanKhusus: string
@@ -179,6 +181,28 @@ export interface Arsip extends Meta {
   html: string
 }
 
+export type StatusIbuLapor = 'Hamil' | 'Melahirkan' | 'Nifas' | 'Menyusui'
+
+/** Satu catatan status ibu untuk satu bulan */
+export interface RiwayatIbu {
+  /** YYYY-MM */
+  bulan: string
+  status: StatusIbuLapor
+  /** cara melahirkan (diisi bila status Melahirkan) */
+  cara?: 'Normal' | 'SC' | 'Lainnya'
+  /** laporan tahunan: bulan ini tetap ditulis "Hamil" walau sudah melahirkan (mis. SC) */
+  tetapHamil?: boolean
+  catatan?: string
+}
+
+/** Tanggal laporan yang dikunci admin; dipakai akun viewer */
+export interface KunciTanggal {
+  aktif: boolean
+  acuan: string // yyyy-mm-dd
+  bulan: number // 0-11
+  tahun: number
+}
+
 export interface Settings {
   rt: string
   rw: string
@@ -192,6 +216,8 @@ export interface Settings {
   pilihan: Record<string, string[]>
   /** Ubahan teks tetap pada lembar laporan: "idLaporan!A1" → teks */
   teks: Record<string, string>
+  /** Kunci tanggal laporan untuk akun viewer (diatur admin) */
+  kunci?: KunciTanggal
 }
 
 export interface AuditEntry {

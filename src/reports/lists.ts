@@ -1,5 +1,5 @@
 import { TEMPLATES, dt, n, V, type Val } from '@/sheet/engine'
-import { hitungUmur, isPenduduk1559, isPUS, isWUS, kelompokUmurPUS, namaSuami, isKepala, isBalita, isLansia, kelompokUmurPUS as kup } from '@/lib/rules'
+import { hitungUmur, isPenduduk1559, isPUS, isWUS, kelompokUmurPUS, namaSuami, isKepala, isBalita, isLansia, kelompokUmurPUS as kup, statusIbuPada } from '@/lib/rules'
 import { BULAN } from '@/lib/options'
 import { dtText } from '@/sheet/engine'
 import { type Builder, type Ctx, drill, inMonth, jkText, link, rowsOf, tglPanjang, yes } from './common'
@@ -43,7 +43,7 @@ export const bPUS: Builder = (c) => {
 }
 
 export const bPencatatan: Builder = (c) => {
-  const hamil = c.aktif.filter((w) => w.hamil && w.ikutPKK)
+  const hamil = c.aktif.filter((w) => statusIbuPada(w, c.ym).hamil && w.ikutPKK)
   const sh = size('pencatatan', 0)
   const rowsH: Record<string, Val>[] = Array.from({ length: Math.max(hamil.length, sh) }, (_, i) => {
     const w = hamil[i]
@@ -134,7 +134,8 @@ export const bKampungKB: Builder = (c) => {
   const istri = pkk.filter((w) => /^istri$/i.test(w.statusKeluarga.trim()) && w.statusKawin === 'Kawin Tercatat')
   ;(['IUD', 'MOW', 'MOP', 'IMPLAN', 'SUNTIK', 'PIL', 'KONDOM'] as const).forEach((k, i) => put(`H${17 + i}`, `Peserta ${k}`, istri.filter((w) => w.kontrasepsi.trim().toUpperCase() === k)))
   sum('H24', ['H17', 'H18', 'H19', 'H20', 'H21', 'H22', 'H23'])
-  v.H28 = n(Math.min(pkk.filter((w) => w.hamil).length, 5), drill('Ibu hamil', pkk.filter((w) => w.hamil)))
+  const hamilIni = pkk.filter((w) => statusIbuPada(w, c.ym).hamil)
+  v.H28 = n(Math.min(hamilIni.length, 5), drill('Ibu hamil', hamilIni))
   // isian manual (diketik tangan di Excel)
   const man = c.kb?.nilai ?? {}
   for (const [addr, val] of Object.entries(man)) if (val !== '' && val !== undefined) v[addr] = typeof val === 'number' ? n(val) : String(val)

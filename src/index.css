@@ -13,6 +13,55 @@ body {
   @apply bg-slate-50 font-sans text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-100;
   -webkit-tap-highlight-color: transparent;
 }
+@media screen {
+  body {
+    background-image: radial-gradient(1100px 520px at 100% -8%, rgba(167, 139, 250, 0.2), transparent 60%),
+      radial-gradient(900px 480px at -8% 108%, rgba(244, 114, 182, 0.15), transparent 60%),
+      radial-gradient(700px 400px at 55% 40%, rgba(56, 189, 248, 0.08), transparent 60%);
+    background-attachment: fixed;
+  }
+  html.dark body {
+    background-image: radial-gradient(1100px 520px at 100% -8%, rgba(124, 58, 237, 0.22), transparent 60%),
+      radial-gradient(900px 480px at -8% 108%, rgba(219, 39, 119, 0.16), transparent 60%);
+  }
+}
+
+/* Kilau yang menyapu saat disorot (hover) */
+.shine {
+  position: relative;
+}
+.shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, 0.55) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  opacity: 0;
+  transition: background-position 0.9s ease, opacity 0.3s ease;
+}
+.shine:hover::after {
+  background-position: -60% 0;
+  opacity: 1;
+}
+html.dark .shine::after {
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, 0.14) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 160% 0;
+}
+html.dark .shine:hover::after {
+  background-position: -60% 0;
+}
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.floaty {
+  animation: floaty 3.2s ease-in-out infinite;
+}
+
 .tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -22,13 +71,13 @@ body {
   @apply w-full border-separate border-spacing-0 text-sm;
 }
 .dt th {
-  @apply sticky top-0 z-10 whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400;
+  @apply sticky top-0 z-10 whitespace-nowrap border-b border-violet-100 bg-gradient-to-r from-violet-50 to-fuchsia-50 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wide text-violet-700 dark:border-white/10 dark:from-slate-800 dark:to-slate-800 dark:text-slate-300;
 }
 .dt td {
   @apply border-b border-slate-100 px-3 py-2.5 align-middle dark:border-white/5;
 }
 .dt tbody tr {
-  @apply transition-colors hover:bg-violet-50/60 dark:hover:bg-white/5;
+  @apply transition-colors hover:bg-gradient-to-r hover:from-violet-50/80 hover:to-fuchsia-50/40 dark:hover:bg-white/5;
 }
 
 /* ===== Lembar laporan (replika tampilan Excel) ===== */

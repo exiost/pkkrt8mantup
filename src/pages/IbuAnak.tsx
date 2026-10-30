@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { Baby, HeartCrack, ShieldCheck, Stethoscope, CalendarHeart, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
+import { ArrowUpWideNarrow, Baby, CalendarRange, Droplets, HeartCrack, HeartPulse, Milk, ShieldCheck, Stethoscope, CalendarHeart, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
 import SimpleCrud from '@/components/SimpleCrud'
-import { Avatar, Card, Chip, Empty, Input, PageHeader, SearchBox, Segmented, Toggle } from '@/components/ui'
+import { Avatar, Button, Card, Chip, Empty, Input, PageHeader, SearchBox, Segmented, StatCard, Toggle } from '@/components/ui'
+import RiwayatIbuModal from '@/components/RiwayatIbu'
+import type { Warga } from '@/lib/types'
 import { hariMenujuHPL, hitungUmur, isPUS, isWUS, namaSuami } from '@/lib/rules'
 import { todayISO } from '@/lib/format'
 
@@ -104,55 +107,97 @@ export default function IbuAnak() {
   )
 }
 
+const STATUS_KEYS = [
+  { key: 'hamil', label: 'Hamil', icon: Baby, grad: 'from-fuchsia-500 to-pink-500' },
+  { key: 'melahirkan', label: 'Melahirkan', icon: HeartPulse, grad: 'from-rose-500 to-red-500' },
+  { key: 'nifas', label: 'Nifas', icon: Droplets, grad: 'from-violet-500 to-indigo-500' },
+  { key: 'menyusui', label: 'Menyusui', icon: Milk, grad: 'from-sky-500 to-cyan-500' },
+] as const
+
+/** Makin banyak status & info terisi, makin besar nilainya (tampil paling atas) */
+function skorIbu(w: Warga, ym: string) {
+  const n = STATUS_KEYS.filter((k) => w[k.key]).length
+  const bobot = (w.hamil ? 8 : 0) + (w.melahirkan ? 4 : 0) + (w.nifas ? 2 : 0) + (w.menyusui ? 1 : 0)
+  const info = (w.hpl ? 1 : 0) + (w.hamilKe ? 1 : 0) + (w.riwayatIbu?.some((r) => r.bulan === ym) ? 1 : 0)
+  return n * 100 + (n ? info * 10 : 0) + bobot
+}
+
 function StatusIbu() {
   const st = useStore()
   const warga = useLive('warga')
   const [q, setQ] = useState('')
   const [semua, setSemua] = useState(false)
+  const [riwayat, setRiwayat] = useState<Warga | null>(null)
   const acuan = todayISO()
-  const list = warga
+  const ym = acuan.slice(0, 7)
+  const base = warga
     .filter((w) => w.jk === 'P' && w.statusWarga === 'Aktif')
-    .filter((w) => semua || w.hamil || w.melahirkan || w.nifas || w.menyusui || isPUS(w, acuan) || isWUS(w, acuan))
+    .filter((w) => semua || w.hamil || w.melahirkan || w.nifas || w.menyusui || w.riwayatIbu?.length || isPUS(w, acuan) || isWUS(w, acuan))
     .filter((w) => !q || w.nama.toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => a.nama.localeCompare(b.nama, 'id')) // urutan tetap supaya kartu tidak melompat saat saklar digeser
+  // urutan diperbarui sebentar setelah saklar digeser, supaya kartu tidak melompat saat ditekan
+  const sig = base.map((w) => `${w.id}:${skorIbu(w, ym)}`).join('|')
+  const [urut, setUrut] = useState(sig)
+  useEffect(() => { const t = setTimeout(() => setUrut(sig), 900); return () => clearTimeout(t) }, [sig])
+  const skor = new Map(urut.split('|').filter(Boolean).map((x) => { const [id, v] = x.split(':'); return [id, Number(v)] as const }))
+  const list = [...base].sort((a, b) => (skor.get(b.id) ?? skorIbu(b, ym)) - (skor.get(a.id) ?? skorIbu(a, ym)) || a.nama.localeCompare(b.nama, 'id'))
   const upd = (id: string, nama: string, p: Record<string, unknown>) => st.update('warga', id, p, nama)
+  const jum = (k: (typeof STATUS_KEYS)[number]['key']) => base.filter((w) => w[k]).length
   return (
     <div>
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {STATUS_KEYS.map((k, i) => <StatCard key={k.key} label={k.label} value={jum(k.key)} icon={k.icon} color={['fuchsia', 'rose', 'violet', 'sky'][i]} i={i} />)}
+      </div>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="flex-1"><SearchBox value={q} onChange={setQ} placeholder="Cari nama ibu…" /></div>
         <Toggle checked={semua} onChange={setSemua} label="Tampilkan semua perempuan" />
       </div>
+      <p className="mb-3 flex items-center gap-1.5 text-xs text-slate-500"><ArrowUpWideNarrow size={14} /> Ibu dengan status paling banyak otomatis di atas.</p>
       {list.length === 0 ? <Card><Empty title="Tidak ada data" icon={Stethoscope} /></Card> : (
         <div className="grid gap-3 md:grid-cols-2">
           {list.map((w) => {
             const d = hariMenujuHPL(w.hpl, acuan)
+            const aktifN = STATUS_KEYS.filter((k) => w[k.key]).length
+            const catatan = w.riwayatIbu?.find((r) => r.bulan === ym)
             return (
-              <Card key={w.id} className={`p-4 ${w.hamil ? 'ring-2 ring-fuchsia-300' : ''}`}>
-                <div className="flex items-center gap-3">
-                  <Avatar nama={w.nama} jk="P" />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold">{w.nama}</div>
-                    <div className="text-xs text-slate-500">{hitungUmur(w.tglLahir, acuan) ?? '-'} th · Suami: {namaSuami(w, warga) || '-'} · {w.dasawisma}</div>
+              <motion.div key={w.id} layout transition={{ type: 'spring', damping: 30, stiffness: 320 }}>
+                <Card tone={w.hamil ? 'fuchsia' : aktifN ? 'violet' : undefined} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar nama={w.nama} jk="P" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold">{w.nama}</div>
+                      <div className="text-xs text-slate-500">{hitungUmur(w.tglLahir, acuan) ?? '-'} th · Suami: {namaSuami(w, warga) || '-'} · {w.dasawisma}</div>
+                    </div>
+                    {w.hamil && d !== null && <Chip color={d <= 30 ? 'red' : 'fuchsia'} pulse={d <= 30} icon={CalendarHeart}>HPL {d >= 0 ? `${d} hari lagi` : `lewat ${-d} hari`}</Chip>}
                   </div>
-                  {w.hamil && d !== null && <Chip color={d <= 30 ? 'red' : 'fuchsia'} pulse={d <= 30}>HPL {d >= 0 ? `${d} hari lagi` : `lewat ${-d} hari`}</Chip>}
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Toggle checked={w.hamil} onChange={(b) => upd(w.id, w.nama, { hamil: b })} label="Hamil" />
-                  <Toggle checked={w.melahirkan} onChange={(b) => upd(w.id, w.nama, { melahirkan: b, hamil: b ? false : w.hamil })} label="Melahirkan" />
-                  <Toggle checked={w.nifas} onChange={(b) => upd(w.id, w.nama, { nifas: b })} label="Nifas" />
-                  <Toggle checked={w.menyusui} onChange={(b) => upd(w.id, w.nama, { menyusui: b })} label="Menyusui" />
-                </div>
-                {w.hamil && (
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <label className="text-xs text-slate-500">Hamil ke-<Input value={w.hamilKe} onChange={(e) => upd(w.id, w.nama, { hamilKe: e.target.value })} /></label>
-                    <label className="text-xs text-slate-500">HPL<Input type="date" value={w.hpl} onChange={(e) => upd(w.id, w.nama, { hpl: e.target.value })} /></label>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {STATUS_KEYS.map((k) => {
+                      const on = w[k.key]
+                      return (
+                        <button key={k.key} type="button" aria-pressed={on}
+                          onClick={() => upd(w.id, w.nama, k.key === 'melahirkan' ? { melahirkan: !on, hamil: !on ? false : w.hamil } : { [k.key]: !on })}
+                          className={`shine flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-bold transition active:scale-95 ${on ? `bg-gradient-to-br text-white shadow-md ${k.grad}` : 'bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300'}`}>
+                          <k.icon size={14} /> {k.label}
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
-              </Card>
+                  {w.hamil && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <label className="text-xs text-slate-500">Hamil ke-<Input value={w.hamilKe} onChange={(e) => upd(w.id, w.nama, { hamilKe: e.target.value })} /></label>
+                      <label className="text-xs text-slate-500">HPL<Input type="date" value={w.hpl} onChange={(e) => upd(w.id, w.nama, { hpl: e.target.value })} /></label>
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2 dark:border-white/10">
+                    <Button size="sm" variant="soft" icon={CalendarRange} onClick={() => setRiwayat(w)}>Catatan bulanan{w.riwayatIbu?.length ? ` (${w.riwayatIbu.length})` : ''}</Button>
+                    {catatan && <Chip color="fuchsia" icon={Stethoscope}>Bulan ini: {catatan.tetapHamil && catatan.status !== 'Hamil' ? `${catatan.status}${catatan.cara ? ' ' + catatan.cara : ''} → lapor Hamil` : catatan.status}</Chip>}
+                  </div>
+                </Card>
+              </motion.div>
             )
           })}
         </div>
       )}
+      {riwayat && <RiwayatIbuModal w={riwayat} onClose={() => setRiwayat(null)} />}
     </div>
   )
 }

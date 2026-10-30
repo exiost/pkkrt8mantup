@@ -1,4 +1,6 @@
-import { ChevronLeft, ChevronRight, Layers } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Layers, Lock, LockOpen, RefreshCw, ShieldCheck } from 'lucide-react'
+import { toast } from 'sonner'
+import { useSession } from '@/lib/session'
 import { useMemo } from 'react'
 import { useStore, useLive } from '@/lib/store'
 import { BULAN } from '@/lib/options'
@@ -17,10 +19,34 @@ interface Props {
   o: ReportOpts
   setO: (x: Partial<ReportOpts>) => void
   ctx: Ctx
+  /** akun viewer: tanggal dikunci admin dan tidak ditampilkan */
+  viewer?: boolean
+  admin?: boolean
 }
 
-export default function ReportControls({ uses, p, setP, o, setO, ctx }: Props) {
+/** Admin mengunci tanggal laporan untuk akun viewer */
+function KunciBox({ p }: { p: ReportParams }) {
+  const st = useStore()
+  const k = st.settings.kunci
+  const set = (aktif: boolean) => { st.setSettings({ kunci: { aktif, acuan: p.acuan, bulan: p.bulan, tahun: p.tahun } }); toast.success(aktif ? 'Tanggal dikunci untuk viewer 🔒' : 'Kunci dibuka') }
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-amber-100">
+      {k?.aktif ? <Lock size={16} className="shrink-0 text-amber-600" /> : <LockOpen size={16} className="shrink-0 text-amber-600" />}
+      <div className="min-w-0 flex-1">
+        {k?.aktif
+          ? <><b>Terkunci untuk viewer:</b> acuan {k.acuan} · {BULAN[k.bulan]} {k.tahun}. Berlaku di semua laporan; viewer tidak melihat tanggalnya.</>
+          : <><b>Belum dikunci.</b> Atur tanggal di atas, lalu kunci agar akun viewer memakai tanggal ini di semua laporan.</>}
+      </div>
+      {k?.aktif && <Button size="sm" variant="outline" icon={RefreshCw} onClick={() => set(true)}>Pakai tanggal di atas</Button>}
+      {k?.aktif ? <Button size="sm" variant="outline" icon={LockOpen} onClick={() => set(false)}>Buka kunci</Button> : <Button size="sm" icon={Lock} onClick={() => set(true)}>Kunci tanggal ini</Button>}
+    </div>
+  )
+}
+
+export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, admin }: Props) {
   const dws = useLive('dasawisma')
+  const server = useSession((s) => s.server)
+  const bertanggal = uses.includes('acuan') || uses.includes('bulan') || uses.includes('tahun')
   const sel = 'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800'
   const items = useMemo(() => {
     if (uses.includes('warga')) return ctx.aktif.filter((w) => !p.dawis || w.dasawisma === p.dawis).map((w) => ({ id: w.id, label: `${w.noReg}. ${w.nama}` }))
@@ -34,15 +60,16 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx }: Props) {
 
   return (
     <Card className="no-print mt-3 p-3">
+      {viewer && bertanggal && <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200"><ShieldCheck size={14} /> Data periode terkunci oleh admin</div>}
       <div className="flex flex-wrap items-end gap-3">
-        {uses.includes('acuan') && <Field label="Tanggal acuan (hitung umur)"><Input type="date" value={p.acuan} onChange={(e) => e.target.value && setP({ acuan: e.target.value })} /></Field>}
-        {uses.includes('bulan') && (
+        {!viewer && uses.includes('acuan') && <Field label="Tanggal acuan (hitung umur)"><Input type="date" value={p.acuan} onChange={(e) => e.target.value && setP({ acuan: e.target.value })} /></Field>}
+        {!viewer && uses.includes('bulan') && (
           <>
             <Field label="Bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
             <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
           </>
         )}
-        {uses.includes('tahun') && <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>}
+        {!viewer && uses.includes('tahun') && <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>}
         {(uses.includes('dawis') || uses.includes('dawisWajib')) && (
           <Field label="Dasawisma">
             <select className={sel} value={p.dawis} onChange={(e) => setP({ dawis: e.target.value, pick: '' })}>
@@ -65,7 +92,8 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx }: Props) {
           <div className="flex items-center gap-2"><Layers size={16} className="text-violet-500" /><Toggle checked={p.semua} onChange={(b) => setP({ semua: b })} label={`Cetak semua (${items.length})`} /></div>
         </div>
       )}
-      <p className="mt-2 hidden text-[11px] text-slate-400 sm:block">💡 Klik <b>angka</b> untuk melihat daftar nama, klik <b>nama</b> untuk mengubah datanya.</p>
+      {server && admin && bertanggal && <KunciBox p={p} />}
+      {!viewer && <p className="mt-2 hidden text-[11px] text-slate-400 sm:block">💡 Klik <b>angka</b> untuk melihat daftar nama, klik <b>nama</b> untuk mengubah datanya.</p>}
     </Card>
   )
 }

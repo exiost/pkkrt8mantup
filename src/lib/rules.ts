@@ -75,6 +75,24 @@ export function statusIbu(w: Warga): string {
   return ''
 }
 
+/** "YYYY-MM" dari tahun & bulan (0–11) */
+export const ymOf = (tahun: number, bulan: number) => `${tahun}-${String(bulan + 1).padStart(2, '0')}`
+
+export interface FlagIbu { hamil: boolean; melahirkan: boolean; nifas: boolean; menyusui: boolean }
+
+/**
+ * Status ibu yang DILAPORKAN pada bulan `ym` (YYYY-MM).
+ * Bila ibu punya catatan per bulan, hanya catatan itu yang dipakai (bulan tanpa catatan = tidak dilaporkan,
+ * dan "tetap hamil" membuat yang sudah melahirkan SC tetap tertulis Hamil). Tanpa catatan: pakai saklar biasa.
+ */
+export function statusIbuPada(w: Warga, ym: string): FlagIbu {
+  const r = w.riwayatIbu
+  if (!r?.length) return { hamil: w.hamil, melahirkan: w.melahirkan, nifas: w.nifas, menyusui: w.menyusui }
+  const e = r.find((x) => x.bulan === ym)
+  const s = e ? (e.tetapHamil ? 'Hamil' : e.status) : ''
+  return { hamil: s === 'Hamil', melahirkan: s === 'Melahirkan', nifas: s === 'Nifas', menyusui: s === 'Menyusui' }
+}
+
 /** Anggota satu keluarga (ID keluarga sama), urut seperti di DATA WARGA */
 export function anggotaKeluarga(keluargaId: string, semua: Warga[]): Warga[] {
   return semua.filter((x) => x.keluargaId === keluargaId && !x.deletedAt).sort((a, b) => a.urut - b.urut)

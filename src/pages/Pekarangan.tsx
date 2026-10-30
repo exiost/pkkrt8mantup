@@ -1,11 +1,23 @@
 import { useMemo, useState } from 'react'
-import { Sprout, Factory, Pencil, Save, Printer } from 'lucide-react'
+import { Sprout, Factory, Pencil, Save, Printer, Home, PawPrint, Fish, Carrot, Leaf, Apple, Flower2, ChefHat, Scissors, Gem, Palette, Package, type LucideIcon } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { Avatar, Button, Card, Chip, Empty, IconBtn, Modal, PageHeader, SearchBox, Toggle, StatCard } from '@/components/ui'
 import { ItemEditor } from '@/components/WargaForm'
 import type { ItemIRT, ItemPekarangan, Warga } from '@/lib/types'
+
+/** Ikon & warna per kategori supaya langsung terbaca */
+const KAT_PK: Record<string, { icon: LucideIcon; color: string }> = {
+  Peternakan: { icon: PawPrint, color: 'amber' }, Perikanan: { icon: Fish, color: 'sky' }, 'Warung Hidup': { icon: Carrot, color: 'orange' },
+  Toga: { icon: Leaf, color: 'emerald' }, 'Tanaman Buah': { icon: Apple, color: 'rose' }, 'Tanaman lain lain': { icon: Flower2, color: 'fuchsia' },
+}
+const KAT_IRT: Record<string, { icon: LucideIcon; color: string }> = {
+  'Pangan / Catering': { icon: ChefHat, color: 'orange' }, Jahit: { icon: Scissors, color: 'violet' }, Payet: { icon: Gem, color: 'pink' },
+  'Jasa Payet': { icon: Gem, color: 'fuchsia' }, Kerajinan: { icon: Palette, color: 'teal' }, Lainnya: { icon: Package, color: 'slate' },
+}
+const ik = (m: Record<string, { icon: LucideIcon; color: string }>, k: string, fb: { icon: LucideIcon; color: string }) => m[k] ?? fb
 
 export default function Pekarangan() {
   const warga = useLive('warga')
@@ -15,20 +27,20 @@ export default function Pekarangan() {
   const nav = useNavigate()
   const list = warga
     .filter((w) => semua || w.pekarangan.length || w.irt.length)
-    .filter((w) => !q || w.nama.toLowerCase().includes(q.toLowerCase()) || JSON.stringify(w.pekarangan).toLowerCase().includes(q.toLowerCase()))
+    .filter((w) => !q || w.nama.toLowerCase().includes(q.toLowerCase()) || JSON.stringify(w.pekarangan).toLowerCase().includes(q.toLowerCase()) || JSON.stringify(w.irt).toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => (b.pekarangan.length + b.irt.length) - (a.pekarangan.length + a.irt.length) || a.nama.localeCompare(b.nama, 'id'))
   const rekap = useMemo(() => {
     const m = new Map<string, number>()
     warga.forEach((w) => w.pekarangan.forEach((p) => m.set(p.kategori, (m.get(p.kategori) ?? 0) + 1)))
     return [...m.entries()]
   }, [warga])
   const nIRT = warga.filter((w) => w.irt.length).length
-  const COLORS = ['lime', 'emerald', 'teal', 'amber', 'orange', 'sky']
   return (
     <div>
       <PageHeader title="Pekarangan & IRT" subtitle="HATINYA PKK (pemanfaatan tanah pekarangan) & Industri Rumah Tangga" icon={Sprout} color="lime"
         actions={<Button variant="outline" icon={Printer} onClick={() => nav('/laporan/ht-irt')}>Cetak</Button>} />
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-        {rekap.map(([k, n], i) => <StatCard key={k} label={k} value={n} icon={Sprout} color={COLORS[i % COLORS.length]} i={i} />)}
+        {rekap.map(([k, n], i) => { const x = ik(KAT_PK, k, { icon: Sprout, color: 'lime' }); return <StatCard key={k} label={k} value={n} icon={x.icon} color={x.color} i={i} /> })}
         <StatCard label="Pelaku IRT" value={nIRT} icon={Factory} color="orange" i={rekap.length} />
       </div>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -37,19 +49,33 @@ export default function Pekarangan() {
       </div>
       {list.length === 0 ? <Card><Empty title="Belum ada data pekarangan / IRT" icon={Sprout} /></Card> : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {list.map((w) => (
-            <Card key={w.id} className="p-4">
-              <div className="flex items-center gap-3">
-                <Avatar nama={w.nama} jk={w.jk} />
-                <div className="min-w-0 flex-1"><div className="truncate font-semibold">{w.nama}</div><div className="text-xs text-slate-500">{w.dasawisma}</div></div>
-                <IconBtn icon={Pencil} label="Ubah" onClick={() => setEdit(w)} />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {w.pekarangan.map((p, i) => <Chip key={i} color="lime" icon={Sprout}>{p.komoditi} · {p.jumlah}</Chip>)}
-                {w.irt.map((p, i) => <Chip key={'x' + i} color="orange" icon={Factory}>{p.komoditi} · {p.volume}</Chip>)}
-                {!w.pekarangan.length && !w.irt.length && <span className="text-xs text-slate-400">Belum ada</span>}
-              </div>
-            </Card>
+          {list.map((w, i) => (
+            <motion.div key={w.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }}>
+              <Card tone={w.irt.length && !w.pekarangan.length ? 'orange' : 'lime'} className="h-full p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar nama={w.nama} jk={w.jk} />
+                  <div className="min-w-0 flex-1"><div className="truncate font-semibold">{w.nama}</div><div className="flex items-center gap-1 text-xs text-slate-500"><Home size={11} /> {w.dasawisma}</div></div>
+                  <IconBtn icon={Pencil} label="Ubah" onClick={() => setEdit(w)} />
+                </div>
+                {w.pekarangan.length > 0 && (
+                  <div className="mt-3">
+                    <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-lime-700 dark:text-lime-300"><Sprout size={11} /> Pekarangan</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {w.pekarangan.map((p, i) => { const x = ik(KAT_PK, p.kategori, { icon: Sprout, color: 'lime' }); return <Chip key={i} color={x.color} icon={x.icon}>{p.komoditi}{p.jumlah ? ` · ${p.jumlah}` : ''}</Chip> })}
+                    </div>
+                  </div>
+                )}
+                {w.irt.length > 0 && (
+                  <div className="mt-3">
+                    <div className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-orange-700 dark:text-orange-300"><Factory size={11} /> Industri Rumah Tangga</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {w.irt.map((p, i) => { const x = ik(KAT_IRT, p.kategori, { icon: Factory, color: 'orange' }); return <Chip key={'x' + i} color={x.color} icon={x.icon}>{p.komoditi}{p.volume ? ` · ${p.volume}` : ''}</Chip> })}
+                    </div>
+                  </div>
+                )}
+                {!w.pekarangan.length && !w.irt.length && <div className="mt-3 text-xs text-slate-400">Belum ada data. Klik ✏️ untuk menambah.</div>}
+              </Card>
+            </motion.div>
           ))}
         </div>
       )}

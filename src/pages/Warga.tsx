@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Users, Plus, LayoutGrid, Rows3, Pencil, Trash2, Filter, CheckSquare, X, Copy, Download, SlidersHorizontal, ArrowDownAZ } from 'lucide-react'
+import { Users, Plus, LayoutGrid, Rows3, Pencil, Trash2, Filter, CheckSquare, X, Copy, Download, SlidersHorizontal, ArrowDownAZ, UserRound, IdCard, Cake, Crown, MapPin, Tags, ToggleRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
@@ -179,7 +179,7 @@ export default function WargaPage() {
               <thead>
                 <tr>
                   <th className="w-8"><input type="checkbox" checked={allSel} onChange={() => setSel(allSel ? new Set() : new Set(list.map((w) => w.id)))} /></th>
-                  <th>Nama</th><th>NIK</th><th>Umur</th><th>Status Keluarga</th><th>Dasawisma</th><th>Tag</th><th>Hitung</th><th className="text-right">Aksi</th>
+                  <th><span className="inline-flex items-center gap-1"><UserRound size={12} />Nama</span></th><th><span className="inline-flex items-center gap-1"><IdCard size={12} />NIK</span></th><th><span className="inline-flex items-center gap-1"><Cake size={12} />Umur</span></th><th><span className="inline-flex items-center gap-1"><Crown size={12} />Status Keluarga</span></th><th><span className="inline-flex items-center gap-1"><MapPin size={12} />Dasawisma</span></th><th><span className="inline-flex items-center gap-1"><Tags size={12} />Tag</span></th><th><span className="inline-flex items-center gap-1"><ToggleRight size={12} />Hitung</span></th><th className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -217,8 +217,7 @@ export default function WargaPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {list.slice(0, limit).map((w, i) => (
               <motion.div key={w.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.03 }} whileHover={{ y: -3 }}>
-                <Card className={`group relative p-4 transition hover:shadow-lg ${sel.has(w.id) ? 'ring-2 ring-violet-400' : ''}`}>
-                  <div className={`absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${w.jk === 'P' ? 'from-pink-400 to-fuchsia-500' : 'from-sky-400 to-indigo-500'}`} />
+                <Card tone={w.jk === 'P' ? 'pink' : 'sky'} className={`group p-4 ${sel.has(w.id) ? '!ring-2 !ring-violet-500' : ''}`}>
                   <div className="flex items-start gap-3">
                     <button onClick={() => nav(`/warga/${w.id}`)}><Avatar nama={w.nama} jk={w.jk} /></button>
                     <button onClick={() => nav(`/warga/${w.id}`)} className="min-w-0 flex-1 text-left">

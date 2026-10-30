@@ -34,6 +34,8 @@ export interface Ctx {
   dasawisma: Dasawisma[]
   kb?: KampungKBManual
   settings: Settings
+  /** bulan laporan (YYYY-MM) untuk status ibu hamil/nifas/menyusui */
+  ym: string
 }
 
 export interface PageSpec extends SheetViewProps {

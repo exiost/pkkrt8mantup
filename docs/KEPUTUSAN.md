@@ -43,6 +43,10 @@ Pemilik proyek menyerahkan keputusan teknis ("yang penting jadi dulu"). Berikut 
 | K19 | Kolom/kotak yang di Excel kosong (Alamat di Penduduk 15–59; 3 buta, ibu hamil, menyusui di Data Keluarga) | Tetap kosong; ada pilihan **“Isi kotak yang di Excel kosong”** | "Sama persis" bila tidak dicentang |
 | K20 | Browser tidak bisa memecah kolom ke halaman berikutnya seperti Excel | Bila tabel lebih lebar dari kertas pada skala Excel, otomatis dikecilkan (bisa diubah di Atur cetak) | Mencegah tabel terpotong |
 | K21 | Alamat per orang | Desa, kecamatan, kabupaten, provinsi disimpan per warga | Di Excel berbeda-beda per warga |
+| K22 | Peran viewer | Hanya halaman Laporan (menu & alamat lain dialihkan); tidak bisa mengubah data, teks lembar, arsip, atau kunci tanggal. Beranda dan Impor/Ekspor hanya admin | Permintaan pemilik; dijaga juga di server (viewer tidak bisa menulis) |
+| K23 | Kunci tanggal laporan | Admin mengunci tanggal acuan + bulan + tahun sekali, berlaku untuk semua laporan bagi akun viewer; viewer tidak melihat kontrol tanggal. Tanpa kunci: hari ini. Admin & editor tetap bebas memilih | Tanggal yang tercetak di judul lembar tetap tampil karena bagian dari hasil cetak seperti Excel |
+| K24 | Status ibu per bulan | Catatan opsional `riwayatIbu` per ibu: satu entri per bulan (Hamil / Melahirkan / Nifas / Menyusui, cara lahir, “tetap dilaporkan Hamil”). Bila ada catatan, laporan bulan itu memakai catatan; bulan tanpa catatan tidak dilaporkan. Tanpa catatan sama sekali: memakai saklar lama (sama dengan Excel) | Laporan tahunan: ibu yang sudah melahirkan SC tetap ditulis Hamil di bulan itu |
+| K25 | Urutan Status Ibu | Makin banyak status & info terisi, makin di atas (urutan baru diterapkan ±1 detik setelah saklar digeser agar kartu tidak melompat) | Permintaan pemilik |
 
 ### Perbedaan angka dengan Excel (kesalahan rumus di Excel)
 

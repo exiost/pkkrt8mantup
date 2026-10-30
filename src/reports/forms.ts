@@ -1,5 +1,5 @@
 import { TEMPLATES, dt, dtText, n, V, type Val } from '@/sheet/engine'
-import { anggotaKeluarga, hitungUmur, isBalita, isKepala, isLansia, isPUS, isWUS, jumlahKK, kepalaKeluarga } from '@/lib/rules'
+import { anggotaKeluarga, hitungUmur, isBalita, isKepala, isLansia, isPUS, isWUS, jumlahKK, kepalaKeluarga, statusIbuPada } from '@/lib/rules'
 import { type Builder, type Ctx, type PageSpec, has, link, tidak, yes } from './common'
 import type { Keluarga, Warga } from '@/lib/types'
 
@@ -90,8 +90,8 @@ function dataKeluargaOf(k: Keluarga, ang: Warga[], kepala: Warga | undefined, c:
   }
   if (c.o.isiKosong) {
     v.P14 = cntPKK((w) => w.tigaButa)
-    v.G16 = cntPKK((w) => w.hamil)
-    v.L16 = cntPKK((w) => w.menyusui)
+    v.G16 = cntPKK((w) => statusIbuPada(w, c.ym).hamil)
+    v.L16 = cntPKK((w) => statusIbuPada(w, c.ym).menyusui)
   }
   return { key: `dk-${k.id}`, tplId: 'datakeluarga', values: v, regions: { m: rows }, rowsShown: { m: Math.max(rows.length, TEMPLATES.datakeluarga.regions[0].size) }, label: kepala?.nama, fam: { k, ang, kepala } }
 }
