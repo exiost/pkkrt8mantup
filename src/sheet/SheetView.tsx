@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { STYLES, TEMPLATES, colLetter, type CellObj, type TplCell, type TplStyle, type Val } from './engine'
 import type { Warga } from '@/lib/types'
 
@@ -72,6 +72,7 @@ interface RRow { key: string; origR: number; h: number; cells: TplCell[]; region
 export default function SheetView({ tplId, values, regions, rowsShown, overrides, editText, onEditText, area, repeatHeader }: SheetViewProps) {
   const tpl = TEMPLATES[tplId]
   const act = useContext(SheetCtx)
+  const tableRef = useRef<HTMLTableElement>(null)
   const ncols = tpl.cols.length
   const totalW = useMemo(() => tpl.cols.reduce((a, b) => a + b, 0), [tpl])
 
@@ -155,6 +156,7 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
           colSpan={c.cs}
           style={{ ...css, display: hiddenCol ? 'none' : undefined }}
           className={cls || undefined}
+          data-nw={!wrap && !canOverflow && obj && !st.rot ? '' : undefined}
           onClick={editable ? () => onEditText?.(x.addr, String(c.v)) : undefined}
         >
           {inner}
@@ -170,9 +172,29 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
     )
   })
 
+  // font di peramban bisa sedikit lebih lebar daripada di Excel: kecilkan seperlunya agar teks tidak terpotong
+  useLayoutEffect(() => {
+    const t = tableRef.current
+    if (!t) return
+    const run = () => {
+      const tds = Array.from(t.querySelectorAll<HTMLTableCellElement>('td[data-nw]'))
+      tds.forEach((td) => { td.style.removeProperty('font-size') })
+      const fix: [HTMLTableCellElement, number][] = []
+      for (const td of tds) {
+        if (td.clientWidth > 0 && td.scrollWidth > td.clientWidth) {
+          const px = parseFloat(getComputedStyle(td).fontSize)
+          fix.push([td, Math.max(px * ((td.clientWidth - 6) / (td.scrollWidth - 4)), px * 0.6)])
+        }
+      }
+      fix.forEach(([td, f]) => { td.style.fontSize = `${f}px` })
+    }
+    run()
+    document.fonts?.ready.then(run).catch(() => {})
+  })
+
   const headCount = repeatHeader && firstRegionIdx > 0 ? firstRegionIdx : 0
   return (
-    <table className="xl" style={{ width: totalW, tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
+    <table ref={tableRef} className="xl" style={{ width: totalW, tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
       <colgroup>
         {tpl.cols.map((w, i) => (
           <col key={i} style={{ width: w, visibility: area && (i < area.c1 || i > area.c2) ? 'collapse' : undefined }} />
