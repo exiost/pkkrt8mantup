@@ -139,7 +139,7 @@ export const bIbuHamilDawis: Builder = (c) => {
     const ket = catatanIbu(w, c.ym, BULAN)
     const base: Record<string, Val> = { A: ++no, B: link(w), C: namaSuami(w, c.warga), D: status, ...(ket ? { Q: ket } : {}) }
     if (!babies.length) left.push(base)
-    babies.forEach((b, i) => left.push({ ...base, ...(i > 0 ? { A: undefined, Q: undefined } : {}), ...babyCols(b) }))
+    babies.forEach((b, i) => left.push({ ...base, ...(i > 0 ? { A: ++no, Q: undefined } : {}), ...babyCols(b) }))
   }
   for (const k of lahir) if (!used.has(k.id)) left.push({ A: ++no, B: k.namaIbu, C: k.namaSuami, D: 'Melahirkan', ...babyCols(k) })
   const right: Record<string, Val>[] = mati.map((m) => ({
