@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Settings, MapPin, Users, Tags, ListChecks, Palette, Plus, Trash2, Pencil, Save, Check } from 'lucide-react'
+import AkunServer from './AkunServer'
+import { Server as ServerIcon, Settings, MapPin, Users, Tags, ListChecks, Palette, Plus, Trash2, Pencil, Save, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
+import { useUi } from '@/lib/ui'
 import SimpleCrud from '@/components/SimpleCrud'
 import { Button, Card, Chip, Field, IconBtn, Input, PageHeader, Section, Segmented, Toggle, useConfirm } from '@/components/ui'
 import { PILIHAN_LABEL, WARNA } from '@/lib/options'
 import type { Settings as S } from '@/lib/types'
 
-type Tab = 'wilayah' | 'dasawisma' | 'tag' | 'pilihan' | 'tampilan'
+type Tab = 'wilayah' | 'dasawisma' | 'tag' | 'pilihan' | 'tampilan' | 'akun'
 
 export default function Pengaturan() {
   const [tab, setTab] = useState<Tab>('wilayah')
@@ -21,6 +23,7 @@ export default function Pengaturan() {
           { value: 'tag', label: 'Tag', icon: Tags },
           { value: 'pilihan', label: 'Daftar Pilihan', icon: ListChecks },
           { value: 'tampilan', label: 'Tampilan', icon: Palette },
+          { value: 'akun', label: 'Akun & Server', icon: ServerIcon },
         ]} />
       </div>
       {tab === 'wilayah' && <Wilayah />}
@@ -34,6 +37,7 @@ export default function Pengaturan() {
       )}
       {tab === 'pilihan' && <Pilihan />}
       {tab === 'tampilan' && <Tampilan />}
+      {tab === 'akun' && <AkunServer />}
     </div>
   )
 }
@@ -133,13 +137,12 @@ function Pilihan() {
 }
 
 function Tampilan() {
-  const st = useStore()
-  const s = st.settings
+  const ui = useUi()
   return (
     <Section title="Tampilan" icon={Palette} color="fuchsia">
       <div className="space-y-3">
-        <Toggle checked={s.dark} onChange={(b) => st.setSettings({ dark: b })} label="Mode gelap 🌙" />
-        <Toggle checked={s.reduceMotion} onChange={(b) => st.setSettings({ reduceMotion: b })} label="Kurangi animasi (lebih hemat baterai)" />
+        <Toggle checked={ui.dark} onChange={(b) => ui.set({ dark: b })} label="Mode gelap 🌙" />
+        <Toggle checked={ui.reduceMotion} onChange={(b) => ui.set({ reduceMotion: b })} label="Kurangi animasi (lebih hemat baterai)" />
       </div>
     </Section>
   )

@@ -65,7 +65,7 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx }: Props) {
           <div className="flex items-center gap-2"><Layers size={16} className="text-violet-500" /><Toggle checked={p.semua} onChange={(b) => setP({ semua: b })} label={`Cetak semua (${items.length})`} /></div>
         </div>
       )}
-      <p className="mt-2 text-[11px] text-slate-400">💡 Klik <b>angka</b> untuk melihat daftar nama, klik <b>nama</b> untuk mengubah datanya.</p>
+      <p className="mt-2 hidden text-[11px] text-slate-400 sm:block">💡 Klik <b>angka</b> untuk melihat daftar nama, klik <b>nama</b> untuk mengubah datanya.</p>
     </Card>
   )
 }

@@ -10,6 +10,7 @@ import SheetView, { SheetCtx, type PrintArea } from '@/sheet/SheetView'
 import { TEMPLATES, colIndex } from '@/sheet/engine'
 import type { Ctx, ReportOpts, ReportParams } from '@/reports/common'
 import ReportControls, { ManualKB } from '@/reports/ReportControls'
+import { makeCtx } from '@/reports/ctx'
 import PrintPanel from '@/reports/PrintPanel'
 import { effectiveScale, excelShrunk, pageGeometry, usePrintSettings } from '@/reports/usePrint'
 import { eksporTabel } from '@/lib/excel'
@@ -74,13 +75,11 @@ function ReportView({ slug }: { slug: string }) {
     if (def.uses.includes('dawisWajib') && !p.dawis && dasawisma[0]) setP({ dawis: dasawisma[0].nama })
   }, [def, p.dawis, dasawisma])
 
-  const aktif = useMemo(() => [...warga].filter((w) => w.statusWarga === 'Aktif').sort((a, b) => a.urut - b.urut), [warga])
-  const wargaSorted = useMemo(() => [...warga].sort((a, b) => a.urut - b.urut), [warga])
   const periode = `${p.tahun}-${String(p.bulan + 1).padStart(2, '0')}`
-  const ctx: Ctx = useMemo(() => ({
-    p, o, warga: wargaSorted, aktif, keluarga, fam: new Map(keluarga.map((k) => [k.id, k])), kelahiran, kematian, pesertaKB, pusBaru, dasawisma,
-    kb: kbAll.find((x) => x.periode === periode && !x.deletedAt), settings,
-  }), [p, o, wargaSorted, aktif, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, periode, settings])
+  const ctx: Ctx = useMemo(
+    () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, p, o),
+    [p, o, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
+  )
   const pages = useMemo(() => def.build(ctx), [def, ctx])
 
   const tpl = TEMPLATES[def.tpl]
@@ -89,7 +88,8 @@ function ReportView({ slug }: { slug: string }) {
   const eff = effectiveScale(ps, nat)
   const pagesAcross = nat.w ? Math.max(1, Math.ceil((nat.w * eff) / g.printW - 0.001)) : 1
   const pagesDown = nat.h ? Math.max(1, Math.ceil((nat.h * eff) / g.printH - 0.001)) : 1
-  const screenZoom = panel && ps.guides ? eff : zoom === 'fit' ? (stageW && nat.w ? Math.min(1, (stageW - 24) / nat.w) : 1) : zoom
+  const fitZoom = stageW && nat.w ? Math.min(1, (stageW - 24) / nat.w) : 1
+  const screenZoom = panel && ps.guides ? eff : zoom === 'fit' ? (stageW > 0 && stageW < 640 ? Math.max(fitZoom, 0.55) : fitZoom) : zoom
 
   // ukuran asli tabel (tanpa zoom) untuk perhitungan skala
   useLayoutEffect(() => {
@@ -102,6 +102,26 @@ function ReportView({ slug }: { slug: string }) {
     el.querySelectorAll<HTMLElement>('.sheet-page > table').forEach((t) => { const r = t.getBoundingClientRect(); if (r.width > 0) h = Math.max(h, (r.height * w) / r.width) })
     setNat((x) => (Math.abs(x.w - w) < 1 && Math.abs(x.h - h) < 1 ? x : { w, h }))
   })
+  // cubit dua jari untuk memperbesar / memperkecil lembar di HP
+  const zoomNow = useRef(1)
+  zoomNow.current = screenZoom
+  useEffect(() => {
+    const el = stageRef.current
+    if (!el) return
+    let d0 = 0, z0 = 1
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const start = (e: TouchEvent) => { if (e.touches.length === 2) { d0 = dist(e.touches); z0 = zoomNow.current } }
+    const move = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || !d0) return
+      e.preventDefault()
+      setZoom(Math.min(2, Math.max(0.2, +(z0 * (dist(e.touches) / d0)).toFixed(2))))
+    }
+    const end = () => { d0 = 0 }
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })
+    el.addEventListener('touchend', end)
+    return () => { el.removeEventListener('touchstart', start); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end) }
+  }, [])
   useEffect(() => {
     const el = stageRef.current
     if (!el) return
@@ -136,10 +156,10 @@ function ReportView({ slug }: { slug: string }) {
             <p className="text-xs text-slate-500">Sama dengan sheet Excel: <i>{def.sheet}</i></p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm">Ubah teks</Button>
-            <Button variant="outline" icon={FileSpreadsheet} size="sm" onClick={() => zoomRef.current && (eksporTabel(zoomRef.current, def.title) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}>Excel</Button>
-            {def.uses.includes('bulan') && <Button variant="outline" icon={Archive} size="sm" onClick={arsipkan}>Arsipkan</Button>}
-            <Button variant={panel ? 'soft' : 'outline'} icon={Settings2} size="sm" onClick={() => setPanel(!panel)}>Atur cetak</Button>
+            <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm" aria-label="Ubah teks"><span className="hidden sm:inline">Ubah teks</span></Button>
+            <Button variant="outline" icon={FileSpreadsheet} size="sm" aria-label="Excel" onClick={() => zoomRef.current && (eksporTabel(zoomRef.current, def.title) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}><span className="hidden sm:inline">Excel</span></Button>
+            {def.uses.includes('bulan') && <Button variant="outline" icon={Archive} size="sm" aria-label="Arsipkan" onClick={arsipkan}><span className="hidden sm:inline">Arsipkan</span></Button>}
+            <Button variant={panel ? 'soft' : 'outline'} icon={Settings2} size="sm" aria-label="Atur cetak" onClick={() => setPanel(!panel)}>Atur cetak</Button>
             <Button icon={Printer} size="sm" onClick={() => window.print()}>Cetak / PDF</Button>
           </div>
         </div>
@@ -148,7 +168,7 @@ function ReportView({ slug }: { slug: string }) {
         {def.uses.includes('manualKB') && <ManualKB periode={periode} />}
         {panel && <PrintPanel tplId={def.tpl} ps={ps} set={setPs} reset={resetPs} eff={eff} pagesAcross={pagesAcross} pagesDown={pagesDown} shrunk={excelShrunk(ps, nat)} />}
         <div className="mt-3 flex items-center justify-end gap-1 text-xs text-slate-500">
-          <ZoomIn size={14} /> Tampilan layar
+          <ZoomIn size={14} /> <span className="hidden sm:inline">Tampilan layar</span><span className="sm:hidden">Cubit untuk zoom</span>
           <Button size="sm" variant="outline" aria-label="Perkecil" onClick={() => setZoom(Math.max(0.2, +(screenZoom - 0.1).toFixed(2)))}>{''}<Minus size={14} /></Button>
           <span className="w-12 text-center font-semibold tabular-nums">{Math.round(screenZoom * 100)}%</span>
           <Button size="sm" variant="outline" aria-label="Perbesar" onClick={() => setZoom(Math.min(2, +(screenZoom + 0.1).toFixed(2)))}>{''}<Plus size={14} /></Button>
@@ -157,7 +177,7 @@ function ReportView({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div ref={stageRef} className={`sheet-stage mt-2 ${editText ? 'xl-edit-mode' : ''} ${ps.hc ? 'hc' : ''}`}>
+      <div ref={stageRef} style={{ touchAction: 'pan-x pan-y' }} className={`sheet-stage mt-2 ${editText ? 'xl-edit-mode' : ''} ${ps.hc ? 'hc' : ''}`}>
         <div ref={zoomRef} className={`sheet-zoom ${ps.mono ? 'mono' : ''}`} style={{ zoom: screenZoom }}>
           {pages.length === 0 && <Empty title="Tidak ada data" />}
           {pages.map((pg) => (

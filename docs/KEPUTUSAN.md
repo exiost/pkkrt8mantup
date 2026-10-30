@@ -4,11 +4,11 @@ Pemilik proyek menyerahkan keputusan teknis ("yang penting jadi dulu"). Berikut 
 
 | # | Topik | Keputusan v1.0 | Alasan / rencana lanjutan |
 |---|---|---|---|
-| K1 | Penyimpanan data | Disimpan di **browser perangkat** (localStorage), plus **cadangan/pulihkan .json** dan ekspor Excel | Bisa langsung dipakai tanpa server/akun/biaya. Sinkron antar-HP (Supabase + login + hak akses per peran) dijadwalkan v1.1 — struktur data sudah siap |
-| K2 | Login & peran | Belum ada di v1.0 | Ikut K1; tanpa server, login tidak melindungi apa pun. NIK tetap disamarkan di tampilan |
+| K1 | Penyimpanan data | **Dua mode**: lokal (browser) dan **server SQLite** dengan sinkronisasi antar perangkat | Mode lokal tetap ada agar bisa dipakai tanpa hosting; mode server untuk data bersama. Lihat docs/SERVER.md |
+| K2 | Login & peran | Mode server: **login** dengan peran Admin / Pengurus / Pembaca | Mode lokal tidak punya login (data hanya ada di browser itu) |
 | K3 | Tanggal acuan umur | Dipilih per laporan (bawaan: hari ini) | Excel punya tanggal acuan tidak konsisten (sel 15-09-2026 vs judul 15 Oktober 2026) |
 | K4 | Dasawisma "Drupadi" (tanpa I/II) | Diimpor apa adanya sebagai dasawisma terpisah + muncul di "Perlu Perhatian" | Perlu diputuskan orang yang tahu warganya. Perbaiki lewat **Data Warga → pilih → Ubah massal → dasawisma** |
-| K5 | Batas umur | Balita < 5 th, Lansia ≥ 60 th | Bisa diubah di Pengaturan |
+| K5 | Batas umur | Balita < 5 th, **Lansia ≥ 50 th** | Sama dengan rumus Excel (EDATE(acuan, -600)); bisa diubah di Pengaturan |
 | K6 | Rentang rumus Excel (`$2:$179`) | Aplikasi menghitung **semua** warga | Memperbaiki bug warga baris terakhir tidak ikut rekap |
 | K7 | Data rumah & sanitasi | Disimpan **per KK** (bukan per orang) | Di Excel diisi berulang tiap baris anggota |
 | K8 | Pekarangan & IRT | Disimpan sebagai **daftar item** (kategori, komoditi, jumlah) | Menggantikan teks `"Cabe, 2 pot;"` + makro VBA |
@@ -31,3 +31,27 @@ Pemilik proyek menyerahkan keputusan teknis ("yang penting jadi dulu"). Berikut 
 | Bayi lahir | 2 | 2 |
 
 28 peringatan data (mis. 2 bayi tanpa No KK, 1 NIK tidak 16 digit, 20 warga dasawisma "Drupadi") ditampilkan saat impor.
+
+## Keputusan tambahan (versi 1.1)
+
+| # | Topik | Keputusan | Alasan |
+|---|---|---|---|
+| K15 | Tampilan laporan | Desain dibaca otomatis dari file Excel asli → `src/sheet/templates.json` | Hasil cetak identik dengan sheet yang sudah disetujui |
+| K16 | Keluarga | Keluarga = ID di kolom DE (nomor urut kepala keluarga). Warga satu ID dianggap satu keluarga walau No KK beda | Sesuai penjelasan pemilik; 57 keluarga, 5 di antaranya punya lebih dari satu No KK |
+| K17 | Isian Ya / Tidak | Disimpan "Ya", "Tidak", atau kosong (belum diisi) | Excel membedakan kosong dari "Tidak" di formulir |
+| K18 | Tanda tangan | Tidak ada | Tidak ada di sheet Excel |
+| K19 | Kolom/kotak yang di Excel kosong (Alamat di Penduduk 15–59; 3 buta, ibu hamil, menyusui di Data Keluarga) | Tetap kosong; ada pilihan **“Isi kotak yang di Excel kosong”** | "Sama persis" bila tidak dicentang |
+| K20 | Browser tidak bisa memecah kolom ke halaman berikutnya seperti Excel | Bila tabel lebih lebar dari kertas pada skala Excel, otomatis dikecilkan (bisa diubah di Atur cetak) | Mencegah tabel terpotong |
+| K21 | Alamat per orang | Desa, kecamatan, kabupaten, provinsi disimpan per warga | Di Excel berbeda-beda per warga |
+
+### Perbedaan angka dengan Excel (kesalahan rumus di Excel)
+
+| Lembar | Excel | Aplikasi | Penyebab |
+|---|---|---|---|
+| Kampung KB, Perguruan Tinggi (C26) | 13 | 8 | "Diploma IV / Strata I" terhitung dua kali di Excel. Jumlah KK per pendidikan kini = 50 = jumlah KK |
+| Kampung KB, kelompok umur (C30–C37) | beberapa lebih kecil | semua warga terhitung | Batas tanggal di Excel melewatkan warga (mis. umur 6 th, dan umur batas atas yang sudah lewat ulang tahun) |
+| Rekap (RT), baris Drupadi II kolom KRT/KK | memakai rumus Drupadi I | dihitung sendiri | Rumus C16 di Excel menyalin kriteria "Drupadi I" |
+| Penduduk 15–59, kolom Riwayat Sakit | bergeser 1 baris | sejajar dengan namanya | Rumus G memakai `ROW()-4`, kolom lain `ROW()-5` |
+| Rekap warga di baris > 179 | tidak ikut | ikut | Rumus Excel membaca sampai baris 179 saja |
+
+Nilai lain yang dibandingkan (Rekap RT, Rekap per Dasawisma, WUS, PUS, Penduduk 15–59, Kampung KB bagian kependudukan dan KB) **cocok persis** dengan Excel — lihat `src/__tests__/impor.test.ts`.

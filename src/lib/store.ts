@@ -20,8 +20,6 @@ export const DEFAULT_SETTINGS: Settings = {
   umurLansia: 50,
   pilihan: DEFAULT_PILIHAN,
   teks: {},
-  reduceMotion: false,
-  dark: false,
 }
 
 /* ---------- sinkronisasi ke server (jika mode server) ---------- */
@@ -34,6 +32,13 @@ export type Op =
 let syncHook: ((ops: Op[]) => void) | null = null
 export const setSyncHook = (f: ((ops: Op[]) => void) | null) => { syncHook = f }
 const emit = (ops: Op[]) => { if (syncHook && ops.length) syncHook(ops) }
+
+/** Pembatas hak akses (mode server): 'write' = ubah data, 'admin' = hapus permanen/pengaturan/impor */
+let guardHook: ((level: 'write' | 'admin') => boolean) | null = null
+export const setGuardHook = (f: ((level: 'write' | 'admin') => boolean) | null) => { guardHook = f }
+const guard = (level: 'write' | 'admin' = 'write') => {
+  if (guardHook && !guardHook(level)) throw new Error('Akun Anda tidak boleh melakukan ini')
+}
 
 /* ---------- penyimpanan browser: hanya di mode lokal ---------- */
 let persistMode: 'pending' | 'local' | 'server' = 'pending'
@@ -98,6 +103,7 @@ export const useStore = create<State>()(
       settings: DEFAULT_SETTINGS,
       audit: [],
       create: (k, rec, label) => {
+        guard()
         const r = { ...rec, id: rec.id ?? uid(), createdAt: now(), updatedAt: now(), deletedAt: null } as unknown as Rec<typeof k>
         set((s) => ({ [k]: [...(s[k] as unknown[]), r] }) as Partial<State>)
         emit([{ t: 'put', k, rec: r }])
@@ -105,6 +111,7 @@ export const useStore = create<State>()(
         return r
       },
       update: (k, id, patch, label) => {
+        guard()
         let next: Rec<typeof k> | undefined
         set((s) => ({
           [k]: (s[k] as Rec<typeof k>[]).map((r) => {
@@ -117,23 +124,27 @@ export const useStore = create<State>()(
         log(set, k, id, 'Ubah', label)
       },
       remove: (k, id, label) => {
+        guard()
         let next: Rec<typeof k> | undefined
         set((s) => ({ [k]: (s[k] as Rec<typeof k>[]).map((r) => (r.id === id ? (next = { ...r, deletedAt: now(), updatedAt: now() }) : r)) }) as Partial<State>)
         if (next) emit([{ t: 'put', k, rec: next }])
         log(set, k, id, 'Hapus', label)
       },
       restore: (k, id, label) => {
+        guard()
         let next: Rec<typeof k> | undefined
         set((s) => ({ [k]: (s[k] as Rec<typeof k>[]).map((r) => (r.id === id ? (next = { ...r, deletedAt: null, updatedAt: now() }) : r)) }) as Partial<State>)
         if (next) emit([{ t: 'put', k, rec: next }])
         log(set, k, id, 'Pulihkan', label)
       },
       purge: (k, id, label) => {
+        guard('admin')
         set((s) => ({ [k]: (s[k] as Rec<typeof k>[]).filter((r) => r.id !== id) }) as Partial<State>)
         emit([{ t: 'del', k, id }])
         log(set, k, id, 'Hapus Permanen', label)
       },
       bulkUpdate: (k, ids, patch) => {
+        guard()
         const target = new Set(ids)
         const changed: Rec<typeof k>[] = []
         set((s) => ({
@@ -148,10 +159,12 @@ export const useStore = create<State>()(
         log(set, k, ids.join(','), 'Ubah', `${ids.length} data (massal)`)
       },
       setSettings: (p) => {
+        guard()
         set((s) => ({ settings: { ...s.settings, ...p } }))
         emit([{ t: 'settings', settings: get().settings }])
       },
       replaceAll: (c, settings) => {
+        guard('admin')
         set((s) => ({ ...s, ...c, ...(settings ? { settings } : {}) }))
         const ops: Op[] = []
         for (const k of Object.keys(c) as CollectionName[]) for (const rec of (c[k] ?? []) as { id: string; updatedAt: string }[]) ops.push({ t: 'put', k, rec })
@@ -204,6 +217,7 @@ export const useStore = create<State>()(
         })
       },
       resetAll: () => {
+        guard('admin')
         const ops: Op[] = []
         const s = get()
         for (const k of COLLECTION_NAMES) for (const r of s[k] as { id: string }[]) ops.push({ t: 'del', k, id: r.id })

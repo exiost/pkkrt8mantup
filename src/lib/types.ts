@@ -192,8 +192,6 @@ export interface Settings {
   pilihan: Record<string, string[]>
   /** Ubahan teks tetap pada lembar laporan: "idLaporan!A1" → teks */
   teks: Record<string, string>
-  reduceMotion: boolean
-  dark: boolean
 }
 
 export interface AuditEntry {

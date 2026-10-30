@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { hitungUmur, infoDariNIK, isPUS, isWUS, isPenduduk1559, kelompokPendidikan, kelompokUmurPUS } from '@/lib/rules'
-import { uraiIRT, uraiPekarangan } from '@/lib/excel'
+import { hitungUmur, infoDariNIK, isPUS, isWUS, isPenduduk1559, isLansia, isBalita, kelompokUmurPUS, jumlahKK } from '@/lib/rules'
+import { uraiIRT, uraiPekarangan, yt } from '@/lib/excel'
 import { blankWarga } from '@/lib/factories'
 import type { Warga } from '@/lib/types'
 
@@ -18,7 +18,7 @@ describe('hitungUmur (setara DATEDIF "Y")', () => {
   })
 })
 
-describe('WUS / PUS / Penduduk 15-59', () => {
+describe('WUS / PUS / Penduduk 15-59 / balita / lansia', () => {
   const acuan = '2026-09-15'
   it('WUS: perempuan 15–49 ikut PKK', () => {
     expect(isWUS(w({ jk: 'P', tglLahir: '1990-01-01' }), acuan)).toBe(true)
@@ -37,6 +37,13 @@ describe('WUS / PUS / Penduduk 15-59', () => {
     expect(isPenduduk1559(w({ tglLahir: '1967-09-15' }), acuan)).toBe(true) // 59
     expect(isPenduduk1559(w({ tglLahir: '1966-09-15' }), acuan)).toBe(false) // 60
   })
+  it('lansia = ≥ 50 th (sama dengan EDATE(acuan,-600) di Excel), balita < 5 th', () => {
+    const s = { umurLansia: 50, umurBalita: 5 }
+    expect(isLansia(w({ tglLahir: '1976-09-15' }), acuan, s)).toBe(true)
+    expect(isLansia(w({ tglLahir: '1976-09-16' }), acuan, s)).toBe(false)
+    expect(isBalita(w({ tglLahir: '2021-09-16' }), acuan, s)).toBe(true)
+    expect(isBalita(w({ tglLahir: '2021-09-15' }), acuan, s)).toBe(false)
+  })
   it('kelompok umur PUS', () => {
     expect(kelompokUmurPUS(14)).toBe('<15')
     expect(kelompokUmurPUS(19)).toBe('15-19')
@@ -45,18 +52,24 @@ describe('WUS / PUS / Penduduk 15-59', () => {
   })
 })
 
-describe('lain-lain', () => {
+describe('keluarga & isian', () => {
+  it('jumlah KK dalam satu keluarga: 1, atau 2 bila ada No KK berbeda', () => {
+    expect(jumlahKK([w({ noKK: '1' }), w({ noKK: '1' })])).toBe(1)
+    expect(jumlahKK([w({ noKK: '1' }), w({ noKK: '2' })])).toBe(2)
+    expect(jumlahKK([])).toBe(0)
+  })
   it('saran dari NIK', () => {
     expect(infoDariNIK('3402124503710002')).toEqual({ tglLahir: '1971-03-05', jk: 'P' })
     expect(infoDariNIK('3402121205720006')).toEqual({ tglLahir: '1972-05-12', jk: 'L' })
     expect(infoDariNIK('123')).toBeNull()
   })
-  it('kelompok pendidikan Kampung KB', () => {
-    expect(kelompokPendidikan('Tidak / Belum Sekolah')).toBe('TDK SEKOLAH')
-    expect(kelompokPendidikan('Belum Tamat SD / Sederajat')).toBe('TIDAK LULUS SD')
-    expect(kelompokPendidikan('Tamat SD / Sederajat')).toBe('SD')
-    expect(kelompokPendidikan('SLTA / Sederajat')).toBe('SLTA')
-    expect(kelompokPendidikan('Diploma IV / Strata I')).toBe('PERGURUAN TINGGI')
+  it('Ya/Tidak/kosong dibersihkan seperti isian Excel', () => {
+    expect(yt('ya')).toBe('Ya')
+    expect(yt('Ya  ')).toBe('Ya')
+    expect(yt('Tidak ')).toBe('Tidak')
+    expect(yt('tidak')).toBe('Tidak')
+    expect(yt('')).toBe('')
+    expect(yt(null)).toBe('')
   })
   it('urai teks pekarangan & IRT seperti makro VBA', () => {
     expect(uraiPekarangan('Cabe, 2 pot; Pandan, 1 pot;', 'Warung Hidup')).toEqual([

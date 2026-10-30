@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import confetti from 'canvas-confetti'
 import { useStore } from './store'
+import { useUi } from './ui'
 import type { CollectionName } from './types'
 
 /** Hapus (soft) dengan toast "Urungkan" */
@@ -25,7 +26,7 @@ export function hapusKeluargaDenganAnggota(st: ReturnType<typeof useStore.getSta
 }
 
 export function rayakan() {
-  if (useStore.getState().settings.reduceMotion) return
+  if (useUi.getState().reduceMotion) return
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
   confetti({ particleCount: 90, spread: 70, origin: { y: 0.7 }, colors: ['#7c3aed', '#ec4899', '#f59e0b', '#10b981', '#0ea5e9'] })
 }

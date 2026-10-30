@@ -1,10 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
+  Cloud, CloudOff, LogOut, LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useStore, useLive } from '@/lib/store'
+import { useLive } from '@/lib/store'
+import { useUi } from '@/lib/ui'
+import { useSession } from '@/lib/session'
 import { useEditor } from './EditorHost'
 import { REPORTS } from '@/lib/modules'
 import { Avatar } from './ui'
@@ -21,6 +23,30 @@ const NAV = [
   { to: '/sampah', label: 'Tempat Sampah', icon: Trash2, group: 'Sistem' },
   { to: '/riwayat', label: 'Riwayat Perubahan', icon: History, group: 'Sistem' },
 ]
+
+function SyncBadge() {
+  const { server, sync, pending, user } = useSession()
+  if (!server) return null
+  const bad = sync === 'error'
+  return (
+    <span title={bad ? 'Belum tersimpan ke server, mencoba lagi…' : 'Terhubung ke server'} className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${bad ? 'bg-red-50 text-red-600' : sync === 'saving' || pending ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+      {bad ? <CloudOff size={12} /> : <Cloud size={12} />}
+      {bad ? 'Gagal simpan' : sync === 'saving' || pending ? 'Menyimpan…' : user?.name ?? 'Tersimpan'}
+    </span>
+  )
+}
+
+function UserBox() {
+  const { server, user, logout } = useSession()
+  if (!server || !user) return null
+  return (
+    <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-100 p-2 dark:bg-white/5">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-bold text-white">{(user.name || user.username).slice(0, 2).toUpperCase()}</div>
+      <div className="min-w-0 flex-1 leading-tight"><div className="truncate text-xs font-semibold">{user.name || user.username}</div><div className="text-[10px] uppercase tracking-wide text-slate-400">{user.role}</div></div>
+      <button onClick={logout} title="Keluar" aria-label="Keluar" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-white dark:hover:bg-white/10"><LogOut size={16} /></button>
+    </div>
+  )
+}
 
 function Brand() {
   return (
@@ -118,8 +144,8 @@ function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void 
 export default function Layout({ children }: { children: ReactNode }) {
   const [drawer, setDrawer] = useState(false)
   const [palette, setPalette] = useState(false)
-  const { dark } = useStore((s) => s.settings)
-  const setSettings = useStore((s) => s.setSettings)
+  const { dark, set: setUi } = useUi()
+  const writable = useSession((x) => !x.server || x.user?.role !== 'viewer')
   const { openWarga } = useEditor()
 
   useEffect(() => {
@@ -140,17 +166,20 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Search size={16} /> Cari cepat… <kbd className="ml-auto rounded bg-white px-1.5 text-[10px] text-slate-500 shadow dark:bg-white/10">Ctrl K</kbd>
         </button>
         <div className="mt-2 flex-1 overflow-y-auto"><NavList /></div>
-        <button onClick={() => setSettings({ dark: !dark })} className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5">
+        <button onClick={() => setUi({ dark: !dark })} className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5">
           {dark ? <Sun size={18} /> : <Moon size={18} />} {dark ? 'Mode terang' : 'Mode gelap'}
         </button>
+        <div className="mt-1 px-1"><SyncBadge /></div>
+        <UserBox />
       </aside>
 
       {/* Header mobile */}
       <header className="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-slate-200/70 bg-white/80 px-4 py-2.5 backdrop-blur dark:border-white/10 dark:bg-slate-900/80 lg:hidden">
         <button onClick={() => setDrawer(true)} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Menu"><Menu size={20} /></button>
         <div className="flex-1"><Brand /></div>
+        <SyncBadge />
         <button onClick={() => setPalette(true)} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Cari"><Search size={20} /></button>
-        <button onClick={() => setSettings({ dark: !dark })} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Tema">{dark ? <Sun size={20} /> : <Moon size={20} />}</button>
+        <button onClick={() => setUi({ dark: !dark })} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Tema">{dark ? <Sun size={20} /> : <Moon size={20} />}</button>
       </header>
 
       <AnimatePresence>
@@ -172,19 +201,19 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="grid grid-cols-5 items-end">
           {[NAV[0], NAV[1]].map((n) => <BottomItem key={n.to} {...n} />)}
           <div className="flex justify-center">
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openWarga()} className="-mt-6 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white shadow-xl shadow-violet-500/40" aria-label="Tambah warga">
+            {writable && <motion.button whileTap={{ scale: 0.9 }} onClick={() => openWarga()} className="-mt-6 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 text-white shadow-xl shadow-violet-500/40" aria-label="Tambah warga">
               <Plus size={26} />
-            </motion.button>
+            </motion.button>}
           </div>
           {[NAV[5], NAV[2]].map((n) => <BottomItem key={n.to} {...n} />)}
         </div>
       </nav>
 
       {/* FAB desktop */}
-      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => openWarga()}
+      {writable && <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => openWarga()}
         className="no-print fixed bottom-8 right-8 z-30 hidden items-center gap-2 rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 px-5 py-3.5 font-semibold text-white shadow-xl shadow-violet-500/40 lg:flex">
         <Plus size={20} /> Tambah Warga
-      </motion.button>
+      </motion.button>}
 
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>

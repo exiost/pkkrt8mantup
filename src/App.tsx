@@ -4,7 +4,7 @@ import { Toaster } from 'sonner'
 import { useEffect } from 'react'
 import Layout from './components/Layout'
 import { ConfirmProvider } from './components/ui'
-import { useStore } from './lib/store'
+import { useUi } from './lib/ui'
 import Dashboard from './pages/Dashboard'
 import WargaPage from './pages/Warga'
 import WargaDetail from './pages/WargaDetail'
@@ -22,7 +22,7 @@ import { EditorHost } from './components/EditorHost'
 
 export default function App() {
   const loc = useLocation()
-  const { dark, reduceMotion } = useStore((s) => s.settings)
+  const { dark, reduceMotion } = useUi()
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
   }, [dark])

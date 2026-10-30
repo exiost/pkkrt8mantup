@@ -1,6 +1,7 @@
 import { Trash2, RotateCcw, Users, House, Baby, HeartCrack, ShieldCheck, Tags, Archive } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore } from '@/lib/store'
+import { useSession } from '@/lib/session'
 import { Button, Card, Empty, PageHeader, Chip, useConfirm } from '@/components/ui'
 import type { CollectionName } from '@/lib/types'
 
@@ -19,12 +20,13 @@ const KOL: { k: CollectionName; label: string; icon: typeof Users; name: (r: Rec
 export default function Sampah() {
   const st = useStore()
   const confirm = useConfirm()
+  const bolehHapus = useSession((x) => !x.server || x.user?.role === 'admin')
   const items = KOL.flatMap((c) => (st[c.k] as unknown as Record<string, unknown>[]).filter((r) => r.deletedAt).map((r) => ({ c, r })))
     .sort((a, b) => String(b.r.deletedAt).localeCompare(String(a.r.deletedAt)))
   return (
     <div>
       <PageHeader title="Tempat Sampah" subtitle="Data yang dihapus bisa dipulihkan kapan saja" icon={Trash2} color="red"
-        actions={items.length > 0 && <Button variant="danger" icon={Trash2} onClick={async () => {
+        actions={items.length > 0 && bolehHapus && <Button variant="danger" icon={Trash2} onClick={async () => {
           if (await confirm({ title: 'Kosongkan Tempat Sampah?', message: `${items.length} data akan dihapus permanen.`, danger: true, okText: 'Hapus permanen' })) {
             items.forEach(({ c, r }) => st.purge(c.k, String(r.id), c.name(r)))
             toast.success('Tempat Sampah dikosongkan')
@@ -42,9 +44,9 @@ export default function Sampah() {
                 if (c.k === 'warga') { const fam = st.keluarga.find((f) => f.id === r.keluargaId && f.deletedAt); if (fam) st.restore('keluarga', fam.id) }
                 toast.success(`${c.name(r)} dipulihkan`)
               }}>Pulihkan</Button>
-              <Button size="sm" variant="ghost" icon={Trash2} className="text-red-500" onClick={async () => {
+              {bolehHapus && <Button size="sm" variant="ghost" icon={Trash2} className="text-red-500" onClick={async () => {
                 if (await confirm({ title: 'Hapus permanen?', message: c.name(r), danger: true, okText: 'Hapus' })) st.purge(c.k, String(r.id), c.name(r))
-              }}>Permanen</Button>
+              }}>Permanen</Button>}
             </div>
           ))}
         </Card>

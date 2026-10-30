@@ -89,10 +89,10 @@ export default function WargaPage() {
       <Card className="no-print mb-4 p-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <div className="flex-1"><SearchBox value={q} onChange={setQ} placeholder="Cari nama, NIK, No KK, alamat…" /></div>
-          <div className="grid grid-cols-3 gap-2 md:flex">
+          <div className="grid grid-cols-2 gap-2 md:flex">
             <Select options={dasawisma.map((d) => d.nama)} value={dw} onChange={setDw} placeholder="Semua Dawis" />
             <Select options={['L', 'P']} value={jk} onChange={setJk} placeholder="L/P" />
-            <select value={tag} onChange={(e) => setTag(e.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800">
+            <select value={tag} onChange={(e) => setTag(e.target.value)} className="col-span-2 h-10 rounded-xl md:col-span-1 border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800">
               <option value="">Semua tag</option>
               {tags.map((t) => <option key={t.id} value={t.id}>#{t.nama}</option>)}
             </select>

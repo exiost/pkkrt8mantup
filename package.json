@@ -8,19 +8,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "start": "node server/index.mjs"
   },
   "dependencies": {
-    "canvas-confetti": "1.9.3",
-    "framer-motion": "11.11.17",
-    "lucide-react": "0.460.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-router-dom": "6.28.0",
-    "recharts": "2.13.3",
-    "sonner": "1.7.0",
-    "xlsx": "0.18.5",
-    "zustand": "4.5.5"
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "@types/canvas-confetti": "1.6.4",
@@ -28,10 +20,23 @@
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "10.4.20",
+    "canvas-confetti": "1.9.3",
+    "framer-motion": "11.11.17",
+    "lucide-react": "0.460.0",
     "postcss": "8.4.49",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.28.0",
+    "recharts": "2.13.3",
+    "sonner": "1.7.0",
     "tailwindcss": "3.4.15",
     "typescript": "5.6.3",
     "vite": "5.4.11",
-    "vitest": "2.1.5"
+    "vitest": "2.1.5",
+    "xlsx": "0.18.5",
+    "zustand": "4.5.5"
+  },
+  "engines": {
+    "node": ">=22.5"
   }
 }

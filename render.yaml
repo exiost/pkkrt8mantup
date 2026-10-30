@@ -1,0 +1,14 @@
+# Render.com Blueprint: server SIWARGA (SQLite di disk permanen)
+services:
+  - type: web
+    name: siwarga-pkk
+    runtime: docker
+    plan: starter        # disk permanen hanya tersedia di paket berbayar
+    healthCheckPath: /api/health
+    disk:
+      name: data-siwarga
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /data
