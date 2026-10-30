@@ -4,7 +4,7 @@ import { bKampungKB, bPencatatan, bPenduduk, bPUS, bRegister, bWUS } from './lis
 import { bCatatanKeluarga, bDataKeluarga, bHTIRT, bTPPKK } from './forms'
 import { bIbuHamilDawis, bIbuHamilDawisTahunan, bRekapCatatan, bRekapDawis, bRekapIbuHamil, bRekapIbuHamilTahunan } from './rekap'
 
-export type Use = 'acuan' | 'bulan' | 'tahun' | 'rentang' | 'dawis' | 'dawisWajib' | 'warga' | 'keluarga' | 'htwarga' | 'semuaPeriode' | 'isiKosong' | 'barisKosong' | 'manualKB'
+export type Use = 'acuan' | 'bulan' | 'tahun' | 'rentang' | 'statusIbu' | 'dawis' | 'dawisWajib' | 'warga' | 'keluarga' | 'htwarga' | 'semuaPeriode' | 'isiKosong' | 'barisKosong' | 'manualKB'
 
 export interface ReportDef {
   /** disembunyikan dari daftar & pencarian (tetap bisa dibuka lewat alamat langsung) */
@@ -31,7 +31,7 @@ export const REPORTS: ReportDef[] = [
   { slug: 'pencatatan-hamil-kb', title: 'Pencatatan Ibu Hamil, KB Baru & PUS Baru', sheet: 'PENCATATAN IBU HAMIL,KB,PUS', desc: 'Ibu hamil (HPL), peserta KB baru, PUS baru/pindah', icon: Baby, color: 'fuchsia', group: 'KB & PUS', tpl: 'pencatatan', uses: ['acuan', 'bulan'], build: bPencatatan },
   { slug: 'rekap-catatan', title: 'Rekap Catatan Data & Kegiatan (RT)', sheet: 'rekap catatan data dan kegiatan', desc: 'Tingkat RT, baris = dasawisma (30 kolom)', icon: Table, color: 'teal', group: 'Dasawisma', tpl: 'rekapcatatan', uses: ['acuan', 'rentang'], build: bRekapCatatan },
   { slug: 'rekap-dawis', title: 'Rekap Catatan Data & Kegiatan (Dasawisma)', sheet: 'REKAP CAT DATA KEG DAWIS 1 & 2', desc: 'Per dasawisma, baris = kepala rumah tangga', icon: LayoutList, color: 'cyan', group: 'Dasawisma', tpl: 'rekapdawis', uses: ['acuan', 'rentang', 'dawisWajib'], build: bRekapDawis },
-  { slug: 'rekap-ibu-hamil', title: 'Rekapitulasi Data Ibu Hamil, Melahirkan, Nifas', sheet: 'REKAPITULASI DATA IBU HAMIL', desc: 'Rekap per dasawisma tingkat RT', icon: Activity, color: 'red', group: 'Ibu & Anak', tpl: 'rekapibuhamil', uses: ['bulan'], build: bRekapIbuHamil },
+  { slug: 'rekap-ibu-hamil', title: 'Rekapitulasi Data Ibu Hamil, Melahirkan, Nifas', sheet: 'REKAPITULASI DATA IBU HAMIL', desc: 'Rekap per dasawisma tingkat RT', icon: Activity, color: 'red', group: 'Ibu & Anak', tpl: 'rekapibuhamil', uses: ['bulan', 'statusIbu'], build: bRekapIbuHamil },
   { slug: 'ibu-hamil-dawis', title: 'Catatan Ibu Hamil, Kelahiran & Kematian', sheet: 'rekap ibu hamil dawis 1, 2 & CUSTOM', desc: 'Per dasawisma atau seluruh RT', icon: Stethoscope, color: 'red', group: 'Ibu & Anak', tpl: 'ibuhamildawis', uses: ['bulan', 'dawis'], build: bIbuHamilDawis },
   { slug: 'rekap-ibu-hamil-tahunan', title: 'Rekapitulasi Ibu Hamil, Melahirkan, Nifas (Tahunan)', sheet: 'REKAPITULASI DATA IBU HAMIL', desc: 'Pilih bulan awal–akhir (mis. Jan–Des): ibu dihitung di semua status yang dialami', icon: CalendarRange, color: 'rose', group: 'Ibu & Anak', tpl: 'rekapibuhamil', uses: ['rentang'], hidden: true, build: bRekapIbuHamilTahunan },
   { slug: 'ibu-hamil-dawis-tahunan', title: 'Catatan Ibu Hamil, Kelahiran & Kematian (Tahunan)', sheet: 'rekap ibu hamil dawis 1, 2 & CUSTOM', desc: 'Rentang bulan per dasawisma atau seluruh RT', icon: CalendarRange, color: 'rose', group: 'Ibu & Anak', tpl: 'ibuhamildawis', uses: ['rentang', 'dawis'], hidden: true, build: bIbuHamilDawisTahunan },

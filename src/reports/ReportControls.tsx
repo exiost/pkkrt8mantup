@@ -94,6 +94,16 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
             </select>
           </Field>
         )}
+        {uses.includes('statusIbu') && (
+          <Field label="Tampilkan status">
+            <select className={sel} value={p.statusIbu ?? ''} onChange={(e) => setP({ statusIbu: e.target.value as ReportParams['statusIbu'] })}>
+              <option value="">Semua (Hamil, Melahirkan, Nifas)</option>
+              <option value="hamil">Hamil saja</option>
+              <option value="melahirkan">Melahirkan saja</option>
+              <option value="nifas">Nifas saja</option>
+            </select>
+          </Field>
+        )}
         {uses.includes('semuaPeriode') && <div className="pb-2"><Toggle checked={p.semuaPeriode} onChange={(b) => setP({ semuaPeriode: b })} label="Semua periode" /></div>}
         {uses.includes('barisKosong') && <div className="pb-2"><Toggle checked={o.barisKosong} onChange={(b) => setO({ barisKosong: b })} label="Baris kosong seperti Excel" /></div>}
         {uses.includes('isiKosong') && <div className="pb-2"><Toggle checked={o.isiKosong} onChange={(b) => setO({ isiKosong: b })} label="Isi kotak yang di Excel kosong" /></div>}

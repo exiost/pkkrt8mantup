@@ -103,14 +103,16 @@ export const bRekapIbuHamil: Builder = (c) => {
     ]
   }
   const LET = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']
+  // pilihan: hanya satu dari Hamil / Melahirkan / Nifas yang ditampilkan
+  const hide = (j: number) => !!c.p.statusIbu && j < 3 && ['hamil', 'melahirkan', 'nifas'][j] !== c.p.statusIbu
   const rows: Record<string, Val>[] = c.dasawisma.map((d, i) => {
     const st = stat(d.nama)
     const r: Record<string, Val> = { A: i + 1, B: d.nama }
-    LET.forEach((L, j) => (r[L] = st[j]))
+    LET.forEach((L, j) => (r[L] = hide(j) ? '' : st[j]))
     return r
   })
   const values: Record<string, Val> = { K4: namaRentang(c), K5: String(c.p.tahun) }
-  LET.forEach((L, j) => (values[`${L}26`] = n(c.dasawisma.reduce((t, d) => t + Number((stat(d.nama)[j] as CellObj).v), 0))))
+  LET.forEach((L, j) => (values[`${L}26`] = hide(j) ? '' : n(c.dasawisma.reduce((t, d) => t + Number((stat(d.nama)[j] as CellObj).v), 0))))
   return [{ key: 'rekapibuhamil', tplId: 'rekapibuhamil', values, regions: { main: rows } }]
 }
 

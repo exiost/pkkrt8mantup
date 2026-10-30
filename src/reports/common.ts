@@ -13,6 +13,8 @@ export interface ReportParams {
   semuaPeriode: boolean // register: tanpa filter bulan
   /** laporan rentang bulan (mis. tahunan): sampai bulan ke-berapa (0-11), mulai dari `bulan` */
   bulanSampai?: number
+  /** Rekap Ibu Hamil: tampilkan hanya satu dari Hamil / Melahirkan / Nifas ('' = semua) */
+  statusIbu?: '' | 'hamil' | 'melahirkan' | 'nifas'
   rentang?: boolean
 }
 
