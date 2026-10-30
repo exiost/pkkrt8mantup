@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
+import { Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { REPORTS } from '@/reports/registry'
 import { useStore, useLive } from '@/lib/store'
@@ -65,6 +65,8 @@ function ReportView({ slug }: { slug: string }) {
   const [drillState, setDrill] = useState<{ title: string; list: Warga[] } | null>(null)
   const [edit, setEdit] = useState<{ key: string; cur: string } | null>(null)
   const [zoom, setZoom] = useState<number | 'fit'>('fit')
+  const [skin, setSkinState] = useState<boolean>(() => { try { return localStorage.getItem('siwarga-skin') !== 'excel' } catch { return true } })
+  const setSkin = (b: boolean) => { setSkinState(b); try { localStorage.setItem('siwarga-skin', b ? 'cantik' : 'excel') } catch { /* abaikan */ } }
   const [nat, setNat] = useState({ w: 0, h: 0 })
   const [stageW, setStageW] = useState(0)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -156,6 +158,7 @@ function ReportView({ slug }: { slug: string }) {
             <p className="text-xs text-slate-500">Sama dengan sheet Excel: <i>{def.sheet}</i></p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button variant={skin ? 'soft' : 'outline'} icon={Sparkles} size="sm" aria-label="Tampilan cantik" title="Tampilan layar cantik (cetak tetap seperti Excel)" onClick={() => setSkin(!skin)}><span className="hidden sm:inline">{skin ? 'Tampilan cantik' : 'Seperti Excel'}</span></Button>
             <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm" aria-label="Ubah teks"><span className="hidden sm:inline">Ubah teks</span></Button>
             <Button variant="outline" icon={FileSpreadsheet} size="sm" aria-label="Excel" onClick={() => zoomRef.current && (eksporTabel(zoomRef.current, def.title) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}><span className="hidden sm:inline">Excel</span></Button>
             {def.uses.includes('bulan') && <Button variant="outline" icon={Archive} size="sm" aria-label="Arsipkan" onClick={arsipkan}><span className="hidden sm:inline">Arsipkan</span></Button>}
@@ -178,7 +181,7 @@ function ReportView({ slug }: { slug: string }) {
       </div>
 
       <div ref={stageRef} style={{ touchAction: 'pan-x pan-y' }} className={`sheet-stage mt-2 ${editText ? 'xl-edit-mode' : ''} ${ps.hc ? 'hc' : ''}`}>
-        <div ref={zoomRef} className={`sheet-zoom ${ps.mono ? 'mono' : ''}`} style={{ zoom: screenZoom }}>
+        <div ref={zoomRef} className={`sheet-zoom ${skin ? 'xl-skin' : ''} ${ps.mono ? 'mono' : ''}`} style={{ zoom: screenZoom }}>
           {pages.length === 0 && <Empty title="Tidak ada data" />}
           {pages.map((pg) => (
             <div key={pg.key} className="sheet-page">

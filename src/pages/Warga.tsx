@@ -1,17 +1,26 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Users, Plus, LayoutGrid, Rows3, Pencil, Trash2, Filter, CheckSquare, X, Copy, Download } from 'lucide-react'
+import { Users, Plus, LayoutGrid, Rows3, Pencil, Trash2, Filter, CheckSquare, X, Copy, Download, SlidersHorizontal, ArrowDownAZ } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
 import { Avatar, Button, Card, Empty, IconBtn, Modal, PageHeader, SearchBox, Segmented, Select, Field, useConfirm, Chip } from '@/components/ui'
 import { TagList } from '@/lib/tags'
 import { hitungUmur, isBalita, isLansia, isPUS, isWUS } from '@/lib/rules'
+import { bahanCari, cocok } from '@/lib/search'
 import { maskNIK, todayISO, tglPendek } from '@/lib/format'
 import { hapusDenganUndo } from '@/lib/crud'
 import { eksporWarga } from '@/lib/excel'
 import type { Warga } from '@/lib/types'
+
+const SORTS = [
+  ['nama', 'Nama A–Z'], ['nama-desc', 'Nama Z–A'], ['umur-desc', 'Umur tertua dulu'], ['umur-asc', 'Umur termuda dulu'],
+  ['noreg', 'No Registrasi'], ['urut', 'Urutan seperti Excel'], ['dasawisma', 'Dasawisma lalu nama'], ['baru', 'Terbaru ditambahkan'],
+] as const
+type SortKey = (typeof SORTS)[number][0]
+// filter lanjutan: [kunci, label]
+const ADV: [keyof Warga, string][] = [['pendidikan', 'Pendidikan'], ['pekerjaan', 'Pekerjaan'], ['agama', 'Agama'], ['statusKawin', 'Status kawin'], ['statusKeluarga', 'Status keluarga'], ['golDarah', 'Gol. darah'], ['riwayatSakit', 'Riwayat sakit'], ['kontrasepsi', 'Kontrasepsi'], ['dusun', 'Dusun'], ['desa', 'Desa'], ['kabupaten', 'Kabupaten']]
 
 const KATEGORI = ['Semua', 'Kepala Keluarga', 'Balita', 'WUS', 'PUS', 'Lansia', 'Ibu Hamil', 'Tidak Ikut PKK', 'Nonaktif/Pindah/Meninggal'] as const
 
@@ -35,16 +44,37 @@ export default function WargaPage() {
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [bulk, setBulk] = useState(false)
   const [limit, setLimit] = useState(60)
+  const [sort, setSort] = useState<SortKey>('nama')
+  const [advOpen, setAdvOpen] = useState(false)
+  const [adv, setAdv] = useState<Record<string, string>>({})
+  const [uMin, setUMin] = useState('')
+  const [uMax, setUMax] = useState('')
   const acuan = todayISO()
+  const bahan = useMemo(() => new Map(all.map((w) => [w.id, bahanCari(w, acuan, tags)])), [all, acuan, tags])
+  const opsi = useMemo(() => Object.fromEntries(ADV.map(([k]) => [k, [...new Set(all.map((w) => String(w[k] ?? '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'id'))])), [all])
+  const nAdv = Object.values(adv).filter(Boolean).length + (uMin ? 1 : 0) + (uMax ? 1 : 0)
 
   const list = useMemo(() => {
-    const s = q.toLowerCase().trim()
+    const umur = (w: Warga) => hitungUmur(w.tglLahir, acuan)
+    const cmp: Record<SortKey, (a: Warga, b: Warga) => number> = {
+      nama: (a, b) => a.nama.localeCompare(b.nama, 'id'),
+      'nama-desc': (a, b) => b.nama.localeCompare(a.nama, 'id'),
+      'umur-desc': (a, b) => (umur(b) ?? -1) - (umur(a) ?? -1) || a.nama.localeCompare(b.nama, 'id'),
+      'umur-asc': (a, b) => (umur(a) ?? 999) - (umur(b) ?? 999) || a.nama.localeCompare(b.nama, 'id'),
+      noreg: (a, b) => a.noReg - b.noReg,
+      urut: (a, b) => a.urut - b.urut,
+      dasawisma: (a, b) => a.dasawisma.localeCompare(b.dasawisma, 'id') || a.nama.localeCompare(b.nama, 'id'),
+      baru: (a, b) => b.createdAt.localeCompare(a.createdAt),
+    }
+    const mn = uMin === '' ? null : Number(uMin), mx = uMax === '' ? null : Number(uMax)
     return all
       .filter((w) => (kat === 'Nonaktif/Pindah/Meninggal' ? w.statusWarga !== 'Aktif' : kat === 'Semua' ? true : w.statusWarga === 'Aktif'))
-      .filter((w) => !s || w.nama.toLowerCase().includes(s) || w.nik.includes(s) || w.noKK.includes(s) || w.alamat.toLowerCase().includes(s))
+      .filter((w) => !q.trim() || cocok(bahan.get(w.id) ?? '', q))
       .filter((w) => !dw || w.dasawisma === dw)
       .filter((w) => !jk || w.jk === jk)
       .filter((w) => !tag || w.tags.includes(tag))
+      .filter((w) => ADV.every(([k]) => !adv[k] || String(w[k] ?? '').trim() === adv[k]))
+      .filter((w) => { if (mn === null && mx === null) return true; const u = umur(w); return u !== null && (mn === null || u >= mn) && (mx === null || u <= mx) })
       .filter((w) => {
         switch (kat) {
           case 'Kepala Keluarga': return /kepala/i.test(w.statusKeluarga)
@@ -57,8 +87,8 @@ export default function WargaPage() {
           default: return true
         }
       })
-      .sort((a, b) => (a.noKK + (/kepala/i.test(a.statusKeluarga) ? '0' : '1')).localeCompare(b.noKK + (/kepala/i.test(b.statusKeluarga) ? '0' : '1')))
-  }, [all, q, dw, jk, tag, kat, acuan, settings])
+      .sort(cmp[sort])
+  }, [all, q, bahan, dw, jk, tag, kat, acuan, settings, sort, adv, uMin, uMax])
 
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const allSel = list.length > 0 && list.every((w) => sel.has(w.id))
@@ -88,7 +118,7 @@ export default function WargaPage() {
 
       <Card className="no-print mb-4 p-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-center">
-          <div className="flex-1"><SearchBox value={q} onChange={setQ} placeholder="Cari nama, NIK, No KK, alamat…" /></div>
+          <div className="flex-1"><SearchBox value={q} onChange={setQ} placeholder="Cari apa saja: nama, tempat lahir, alamat, pekerjaan, umur, tanggal…" /></div>
           <div className="grid grid-cols-2 gap-2 md:flex">
             <Select options={dasawisma.map((d) => d.nama)} value={dw} onChange={setDw} placeholder="Semua Dawis" />
             <Select options={['L', 'P']} value={jk} onChange={setJk} placeholder="L/P" />
@@ -97,8 +127,28 @@ export default function WargaPage() {
               {tags.map((t) => <option key={t.id} value={t.id}>#{t.nama}</option>)}
             </select>
           </div>
+          <label className="flex items-center gap-1 text-xs font-semibold text-slate-500"><ArrowDownAZ size={16} className="shrink-0" />
+            <select aria-label="Urutkan" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="h-10 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200">
+              {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </label>
+          <Button variant={advOpen || nAdv ? 'soft' : 'outline'} icon={SlidersHorizontal} onClick={() => setAdvOpen(!advOpen)}>Filter{nAdv ? ` (${nAdv})` : ''}</Button>
           <Segmented value={view} onChange={setView} options={[{ value: 'tabel', label: 'Tabel', icon: Rows3 }, { value: 'kartu', label: 'Kartu', icon: LayoutGrid }]} />
         </div>
+        {advOpen && (
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-2xl bg-slate-50 p-3 dark:bg-white/5 md:grid-cols-4">
+            {ADV.map(([k, l]) => (
+              <label key={k} className="text-[11px] font-semibold text-slate-500">{l}
+                <select value={adv[k] ?? ''} onChange={(e) => setAdv({ ...adv, [k]: e.target.value })} className="mt-0.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm font-normal text-slate-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200">
+                  <option value="">Semua</option>{opsi[k]?.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </label>
+            ))}
+            <label className="text-[11px] font-semibold text-slate-500">Umur dari<input inputMode="numeric" value={uMin} onChange={(e) => setUMin(e.target.value.replace(/\D/g, ''))} className="mt-0.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm font-normal dark:border-white/10 dark:bg-slate-800" /></label>
+            <label className="text-[11px] font-semibold text-slate-500">sampai (tahun)<input inputMode="numeric" value={uMax} onChange={(e) => setUMax(e.target.value.replace(/\D/g, ''))} className="mt-0.5 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm font-normal dark:border-white/10 dark:bg-slate-800" /></label>
+            <div className="col-span-2 flex items-end"><Button size="sm" variant="ghost" onClick={() => { setAdv({}); setUMin(''); setUMax('') }}>Atur ulang filter</Button></div>
+          </div>
+        )}
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
           <Filter size={16} className="mt-1.5 shrink-0 text-slate-400" />
           {KATEGORI.map((k) => (

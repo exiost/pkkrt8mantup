@@ -114,7 +114,7 @@ function StatusIbu() {
     .filter((w) => w.jk === 'P' && w.statusWarga === 'Aktif')
     .filter((w) => semua || w.hamil || w.melahirkan || w.nifas || w.menyusui || isPUS(w, acuan) || isWUS(w, acuan))
     .filter((w) => !q || w.nama.toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => Number(b.hamil) - Number(a.hamil) || a.nama.localeCompare(b.nama))
+    .sort((a, b) => a.nama.localeCompare(b.nama, 'id')) // urutan tetap supaya kartu tidak melompat saat saklar digeser
   const upd = (id: string, nama: string, p: Record<string, unknown>) => st.update('warga', id, p, nama)
   return (
     <div>

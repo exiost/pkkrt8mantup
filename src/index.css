@@ -117,6 +117,52 @@ body {
   top: 3px;
 }
 
+/* Tampilan layar yang lebih cantik (tidak mempengaruhi cetak, yang tetap seperti Excel) */
+@media screen {
+  .sheet-stage {
+    background: linear-gradient(135deg, #ede9fe, #fce7f3 60%, #e0f2fe);
+  }
+  .dark .sheet-stage {
+    background: linear-gradient(135deg, #1e1b4b, #2e1065 60%, #0c4a6e);
+  }
+  .xl-skin .sheet-page {
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(88, 28, 135, 0.18);
+  }
+  .xl-skin td {
+    border-color: #cbd5e1 !important;
+  }
+  .xl-skin td.xl-b {
+    background: linear-gradient(180deg, #f5f3ff, #ede9fe) !important;
+    color: #4c1d95 !important;
+  }
+  .xl-skin td.xl-title {
+    color: #6d28d9 !important;
+    letter-spacing: 0.02em;
+  }
+  .xl-skin tr.xl-r:nth-child(even) td:not(.xl-b) {
+    background: #faf5ff;
+  }
+  .xl-skin tr.xl-r:hover td:not(.xl-b) {
+    background: #f3e8ff !important;
+  }
+  .xl-skin td.xl-v {
+    color: #059669 !important;
+    font-weight: 700;
+  }
+  .xl-skin td.xl-z {
+    color: #94a3b8 !important;
+  }
+  .xl-skin .drill {
+    color: #6d28d9;
+    font-weight: 700;
+  }
+  .xl-skin .edit-link {
+    color: #1e3a8a;
+  }
+}
+
 @media print {
   html,
   body {

@@ -28,15 +28,15 @@ export function defaultPrint(tplId: string): PrintSettings {
   return {
     paper: p && PAPER_MM[p.paper] ? p.paper : 9,
     orient: p?.orient ?? 'portrait',
-    mode: 'excel',
+    mode: 'lebar',
     pct: p?.scale ?? 100,
     ml: inch(p?.ml ?? 0.7), mr: inch(p?.mr ?? 0.7), mt: inch(p?.mt ?? 0.75), mb: inch(p?.mb ?? 0.75),
     areaOn: false, c1: 'A', c2: 'Z', r1: 1, r2: 100,
-    repeat: false, hc: !!p?.hc, mono: false, guides: true,
+    repeat: (p?.orient ?? 'portrait') === 'portrait' && (TEMPLATES[tplId]?.regions.some((r) => r.size >= 40) ?? false), hc: !!p?.hc, mono: false, guides: true,
   }
 }
 
-const key = (slug: string) => `siwarga-print-${slug}`
+const key = (slug: string) => `siwarga-print2-${slug}`
 
 export function usePrintSettings(slug: string, tplId: string): [PrintSettings, (p: Partial<PrintSettings>) => void, () => void] {
   const [ps, setPs] = useState<PrintSettings>(() => {

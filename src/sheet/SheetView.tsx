@@ -129,6 +129,14 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
       const left = (st.h ?? 'general') === 'left' || ((st.h ?? 'general') === 'general' && kind !== 'num')
       const canOverflow = !!obj && !wrap && !isMerged && left && c.c + 1 < ncols && !occ[c.c + 1] && !st.rot
       const css = cellCss(c.s, kind, wrap, canOverflow)
+      const bordered = !!(st.bt || st.br || st.bb || st.bl)
+      const cls = [
+        editText && !c.d && typeof c.v === 'string' && c.v.trim() !== '' && !rr.region ? 'xl-static' : '',
+        st.b && bordered ? 'xl-b' : '',
+        st.b && !bordered && st.z >= 12 ? 'xl-title' : '',
+        obj && String(obj.v) === 'V' ? 'xl-v' : '',
+        obj && Number(obj.v) === 0 && typeof obj.v === 'number' ? 'xl-z' : '',
+      ].filter(Boolean).join(' ')
       const editable = editText && !c.d && typeof c.v === 'string' && c.v.trim() !== '' && !rr.region
       let inner: ReactNode = obj ? String(obj.v) : null
       if (obj?.w) inner = <span className="edit-link" title="Klik untuk ubah data" onClick={() => act.editWarga(obj.w!)}>{inner}</span>
@@ -146,7 +154,7 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
           rowSpan={c.rs}
           colSpan={c.cs}
           style={{ ...css, display: hiddenCol ? 'none' : undefined }}
-          className={editable ? 'xl-static' : undefined}
+          className={cls || undefined}
           onClick={editable ? () => onEditText?.(x.addr, String(c.v)) : undefined}
         >
           {inner}
@@ -156,7 +164,7 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
     for (let k = 0; k < cover.length; k++) if (cover[k] > 0) cover[k]--
     for (const x of cells) if ((x.c.rs ?? 1) > 1) for (let k = x.c.c; k < x.c.c + (x.c.cs ?? 1); k++) cover[k] = (x.c.rs ?? 1) - 1
     return (
-      <tr key={rr.key} data-r={rr.origR} style={{ height: rr.h, display: rowHidden ? 'none' : undefined }}>
+      <tr key={rr.key} data-r={rr.origR} className={rr.region ? 'xl-r' : undefined} style={{ height: rr.h, display: rowHidden ? 'none' : undefined }}>
         {tds}
       </tr>
     )

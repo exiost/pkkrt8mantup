@@ -11,6 +11,36 @@ import { REPORTS } from '@/lib/modules'
 
 const PIE = ['#7c3aed', '#ec4899', '#f59e0b', '#10b981', '#0ea5e9', '#ef4444', '#14b8a6', '#a855f7', '#64748b']
 
+/** Piramida penduduk: laki-laki ke kiri, perempuan ke kanan, kelompok umur di tengah (tua di atas) */
+function Piramida({ data }: { data: { g: string; L: number; P: number }[] }) {
+  const max = Math.max(1, ...data.flatMap((x) => [x.L, x.P]))
+  return (
+    <div>
+      <div className="mb-2 grid grid-cols-[1fr_3.5rem_1fr] text-xs font-bold">
+        <span className="text-right text-indigo-600">◀ Laki-laki</span><span />
+        <span className="text-pink-600">Perempuan ▶</span>
+      </div>
+      <div className="space-y-1">
+        {data.map((x, i) => (
+          <div key={x.g} className="grid grid-cols-[1fr_3.5rem_1fr] items-center gap-0 text-[11px]">
+            <div className="flex items-center justify-end gap-1">
+              <span className="tabular font-semibold text-slate-500">{x.L || ''}</span>
+              <motion.div initial={{ width: 0 }} animate={{ width: `${(x.L / max) * 100}%` }} transition={{ delay: i * 0.03, duration: 0.6 }}
+                className="h-5 rounded-l-full bg-gradient-to-l from-indigo-500 to-sky-400" style={{ minWidth: x.L ? 4 : 0 }} />
+            </div>
+            <div className="text-center font-semibold text-slate-600 dark:text-slate-300">{x.g}</div>
+            <div className="flex items-center gap-1">
+              <motion.div initial={{ width: 0 }} animate={{ width: `${(x.P / max) * 100}%` }} transition={{ delay: i * 0.03, duration: 0.6 }}
+                className="h-5 rounded-r-full bg-gradient-to-r from-pink-500 to-fuchsia-400" style={{ minWidth: x.P ? 4 : 0 }} />
+              <span className="tabular font-semibold text-slate-500">{x.P || ''}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const nav = useNavigate()
   const s = useStore((x) => x.settings)
@@ -109,19 +139,7 @@ export default function Dashboard() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Piramida Penduduk" icon={Users} color="indigo">
-          <div className="h-80">
-            <ResponsiveContainer>
-              <BarChart data={d.piramida.map((x) => ({ ...x, L: -x.L }))} layout="vertical" stackOffset="sign" margin={{ left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
-                <XAxis type="number" tickFormatter={(v) => String(Math.abs(v))} fontSize={11} />
-                <YAxis type="category" dataKey="g" fontSize={11} width={48} />
-                <Tooltip formatter={(v: number) => Math.abs(v)} />
-                <Legend />
-                <Bar dataKey="L" name="Laki-laki" stackId="a" fill="#6366f1" radius={[6, 0, 0, 6]} animationDuration={900} />
-                <Bar dataKey="P" name="Perempuan" stackId="a" fill="#ec4899" radius={[0, 6, 6, 0]} animationDuration={900} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Piramida data={d.piramida} />
         </Section>
         <Section title="Warga per Dasawisma" icon={House} color="teal">
           <div className="h-80">
