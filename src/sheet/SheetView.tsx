@@ -183,7 +183,7 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
       for (const td of tds) {
         if (td.clientWidth > 0 && td.scrollWidth > td.clientWidth) {
           const px = parseFloat(getComputedStyle(td).fontSize)
-          fix.push([td, Math.max(px * ((td.clientWidth - 6) / (td.scrollWidth - 4)), px * 0.6)])
+          fix.push([td, Math.max(px * 0.97 * ((td.clientWidth - 6) / (td.scrollWidth - 4)), px * 0.6)])
         }
       }
       fix.forEach(([td, f]) => { td.style.fontSize = `${f}px` })
