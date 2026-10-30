@@ -38,7 +38,7 @@ function KunciBox({ p, uses }: { p: ReportParams; uses: Use[] }) {
         {k?.aktif
           ? <>
               <b>Terkunci untuk viewer:</b>{' '}
-              {uses.includes('rentang') ? <>periode <b>{BULAN[k.bulan]}{(k.bulanSampai ?? 11) !== k.bulan ? ` – ${BULAN[k.bulanSampai ?? 11]}` : ''} {k.tahun}</b></>
+              {uses.includes('rentang') ? <>periode <b>{BULAN[k.bulan]}{(k.bulanSampai ?? 11) !== k.bulan ? ` – ${BULAN[k.bulanSampai ?? 11]}` : ''} {k.tahun}</b>{uses.includes('acuan') && <> dan tanggal acuan umur <b>{tglIndo(k.acuan)}</b></>}</>
                 : uses.includes('bulan') ? <>bulan <b>{BULAN[k.bulan]} {k.tahun}</b></>
                 : uses.includes('tahun') ? <>tahun <b>{k.tahun}</b></>
                 : <>tanggal acuan <b>{tglIndo(k.acuan)}</b></>}
@@ -71,7 +71,7 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
     <Card className="no-print mt-3 p-3">
       {viewer && bertanggal && <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200"><ShieldCheck size={14} /> Data periode terkunci oleh admin</div>}
       <div className="flex flex-wrap items-end gap-3">
-        {!viewer && uses.includes('acuan') && !uses.includes('rentang') && <Field label="Tanggal acuan (hitung umur)"><Input type="date" value={p.acuan} onChange={(e) => e.target.value && setP({ acuan: e.target.value })} /></Field>}
+        {!viewer && uses.includes('acuan') && <Field label="Tanggal acuan umur (atur manual)"><Input type="date" value={p.acuan} onChange={(e) => e.target.value && setP({ acuan: e.target.value })} /></Field>}
         {!viewer && uses.includes('bulan') && (
           <>
             <Field label="Bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
@@ -83,7 +83,6 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
             <Field label="Dari bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value, bulanSampai: Math.max(+e.target.value, p.bulanSampai ?? 11) })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
             <Field label="Sampai bulan"><select className={sel} value={p.bulanSampai ?? 11} onChange={(e) => setP({ bulanSampai: +e.target.value, bulan: Math.min(+e.target.value, p.bulan) })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
             <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
-            {uses.includes('acuan') && <div className="pb-2 text-[11px] text-slate-500">Umur dihitung per <b>{tglIndo(ctx.p.acuan)}</b> (akhir bulan terakhir)</div>}
           </>
         )}
         {!viewer && uses.includes('tahun') && <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>}

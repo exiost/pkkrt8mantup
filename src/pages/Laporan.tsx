@@ -92,15 +92,8 @@ function ReportView({ slug }: { slug: string }) {
   const kunci = settings.kunci
   const pe: ReportParams = useMemo(() => {
     const x: ReportParams = viewer && kunci?.aktif ? { ...p, acuan: kunci.acuan, bulan: kunci.bulan, bulanSampai: kunci.bulanSampai ?? 11, tahun: kunci.tahun } : p
-    if (def.uses.includes('rentang') && def.uses.includes('acuan')) {
-      // laporan rentang bulan: umur dihitung per akhir bulan terakhir (paling lambat hari ini), tanpa tanggal acuan terpisah
-      const akhir = new Date(x.tahun, Math.max(x.bulan, x.bulanSampai ?? 11) + 1, 0)
-      const hariIni = new Date()
-      const d = akhir > hariIni ? hariIni : akhir
-      return { ...x, acuan: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
-    }
     return x
-  }, [viewer, kunci, p, def])
+  }, [viewer, kunci, p])
   const periode = ymOf(pe.tahun, pe.bulan)
   const ym = def.uses.includes('rentang') ? `${periode}~${ymOf(pe.tahun, Math.max(pe.bulan, pe.bulanSampai ?? 11))}` : def.uses.includes('bulan') ? periode : def.uses.includes('acuan') ? pe.acuan.slice(0, 7) : periode
   const ctx: Ctx = useMemo(
