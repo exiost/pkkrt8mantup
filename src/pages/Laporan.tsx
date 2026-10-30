@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
+import { LayoutDashboard, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { REPORTS } from '@/reports/registry'
 import { useStore, useLive } from '@/lib/store'
@@ -11,6 +11,7 @@ import { TEMPLATES, colIndex } from '@/sheet/engine'
 import type { Ctx, ReportOpts, ReportParams } from '@/reports/common'
 import ReportControls, { ManualKB } from '@/reports/ReportControls'
 import { makeCtx } from '@/reports/ctx'
+import WebReport from '@/reports/WebView'
 import PrintPanel from '@/reports/PrintPanel'
 import { effectiveScale, excelShrunk, pageGeometry, usePrintSettings } from '@/reports/usePrint'
 import { eksporTabel } from '@/lib/excel'
@@ -60,6 +61,9 @@ function ReportView({ slug }: { slug: string }) {
   const [o, setOState] = useState<ReportOpts>({ barisKosong: def.defaults?.barisKosong ?? false, isiKosong: false })
   const setO = (x: Partial<ReportOpts>) => setOState((v) => ({ ...v, ...x }))
   const [ps, setPs, resetPs] = usePrintSettings(slug, def.tpl)
+  const [view, setViewState] = useState<'web' | 'sheet'>(() => { try { return localStorage.getItem('siwarga-view') === 'sheet' ? 'sheet' : 'web' } catch { return 'web' } })
+  const setView = (v: 'web' | 'sheet') => { setViewState(v); try { localStorage.setItem('siwarga-view', v) } catch { /* abaikan */ } }
+  const web = view === 'web'
   const [panel, setPanel] = useState(false)
   const [editText, setEditText] = useState(false)
   const [drillState, setDrill] = useState<{ title: string; list: Warga[] } | null>(null)
@@ -91,7 +95,7 @@ function ReportView({ slug }: { slug: string }) {
   const pagesAcross = nat.w ? Math.max(1, Math.ceil((nat.w * eff) / g.printW - 0.001)) : 1
   const pagesDown = nat.h ? Math.max(1, Math.ceil((nat.h * eff) / g.printH - 0.001)) : 1
   const fitZoom = stageW && nat.w ? Math.min(1, (stageW - 24) / nat.w) : 1
-  const screenZoom = panel && ps.guides ? eff : zoom === 'fit' ? (stageW > 0 && stageW < 640 ? Math.max(fitZoom, 0.55) : fitZoom) : zoom
+  const screenZoom = web ? 1 : panel && ps.guides ? eff : zoom === 'fit' ? (stageW > 0 && stageW < 640 ? Math.max(fitZoom, 0.55) : fitZoom) : zoom
 
   // ukuran asli tabel (tanpa zoom) untuk perhitungan skala
   useLayoutEffect(() => {
@@ -158,29 +162,42 @@ function ReportView({ slug }: { slug: string }) {
             <p className="text-xs text-slate-500">Sama dengan sheet Excel: <i>{def.sheet}</i></p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant={skin ? 'soft' : 'outline'} icon={Sparkles} size="sm" aria-label="Tampilan cantik" title="Tampilan layar cantik (cetak tetap seperti Excel)" onClick={() => setSkin(!skin)}><span className="hidden sm:inline">{skin ? 'Tampilan cantik' : 'Seperti Excel'}</span></Button>
-            <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm" aria-label="Ubah teks"><span className="hidden sm:inline">Ubah teks</span></Button>
+            {!web && <Button variant={skin ? 'soft' : 'outline'} icon={Sparkles} size="sm" aria-label="Tampilan cantik" title="Tampilan layar cantik (cetak tetap seperti Excel)" onClick={() => setSkin(!skin)}><span className="hidden sm:inline">{skin ? 'Tampilan cantik' : 'Seperti Excel'}</span></Button>}
+            {!web && <Button variant={editText ? 'soft' : 'outline'} icon={PencilLine} onClick={() => setEditText(!editText)} size="sm" aria-label="Ubah teks"><span className="hidden sm:inline">Ubah teks</span></Button>}
             <Button variant="outline" icon={FileSpreadsheet} size="sm" aria-label="Excel" onClick={() => zoomRef.current && (eksporTabel(zoomRef.current, def.title) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}><span className="hidden sm:inline">Excel</span></Button>
             {def.uses.includes('bulan') && <Button variant="outline" icon={Archive} size="sm" aria-label="Arsipkan" onClick={arsipkan}><span className="hidden sm:inline">Arsipkan</span></Button>}
-            <Button variant={panel ? 'soft' : 'outline'} icon={Settings2} size="sm" aria-label="Atur cetak" onClick={() => setPanel(!panel)}>Atur cetak</Button>
+            <Button variant={!web && panel ? 'soft' : 'outline'} icon={Settings2} size="sm" aria-label="Atur cetak" onClick={() => { if (web) { setView('sheet'); setPanel(true) } else setPanel(!panel) }}>Atur cetak</Button>
             <Button icon={Printer} size="sm" onClick={() => window.print()}>Cetak / PDF</Button>
           </div>
         </div>
-        {editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
+        <div className="mt-3 inline-flex rounded-xl bg-slate-100 p-1 dark:bg-white/10" role="tablist">
+          {([['web', 'Tampilan', LayoutDashboard], ['sheet', 'Lembar cetak', FileText]] as const).map(([k, l, I]) => (
+            <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${view === k ? 'bg-white text-violet-700 shadow dark:bg-violet-600 dark:text-white' : 'text-slate-500'}`}><I size={14} />{l}</button>
+          ))}
+        </div>
+        {!web && editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
         <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctx} />
         {def.uses.includes('manualKB') && <ManualKB periode={periode} />}
-        {panel && <PrintPanel tplId={def.tpl} ps={ps} set={setPs} reset={resetPs} eff={eff} pagesAcross={pagesAcross} pagesDown={pagesDown} shrunk={excelShrunk(ps, nat)} />}
-        <div className="mt-3 flex items-center justify-end gap-1 text-xs text-slate-500">
+        {!web && panel && <PrintPanel tplId={def.tpl} ps={ps} set={setPs} reset={resetPs} eff={eff} pagesAcross={pagesAcross} pagesDown={pagesDown} shrunk={excelShrunk(ps, nat)} />}
+        {!web && <div className="mt-3 flex items-center justify-end gap-1 text-xs text-slate-500">
           <ZoomIn size={14} /> <span className="hidden sm:inline">Tampilan layar</span><span className="sm:hidden">Cubit untuk zoom</span>
           <Button size="sm" variant="outline" aria-label="Perkecil" onClick={() => setZoom(Math.max(0.2, +(screenZoom - 0.1).toFixed(2)))}>{''}<Minus size={14} /></Button>
           <span className="w-12 text-center font-semibold tabular-nums">{Math.round(screenZoom * 100)}%</span>
           <Button size="sm" variant="outline" aria-label="Perbesar" onClick={() => setZoom(Math.min(2, +(screenZoom + 0.1).toFixed(2)))}>{''}<Plus size={14} /></Button>
           <Button size="sm" variant="ghost" onClick={() => setZoom('fit')}>Pas layar</Button>
           <Button size="sm" variant="ghost" onClick={() => setZoom(1)}>100%</Button>
-        </div>
+        </div>}
       </div>
 
-      <div ref={stageRef} style={{ touchAction: 'pan-x pan-y' }} className={`sheet-stage mt-2 ${editText ? 'xl-edit-mode' : ''} ${ps.hc ? 'hc' : ''}`}>
+      {web && (
+        <div className="no-print mt-4 space-y-8">
+          {pages.length === 0 && <Empty title="Tidak ada data" />}
+          {pages.map((pg) => <WebReport key={pg.key} page={pg} def={def} />)}
+          <p className="text-center text-xs text-slate-400">Ini tampilan layar. Tombol <b>Cetak / PDF</b> mencetak lembar seperti di Excel (atur di <b>Atur cetak</b>).</p>
+        </div>
+      )}
+
+      <div ref={stageRef} style={{ touchAction: 'pan-x pan-y' }} className={`sheet-stage mt-2 ${web ? 'sheet-offscreen' : ''} ${editText ? 'xl-edit-mode' : ''} ${ps.hc ? 'hc' : ''}`}>
         <div ref={zoomRef} className={`sheet-zoom ${skin ? 'xl-skin' : ''} ${ps.mono ? 'mono' : ''}`} style={{ zoom: screenZoom }}>
           {pages.length === 0 && <Empty title="Tidak ada data" />}
           {pages.map((pg) => (

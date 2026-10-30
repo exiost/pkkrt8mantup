@@ -163,7 +163,22 @@ body {
   }
 }
 
+/* mode "Tampilan": lembar cetak tetap dibuat (untuk dicetak) tetapi disembunyikan di layar */
+@media screen {
+  .sheet-offscreen {
+    position: fixed;
+    left: -30000px;
+    top: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
 @media print {
+  .sheet-offscreen {
+    position: static !important;
+    visibility: visible !important;
+  }
   html,
   body {
     background: #fff !important;

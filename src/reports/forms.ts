@@ -39,7 +39,7 @@ export function tppkkOf(w: Warga, c: Ctx): PageSpec {
     G56: w.keagamaan, I56: w.keagamaanJenis,
     G57: w.jimpitan, G58: w.arisan, G59: w.barkas, G60: w.apotekHidup,
   }
-  return { key: `tp-${w.id}`, tplId: 'tppkk', values: v, label: w.nama }
+  return { key: `tp-${w.id}`, tplId: 'tppkk', values: v, label: w.nama, warga: w }
 }
 
 export const bTPPKK: Builder = (c) => {
@@ -93,7 +93,7 @@ function dataKeluargaOf(k: Keluarga, ang: Warga[], kepala: Warga | undefined, c:
     v.G16 = cntPKK((w) => w.hamil)
     v.L16 = cntPKK((w) => w.menyusui)
   }
-  return { key: `dk-${k.id}`, tplId: 'datakeluarga', values: v, regions: { m: rows }, rowsShown: { m: Math.max(rows.length, TEMPLATES.datakeluarga.regions[0].size) }, label: kepala?.nama }
+  return { key: `dk-${k.id}`, tplId: 'datakeluarga', values: v, regions: { m: rows }, rowsShown: { m: Math.max(rows.length, TEMPLATES.datakeluarga.regions[0].size) }, label: kepala?.nama, fam: { k, ang, kepala } }
 }
 
 export const bDataKeluarga: Builder = (c) => pickFam(c).map((x) => dataKeluargaOf(x.k, x.ang, x.kepala, c))

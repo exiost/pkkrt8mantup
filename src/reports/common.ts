@@ -39,6 +39,9 @@ export interface Ctx {
 export interface PageSpec extends SheetViewProps {
   key: string
   label?: string
+  /** untuk tampilan web: warga (formulir TP PKK) / keluarga (Data Keluarga) */
+  warga?: Warga
+  fam?: { k: Keluarga; ang: Warga[]; kepala?: Warga }
 }
 export type Builder = (c: Ctx) => PageSpec[]
 
