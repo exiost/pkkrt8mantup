@@ -2,11 +2,18 @@
 chcp 65001 >nul
 echo === SIWARGA PKK: menjalankan server di komputer ini ===
 rem Kalau SIWARGA PKK sudah berjalan, cukup buka browser lalu selesai
-powershell -NoProfile -Command "try { (Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:3000/api/health).StatusCode | Out-Null; exit 0 } catch { exit 1 }" >nul 2>nul
-if not errorlevel 1 (
+rem Hanya dianggap "sudah berjalan" bila folder DAN versinya sama. Server lama dari folder/versi lain dihentikan dulu.
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Get-Content package.json -Raw | ConvertFrom-Json).version"`) do set VERBARU=%%v
+powershell -NoProfile -Command "try { $h = Invoke-RestMethod -TimeoutSec 2 http://localhost:3000/api/health } catch { exit 1 }; if ($h.dir -eq (Get-Location).Path -and $h.ver -eq '%VERBARU%') { exit 0 } else { exit 2 }" >nul 2>nul
+if "%errorlevel%"=="0" (
   echo SIWARGA PKK sudah berjalan. Membuka browser...
   start "" http://localhost:3000
   exit /b 0
+)
+if "%errorlevel%"=="2" (
+  echo Ada SIWARGA versi/folder lama yang masih berjalan. Menghentikannya...
+  for /f "tokens=5" %%p in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do taskkill /F /PID %%p >nul 2>nul
+  timeout /t 2 /nobreak >nul
 )
 where node >nul 2>nul
 if errorlevel 1 (

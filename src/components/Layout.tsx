@@ -185,6 +185,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {dark ? <Sun size={18} /> : <Moon size={18} />} {dark ? 'Mode terang' : 'Mode gelap'}
         </button>
         <div className="mt-1 px-1"><SyncBadge /></div>
+        <div className="mt-1 px-2 text-[10px] text-slate-400" title="Waktu aplikasi ini dibuat">Versi {new Date(__BUILD__).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</div>
         <UserBox />
       </aside>
 

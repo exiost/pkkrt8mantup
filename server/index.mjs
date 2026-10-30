@@ -1,6 +1,6 @@
 import express from 'express'
 import { randomBytes, randomUUID } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openDb, createStore, COLLECTIONS } from './db.mjs'
@@ -8,6 +8,7 @@ import { hashPassword, verifyPassword, signToken, verifyToken } from './auth.mjs
 
 const here = dirname(fileURLToPath(import.meta.url))
 const ROLES = ['admin', 'editor', 'viewer']
+const VER = (() => { try { return JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')).version } catch { return '' } })()
 
 export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   const db = openDb(dbFile ?? join(process.env.DATA_DIR ?? resolve(here, '../data'), 'siwarga.db'))
@@ -50,7 +51,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   const session = (u) => ({ token: signToken({ uid: u.id }, secret), user: store.publicUser(u) })
   const validPw = (pw) => typeof pw === 'string' && pw.length >= 8
 
-  app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'siwarga-pkk', needsSetup: store.q.userCount.get().n === 0 }))
+  app.get('/api/health', (_req, res) => res.json({ ok: true, app: 'siwarga-pkk', ver: VER, dir: resolve(here, '..'), needsSetup: store.q.userCount.get().n === 0 }))
 
   app.post('/api/setup', wrap((req, res) => {
     if (store.q.userCount.get().n > 0) return res.status(403).json({ error: 'Server sudah disiapkan' })
@@ -169,8 +170,8 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   // --- aplikasi web (hasil build) ---
   const dist = distDir ?? resolve(here, '../dist')
   if (existsSync(dist)) {
-    app.use(express.static(dist, { maxAge: '1h', index: 'index.html' }))
-    app.get('*', (_req, res) => res.sendFile(join(dist, 'index.html')))
+    app.use(express.static(dist, { maxAge: '1h', index: 'index.html', setHeaders: (res, f) => { if (f.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache') } }))
+    app.get('*', (_req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(join(dist, 'index.html')) })
   }
   return { app, db, store }
 }
