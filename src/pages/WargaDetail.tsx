@@ -54,6 +54,10 @@ export default function WargaDetail() {
               {w.statusWarga !== 'Aktif' && <span className="rounded-full bg-white/25 px-2 font-semibold">{w.statusWarga}</span>}
             </div>
             <div className="mt-3 rounded-xl bg-white/90 p-2"><TagList w={w} acuan={acuan} s={settings} tags={tags} /></div>
+            <div className="mt-2 flex flex-wrap gap-4 rounded-xl bg-white/90 p-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2"><input type="checkbox" checked={w.ikutPKK} onChange={() => useStore.getState().update('warga', w.id, { ikutPKK: !w.ikutPKK }, w.nama)} /> Ikut PKK (dihitung di laporan)</label>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={w.statusWarga === 'Aktif'} onChange={() => useStore.getState().update('warga', w.id, { statusWarga: w.statusWarga === 'Aktif' ? 'Nonaktif' : 'Aktif' }, w.nama)} /> Aktif (nonaktif = tidak dihitung sama sekali)</label>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" icon={Pencil} onClick={() => openWarga(w.id)}>Ubah</Button>

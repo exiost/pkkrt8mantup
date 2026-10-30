@@ -13,7 +13,7 @@ import { hapusDenganUndo } from '@/lib/crud'
 import { eksporWarga } from '@/lib/excel'
 import type { Warga } from '@/lib/types'
 
-const KATEGORI = ['Semua', 'Kepala Keluarga', 'Balita', 'WUS', 'PUS', 'Lansia', 'Ibu Hamil', 'Tidak Ikut PKK', 'Pindah/Meninggal'] as const
+const KATEGORI = ['Semua', 'Kepala Keluarga', 'Balita', 'WUS', 'PUS', 'Lansia', 'Ibu Hamil', 'Tidak Ikut PKK', 'Nonaktif/Pindah/Meninggal'] as const
 
 export default function WargaPage() {
   const all = useLive('warga')
@@ -40,7 +40,7 @@ export default function WargaPage() {
   const list = useMemo(() => {
     const s = q.toLowerCase().trim()
     return all
-      .filter((w) => (kat === 'Pindah/Meninggal' ? w.statusWarga !== 'Aktif' : kat === 'Semua' ? true : w.statusWarga === 'Aktif'))
+      .filter((w) => (kat === 'Nonaktif/Pindah/Meninggal' ? w.statusWarga !== 'Aktif' : kat === 'Semua' ? true : w.statusWarga === 'Aktif'))
       .filter((w) => !s || w.nama.toLowerCase().includes(s) || w.nik.includes(s) || w.noKK.includes(s) || w.alamat.toLowerCase().includes(s))
       .filter((w) => !dw || w.dasawisma === dw)
       .filter((w) => !jk || w.jk === jk)
@@ -129,7 +129,7 @@ export default function WargaPage() {
               <thead>
                 <tr>
                   <th className="w-8"><input type="checkbox" checked={allSel} onChange={() => setSel(allSel ? new Set() : new Set(list.map((w) => w.id)))} /></th>
-                  <th>Nama</th><th>NIK</th><th>Umur</th><th>Status Keluarga</th><th>Dasawisma</th><th>Tag</th><th className="text-right">Aksi</th>
+                  <th>Nama</th><th>NIK</th><th>Umur</th><th>Status Keluarga</th><th>Dasawisma</th><th>Tag</th><th>Hitung</th><th className="text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,6 +147,7 @@ export default function WargaPage() {
                     <td>{w.statusKeluarga}</td>
                     <td><Chip color={dasawisma.find((d) => d.nama === w.dasawisma)?.warna ?? 'slate'}>{w.dasawisma || '—'}</Chip></td>
                     <td className="max-w-[260px]"><TagList w={w} acuan={acuan} s={settings} tags={tags} max={3} /></td>
+                    <td><QuickSwitch w={w} compact /></td>
                     <td>
                       <div className="flex justify-end gap-0.5">
                         <IconBtn icon={Pencil} label="Ubah" onClick={() => openWarga(w.id)} />
@@ -177,6 +178,7 @@ export default function WargaPage() {
                     <input type="checkbox" checked={sel.has(w.id)} onChange={() => toggle(w.id)} className="mt-1" />
                   </div>
                   <div className="mt-3"><TagList w={w} acuan={acuan} s={settings} tags={tags} max={5} /></div>
+                  <div className="mt-2"><QuickSwitch w={w} /></div>
                   <div className="mt-3 flex justify-end gap-1 border-t border-slate-100 pt-2 dark:border-white/10">
                     <Button size="sm" variant="ghost" icon={Pencil} onClick={() => openWarga(w.id)}>Ubah</Button>
                     <Button size="sm" variant="ghost" icon={Trash2} className="text-red-500" onClick={() => del(w)}>Hapus</Button>
@@ -189,6 +191,27 @@ export default function WargaPage() {
         </>
       )}
       <BulkEdit open={bulk} ids={[...sel]} onClose={() => { setBulk(false); setSel(new Set()) }} />
+    </div>
+  )
+}
+
+/** Saklar cepat: Ikut PKK (kalau mati tidak dihitung di laporan) dan Aktif (kalau mati tidak dihitung sama sekali) */
+function QuickSwitch({ w, compact }: { w: Warga; compact?: boolean }) {
+  const st = useStore()
+  const aktifNow = w.statusWarga === 'Aktif'
+  const Sw = ({ on, label, onClick, color }: { on: boolean; label: string; onClick: () => void; color: string }) => (
+    <button type="button" onClick={onClick} title={`${label}: ${on ? 'ya' : 'tidak'} (klik untuk mengubah)`} aria-pressed={on}
+      className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+      <span className={`relative h-4 w-7 shrink-0 rounded-full transition ${on ? color : 'bg-slate-300 dark:bg-slate-600'}`}>
+        <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${on ? 'left-3.5' : 'left-0.5'}`} />
+      </span>
+      {!compact && label}
+    </button>
+  )
+  return (
+    <div className="flex items-center gap-3">
+      <Sw on={w.ikutPKK} label="Ikut PKK" color="bg-violet-500" onClick={() => st.update('warga', w.id, { ikutPKK: !w.ikutPKK }, w.nama)} />
+      <Sw on={aktifNow} label="Aktif" color="bg-emerald-500" onClick={() => st.update('warga', w.id, { statusWarga: aktifNow ? 'Nonaktif' : 'Aktif' }, w.nama)} />
     </div>
   )
 }
@@ -211,7 +234,7 @@ function BulkEdit({ open, ids, onClose }: { open: boolean; ids: string[]; onClos
   const FIELDS: Record<string, { label: string; options: string[] }> = {
     dasawisma: { label: 'Dasawisma', options: dasawisma.map((d) => d.nama) },
     ikutPKK: { label: 'Ikut PKK', options: ['Ya', 'Tidak'] },
-    statusWarga: { label: 'Status Warga', options: ['Aktif', 'Pindah', 'Meninggal'] },
+    statusWarga: { label: 'Status Warga', options: ['Aktif', 'Nonaktif', 'Pindah', 'Meninggal'] },
     dusun: { label: 'Dusun', options: ['Mantup'] },
     addTag: { label: 'Tambah tag', options: tags.map((t) => t.nama) },
     removeTag: { label: 'Lepas tag', options: tags.map((t) => t.nama) },

@@ -43,7 +43,7 @@ export const bPUS: Builder = (c) => {
 }
 
 export const bPencatatan: Builder = (c) => {
-  const hamil = c.aktif.filter((w) => w.hamil)
+  const hamil = c.aktif.filter((w) => w.hamil && w.ikutPKK)
   const sh = size('pencatatan', 0)
   const rowsH: Record<string, Val>[] = Array.from({ length: Math.max(hamil.length, sh) }, (_, i) => {
     const w = hamil[i]
@@ -121,9 +121,9 @@ export const bKampungKB: Builder = (c) => {
   put('C35', '25 - 49 th', between(25, 49))
   put('C36', '50 - < 65 th', between(50, 64))
   put('C37', '> 65 th', pkk.filter((w) => (age(w) ?? -1) >= 65))
-  put('C42', 'Usia 18 - 56 th', between(18, 56))
-  put('C44', 'Remaja putri 12 - 17 th', between(12, 17).filter((w) => w.jk === 'P'))
-  put('C46', 'Perempuan 15 - 49 th', between(15, 49).filter((w) => w.jk === 'P'))
+  put('C41', 'Usia 18 - 56 th', between(18, 56))
+  put('C42', 'Remaja putri 12 - 17 th', between(12, 17).filter((w) => w.jk === 'P'))
+  put('C43', 'Perempuan 15 - 49 th', between(15, 49).filter((w) => w.jk === 'P'))
   // PUS per kelompok umur wanita
   put('H9', 'PUS < 15 th', pus.filter((w) => kup(age(w)) === '<15'))
   put('H10', 'PUS 15 - 19 th', pus.filter((w) => kup(age(w)) === '15-19'))
@@ -134,7 +134,7 @@ export const bKampungKB: Builder = (c) => {
   const istri = pkk.filter((w) => /^istri$/i.test(w.statusKeluarga.trim()) && w.statusKawin === 'Kawin Tercatat')
   ;(['IUD', 'MOW', 'MOP', 'IMPLAN', 'SUNTIK', 'PIL', 'KONDOM'] as const).forEach((k, i) => put(`H${17 + i}`, `Peserta ${k}`, istri.filter((w) => w.kontrasepsi.trim().toUpperCase() === k)))
   sum('H24', ['H17', 'H18', 'H19', 'H20', 'H21', 'H22', 'H23'])
-  v.H28 = n(Math.min(all.filter((w) => w.hamil).length, 5), drill('Ibu hamil', all.filter((w) => w.hamil)))
+  v.H28 = n(Math.min(pkk.filter((w) => w.hamil).length, 5), drill('Ibu hamil', pkk.filter((w) => w.hamil)))
   // isian manual (diketik tangan di Excel)
   const man = c.kb?.nilai ?? {}
   for (const [addr, val] of Object.entries(man)) if (val !== '' && val !== undefined) v[addr] = typeof val === 'number' ? n(val) : String(val)

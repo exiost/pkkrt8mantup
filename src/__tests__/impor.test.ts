@@ -72,7 +72,8 @@ describe.skipIf(!ada)('kecocokan dengan file Excel asli', () => {
     const v = bKampungKB(mk())[0].values!
     const S = 'INVENTARISASI KAMPUNG KB'
     expect(num(v.C21) + num(v.C22) + num(v.C23) + num(v.C24) + num(v.C25) + num(v.C26)).toBe(num(v.C9) + num(v.C10))
-    for (const a of ['C9', 'C10', 'C11', 'C15', 'C16', 'C17', 'H9', 'H10', 'H11', 'H12', 'H13', 'H17', 'H18', 'H19', 'H20', 'H21', 'H22', 'H23', 'H24', 'C21', 'C22', 'C23', 'C24', 'C25', 'C42', 'C44', 'C46'])
-      expect(num(v[a]), a).toBe(cached(S, a))
+    for (const a of ['C9', 'C10', 'C11', 'C15', 'C16', 'C17', 'H9', 'H10', 'H11', 'H12', 'H13', 'H17', 'H18', 'H19', 'H20', 'H21', 'H22', 'H23', 'H24', 'C21', 'C22', 'C23', 'C24', 'C25', 'C41', 'C42', 'C43'])
+      // blok usia tertentu pindah dari C42/C44/C46 di Excel ke C41/C42/C43 (kini berbentuk tabel)
+      expect(num(v[a]), a).toBe(cached(S, a === 'C41' ? 'C42' : a === 'C42' ? 'C44' : a === 'C43' ? 'C46' : a))
   })
 })

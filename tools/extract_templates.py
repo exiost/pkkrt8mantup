@@ -172,6 +172,17 @@ for cfg in CFG:
             if is_f or addr in dyn or r in region_rows: item['d'] = 1
             cells.append(item)
         rows.append({'r': r, 'h': round(h * 96 / 72, 2), 'c': cells})
+    if cfg['id'] == 'kampungkb':
+        # Blok paling bawah (usia 18-56, remaja putri, perempuan subur) di Excel belum berbentuk tabel:
+        # dijadikan tabel seperti tabel lain (judul, NO / KELOMPOK / JUMLAH), memakai gaya tabel "4. Jumlah jiwa".
+        byr = {r['r']: r for r in rows}
+        def sty(r, c):
+            return next(x['s'] for x in byr[r]['c'] if x['c'] == c)
+        for r in range(38, 47): byr[r]['c'] = []
+        byr[39]['c'] = [{'c': 0, 's': sty(28, 0), 'v': '5. JUMLAH PENDUDUK MENURUT USIA TERTENTU', 'cs': 3}]
+        byr[40]['c'] = [{'c': i, 's': sty(29, i), 'v': t} for i, t in enumerate(['NO', 'KELOMPOK UMUR', 'JUMLAH'])]
+        for i, t in enumerate(['Usia 18-56 TH', 'Remaja putri 12-17 TH', 'Perempuan 15-49 TH']):
+            byr[41 + i]['c'] = [{'c': 0, 's': sty(30, 0), 'v': i + 1}, {'c': 1, 's': sty(30, 1), 'v': t}, {'c': 2, 's': sty(30, 2), 'd': 1}]
     pg, m = ws.page_setup, ws.page_margins
     result[cfg['id']] = {
         'sheet': cfg['sheet'], 'cols': cols, 'rows': rows, 'regions': regions,

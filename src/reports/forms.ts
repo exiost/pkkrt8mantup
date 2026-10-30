@@ -67,6 +67,7 @@ const pickFam = (c: Ctx) => {
 function dataKeluargaOf(k: Keluarga, ang: Warga[], kepala: Warga | undefined, c: Ctx): PageSpec {
   const s = c.settings
   const cnt = (f: (w: Warga) => boolean) => ang.filter(f).length
+  const cntPKK = (f: (w: Warga) => boolean) => ang.filter((w) => w.ikutPKK && f(w)).length // yang tidak ikut PKK tidak dihitung
   const wc = Number(k.kamarMandi) || 0
   const rows: Record<string, Val>[] = ang.map((w, i) => ({
     A: i + 1, B: w.noReg, E: link(w), H: w.statusKeluarga, J: w.statusKawin, L: V(w.jk === 'L'), M: V(w.jk === 'P'),
@@ -76,8 +77,8 @@ function dataKeluargaOf(k: Keluarga, ang: Warga[], kepala: Warga | undefined, c:
     D3: kepala?.dasawisma ?? '', D4: kepala?.alamat ?? '', H4: kepala?.dusun ?? '', D5: kepala?.desa ?? '', H5: kepala?.kecamatan ?? '', D6: kepala?.kabupaten ?? '', H6: kepala?.provinsi ?? '',
     E8: kepala ? link(kepala) : '', E9: ang.length,
     G10: cnt((w) => w.jk === 'L'), G12: cnt((w) => w.jk === 'P'), E13: jumlahKK(ang),
-    G14: cnt((w) => isBalita(w, c.p.acuan, s)), J14: cnt((w) => isPUS(w, c.p.acuan)), M14: cnt((w) => isWUS(w, c.p.acuan)),
-    O16: cnt((w) => isLansia(w, c.p.acuan, s)),
+    G14: cntPKK((w) => isBalita(w, c.p.acuan, s)), J14: cntPKK((w) => isPUS(w, c.p.acuan)), M14: cntPKK((w) => isWUS(w, c.p.acuan)),
+    O16: cntPKK((w) => isLansia(w, c.p.acuan, s)),
     I32: V(k.makananPokok === 'Beras'), K32: V(!!k.makananPokok && k.makananPokok !== 'Beras'),
     I34: V(wc > 0), K34: V(wc === 0), O34: k.jumlahWC,
     I36: V(k.sumberAir === 'PDAM'), K36: V(k.sumberAir === 'Sumur'),
@@ -88,9 +89,9 @@ function dataKeluargaOf(k: Keluarga, ang: Warga[], kepala: Warga | undefined, c:
     I46: V(yes(kepala?.jumantik ?? '')), K46: V(tidak(kepala?.jumantik ?? '')),
   }
   if (c.o.isiKosong) {
-    v.P14 = cnt((w) => w.tigaButa)
-    v.G16 = cnt((w) => w.hamil)
-    v.L16 = cnt((w) => w.menyusui)
+    v.P14 = cntPKK((w) => w.tigaButa)
+    v.G16 = cntPKK((w) => w.hamil)
+    v.L16 = cntPKK((w) => w.menyusui)
   }
   return { key: `dk-${k.id}`, tplId: 'datakeluarga', values: v, regions: { m: rows }, rowsShown: { m: Math.max(rows.length, TEMPLATES.datakeluarga.regions[0].size) }, label: kepala?.nama }
 }

@@ -16,7 +16,9 @@ export default function Dashboard() {
   const s = useStore((x) => x.settings)
   const all = useLive('warga')
   const dws = useLive('dasawisma')
-  const warga = all.filter(aktif)
+  const semuaAktif = all.filter(aktif)
+  const warga = semuaAktif.filter((w) => w.ikutPKK) // yang tidak ikut PKK / nonaktif tidak dihitung
+  const tidakIkut = semuaAktif.length - warga.length
   const acuan = todayISO()
 
   const d = useMemo(() => {
@@ -82,6 +84,7 @@ export default function Dashboard() {
         <div className="relative">
           <div className="text-sm font-medium text-white/80">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div>
           <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Data Warga {s.rt} {s.padukuhan} ✨</h1>
+          {(tidakIkut > 0 || all.length > semuaAktif.length) && <p className="text-xs text-white/80">Tidak dihitung: {tidakIkut} tidak ikut PKK, {all.length - semuaAktif.length} nonaktif/pindah/meninggal</p>}
           <p className="text-sm text-white/85">Kalurahan {s.kalurahan} · Kapanewon {s.kapanewon} · {s.kabupaten}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link to="/laporan" className="flex items-center gap-1.5 rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold backdrop-blur hover:bg-white/30"><FileText size={16} /> Buka laporan</Link>

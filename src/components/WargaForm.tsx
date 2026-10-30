@@ -145,7 +145,7 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
                 <Field label="Pekerjaan"><Select options={P.pekerjaan} value={d.pekerjaan} onChange={(v) => set('pekerjaan', v)} allowCustom /></Field>
                 <Field label="Status Perkawinan"><Select options={P.statusKawin} value={d.statusKawin} onChange={(v) => set('statusKawin', v)} /></Field>
                 <Field label="Tanggal Nikah / Cerai"><Input type="date" value={d.tglNikahCerai} onChange={(e) => set('tglNikahCerai', e.target.value)} /></Field>
-                <Field label="Status Warga"><Select options={['Aktif', 'Pindah', 'Meninggal']} value={d.statusWarga} onChange={(v) => set('statusWarga', (v || 'Aktif') as Warga['statusWarga'])} /></Field>
+                <Field label="Status Warga"><Select options={['Aktif', 'Nonaktif', 'Pindah', 'Meninggal']} value={d.statusWarga} onChange={(v) => set('statusWarga', (v || 'Aktif') as Warga['statusWarga'])} /></Field>
                 <Field label="No Registrasi" hint="Kolom NO di DATA WARGA. Kosongkan untuk otomatis."><Input inputMode="numeric" value={d.noReg || ''} onChange={(e) => set('noReg', Number(e.target.value.replace(/\D/g, '')) || 0)} /></Field>
               </>
             )}

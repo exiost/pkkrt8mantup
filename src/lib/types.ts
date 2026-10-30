@@ -1,5 +1,5 @@
 export type JK = 'L' | 'P'
-export type StatusWarga = 'Aktif' | 'Pindah' | 'Meninggal'
+export type StatusWarga = 'Aktif' | 'Nonaktif' | 'Pindah' | 'Meninggal'
 /** Sama seperti isian di Excel: "Ya", "Tidak", atau kosong (belum diisi) */
 export type YT = 'Ya' | 'Tidak' | ''
 
