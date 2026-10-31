@@ -21,6 +21,13 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   app.set('trust proxy', 1)
   app.use(express.json({ limit: '50mb' }))
 
+  // Bisa dipasang di sub-alamat (mis. cPanel: domain.id/data-warga): buang awalan sebelum /api atau file aplikasi
+  app.use((req, _res, next) => {
+    const m = req.url.match(/\/(api(?:[/?].*)?|assets\/.*|icon\.svg.*|manifest\.webmanifest.*)$/)
+    if (m && req.url !== '/' + m[1]) req.url = '/' + m[1]
+    next()
+  })
+
   // --- CORS (mode bearer-token, tanpa cookie) & header keamanan dasar ---
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin)

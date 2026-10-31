@@ -51,6 +51,19 @@ Aktifkan HTTPS: cPanel → **SSL/TLS Status** → Run AutoSSL untuk domain itu.
 ## Cadangan
 Unduh isi folder `siwarga-data` secara berkala (File Manager → Compress → Download).
 
+## Contoh: dipasang di sub-alamat (domain.id/data-warga)
+| Isian | Nilai |
+|---|---|
+| Application root | `pemerintahkota.id/data-warga` (folder tempat `app.cjs`) |
+| Application URL | `pemerintahkota.id` / `data-warga` |
+| Startup file | `app.cjs` |
+| DATA_DIR | `/home/NAMAUSER/siwarga-data` (disarankan di luar folder situs) |
+
+Buka dengan `https://pemerintahkota.id/data-warga/`. Versi ≥ 1.2.0 sudah mendukung sub-alamat.
+
+**Jangan mengubah "Application root" aplikasi yang sudah dibuat.** cPanel akan mencoba memindahkan lingkungan Node dan bisa gagal dengan pesan
+`shutil.Error: Destination path '.../nodevenv/...' already exists`. Bila perlu folder lain: klik CANCEL, cadangkan database, **Destroy** aplikasinya, lalu **Create** ulang dengan folder baru.
+
 ## Bila error
 - Halaman "We're sorry, but something went wrong" / 503: buka file `stderr.log` di folder `siwarga`. Pesan `No such built-in module: node:sqlite` = versi Node terlalu lama → ganti ke 22.13+.
 - Data kosong padahal sudah unggah database: cek `DATA_DIR` sama persis dengan lokasi folder, nama file harus `siwarga.db`, lalu Restart.

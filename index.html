@@ -2,6 +2,10 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // dipasang di sub-alamat (mis. /data-warga): pastikan diakhiri "/" agar file aplikasi & server ditemukan
+      ;(function () { var p = location.pathname; if (!/\/$/.test(p) && !/\.[a-z0-9]+$/i.test(p)) location.replace(p + '/' + location.search + location.hash) })()
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#6d28d9" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />

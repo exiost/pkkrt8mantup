@@ -17,6 +17,11 @@ beforeAll(async () => {
 afterAll(() => srv.close())
 
 describe('server SIWARGA', () => {
+  it('bisa dipasang di sub-alamat (cPanel: domain/data-warga)', async () => {
+    const r = await j('/data-warga/api/health')
+    expect(r.status).toBe(200)
+    expect(r.data.app).toBe('siwarga-pkk')
+  })
   it('health: server baru butuh setup', async () => {
     const r = await j('/api/health')
     expect(r.data.needsSetup).toBe(true)
