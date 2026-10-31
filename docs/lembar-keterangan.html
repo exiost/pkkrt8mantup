@@ -31,8 +31,20 @@ footer{margin-top:12px;font-size:11.5px;color:var(--abu);text-align:center;borde
 .link b{color:var(--pink);word-break:break-all}
 .alur{grid-template-columns:repeat(2,1fr)!important;gap:8px}
 .alur div{padding:8px 10px;font-size:13px}
+.alat{position:fixed;right:16px;bottom:16px;display:flex;gap:8px;z-index:9}
+.alat button{padding:10px 14px;border:0;border-radius:10px;background:var(--ungu);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(109,40,217,.35)}
+.mengedit .wrap{outline:3px dashed #f59e0b;outline-offset:6px}
+@media print{.alat{display:none}}
 </style></head><body>
-<button class="tombol" onclick="window.print()">🖨️ Cetak</button><div class="wrap">
+<div class="alat">
+<button id="bEdit" onclick="ubahMode()">✏️ Edit teks</button>
+<button onclick="unduh()">💾 Unduh HTML</button>
+<button onclick="window.print()">🖨️ Cetak</button>
+</div>
+<script>
+function ubahMode(){var w=document.querySelector('.wrap');var on=w.isContentEditable;w.contentEditable=on?'false':'true';document.body.classList.toggle('mengedit',!on);document.getElementById('bEdit').textContent=on?'✏️ Edit teks':'✅ Selesai edit'}
+function unduh(){var w=document.querySelector('.wrap');var on=w.isContentEditable;if(on)ubahMode();var h='<!doctype html>\n'+document.documentElement.outerHTML;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='lembar-keterangan.html';a.click();if(on)ubahMode()}
+</script><div class="wrap">
 <p>Lembar ini menjelaskan cara Kelompok PKK RT 08 membuat, mengisi, dan mengolah data warga sampai menjadi rekapitulasi. Mohon dibaca sebelum membuka <b>Form Data RT 08 Tahun 2026</b>.</p>
 
 <div class="bab">Alamat (Link) Aplikasi</div>
@@ -46,10 +58,10 @@ footer{margin-top:12px;font-size:11.5px;color:var(--abu);text-align:center;borde
 <tr><td>Dasar format</td><td>Mengikuti <b>format buku/Excel Dasawisma PKK dari Kelurahan</b> (Data Warga TP PKK, Data Keluarga, Catatan Keluarga, Rekap, dll.).</td></tr>
 <tr><td>Proses olah data</td><td>
 <b>1) Input:</b> kader mengisi data dasar setiap warga sekali saja (biodata, keluarga, dasawisma, kegiatan PKK, status ibu, pekarangan).<br>
-<b>2) Hitung otomatis:</b> sistem membaca data itu lalu menghitung umur dan menggolongkan warga (balita, WUS, PUS, lansia, ibu hamil/menyusui, dll.) sesuai aturan pada format Excel PKK.<br>
+<b>2) Hitung otomatis:</b> sistem membaca data itu lalu menghitung umur dan menggolongkan warga (balita, WUS, PUS, lansia, ibu hamil/menyusui, dll.) sesuai aturan pada format dari Kelurahan.<br>
 <b>3) Rekap otomatis:</b> setiap golongan dijumlahkan per keluarga → per dasawisma → total RT. Karena semua laporan mengambil dari data yang sama, angka di formulir keluarga, rekap dasawisma dan rekap RT selalu cocok.<br>
-<b>4) Cetak:</b> hasil ditampilkan dalam lembar yang bentuknya sama dengan buku/Excel PKK, siap dicetak atau disimpan PDF.</td></tr>
-<tr><td>Hasil</td><td>Laporan dapat <b>dicetak / disimpan PDF</b> dan <b>diunduh Excel</b>, tampilan sama dengan lembar Excel.</td></tr>
+<b>4) Cetak:</b> hasil ditampilkan dalam lembar yang bentuknya sama dengan lembar format dari Kelurahan, siap dicetak atau disimpan PDF.</td></tr>
+<tr><td>Hasil</td><td>Laporan dapat <b>dicetak / disimpan PDF</b> dan <b>diunduh Excel</b>, tampilan sama dengan lembar format dari Kelurahan.</td></tr>
 <tr><td>Hak akses</td><td><b>Admin</b> (mengatur semua), <b>Editor</b> (kader pengisi data), <b>Viewer</b> (hanya lihat laporan).</td></tr>
 </table>
 
@@ -59,12 +71,12 @@ footer{margin-top:12px;font-size:11.5px;color:var(--abu);text-align:center;borde
 <div><b>1. Isi data</b>Warga, keluarga, ibu &amp; anak, pekarangan</div>
 <div><b>2. Sistem menghitung</b>Umur, golongan (balita, WUS, PUS, lansia), status</div>
 <div><b>3. Sistem merekap</b>Per keluarga → per dasawisma → per RT</div>
-<div><b>4. Cetak</b>Format sama dengan buku/Excel PKK</div></div>
+<div><b>4. Cetak</b>Format sama dengan lembar format dari Kelurahan</div></div>
 <table><tr><th style="width:34%">Yang dilakukan sistem secara otomatis</th><th>Penjelasan sederhana</th></tr>
 <tr><td>Menghitung umur</td><td>Dari tanggal lahir dan tanggal laporan, umur setiap warga dihitung sendiri (tidak diketik).</td></tr>
 <tr><td>Mengelompokkan warga</td><td>Balita, WUS (wanita 15–49 th), PUS, lansia, dan kelompok umur ditentukan otomatis dari umur, jenis kelamin dan status kawin.</td></tr>
 <tr><td>Menghubungkan warga ke keluarga &amp; dasawisma</td><td>Setiap warga tercatat di satu keluarga dan satu dasawisma, sehingga bisa dijumlah per kelompok.</td></tr>
-<tr><td>Membuat rekap</td><td>Jumlah per dasawisma dan total RT dijumlahkan sendiri, seperti rumus di Excel, tetapi tanpa salah ketik.</td></tr>
+<tr><td>Membuat rekap</td><td>Jumlah per dasawisma dan total RT dijumlahkan sendiri, seperti rumus pada format dari Kelurahan, tetapi tanpa salah ketik.</td></tr>
 <tr><td>Mencatat status ibu per bulan</td><td>Hamil, melahirkan, nifas, menyusui tersimpan per bulan, sehingga laporan bulanan maupun beberapa bulan bisa dibuat.</td></tr>
 <tr><td>Menyimpan &amp; mengamankan</td><td>Data tersimpan di server, ada riwayat perubahan, data terhapus bisa dipulihkan, dan hanya akun berhak yang dapat mengubah.</td></tr></table>
 <div class="bab">Cara Membuat &amp; Mengisi Data sampai Rekapitulasi</div>
