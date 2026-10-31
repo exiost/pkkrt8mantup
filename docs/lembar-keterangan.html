@@ -35,6 +35,18 @@ footer{margin-top:12px;font-size:11.5px;color:var(--abu);text-align:center;borde
 .alat{position:fixed;right:16px;bottom:16px;display:flex;gap:8px;z-index:9}
 .alat button{padding:10px 14px;border:0;border-radius:10px;background:var(--ungu);color:#fff;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(109,40,217,.35)}
 .mengedit .wrap{outline:3px dashed #f59e0b;outline-offset:6px}
+.mengedit .wrap img{cursor:crosshair;outline:2px solid transparent}
+.mengedit .wrap img:hover{outline:3px solid #f59e0b}
+#potong{position:fixed;inset:0;z-index:50;background:rgba(15,23,42,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px}
+#potong .area{position:relative;max-width:92vw;max-height:78vh;user-select:none}
+#potong .area img{display:block;max-width:92vw;max-height:78vh;border:0;border-radius:0}
+#potong .kotak{position:absolute;border:2px dashed #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.5);pointer-events:none}
+#potong .bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#potong .bar button{padding:9px 14px;border:0;border-radius:10px;font-weight:700;cursor:pointer;background:#fff;color:#1e293b}
+#potong .bar .ok{background:#6d28d9;color:#fff} #potong .bar .hapus{background:#ef4444;color:#fff}
+#potong .info{color:#fff;font-size:13px}
+@media print{#potong{display:none}}
+
 @media print{.alat{display:none}}
 </style></head><body class="">
 <div class="alat">
@@ -44,7 +56,39 @@ footer{margin-top:12px;font-size:11.5px;color:var(--abu);text-align:center;borde
 </div>
 <script>
 function ubahMode(){var w=document.querySelector('.wrap');var on=w.isContentEditable;w.contentEditable=on?'false':'true';document.body.classList.toggle('mengedit',!on);document.getElementById('bEdit').textContent=on?'✏️ Edit teks':'✅ Selesai edit'}
-function unduh(){var w=document.querySelector('.wrap');var on=w.isContentEditable;if(on)ubahMode();var h='<!doctype html>\n'+document.documentElement.outerHTML;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='lembar-keterangan.html';a.click();if(on)ubahMode()}
+// ===== potong (crop) gambar: saat mode edit, klik gambar =====
+document.addEventListener('click',function(e){
+  var im=e.target;if(im.tagName!=='IMG'||!document.body.classList.contains('mengedit')||!im.closest('.wrap'))return;
+  e.preventDefault();bukaPotong(im)
+},true);
+function bukaPotong(asli){
+  var ov=document.createElement('div');ov.id='potong';
+  ov.innerHTML='<div class="info">Tarik (seret) kotak pada bagian gambar yang ingin <b>disimpan</b>.</div><div class="area"><img><div class="kotak" style="display:none"></div></div><div class="bar"><button class="ok">✂️ Potong</button><button class="hapus">🗑️ Hapus gambar</button><button class="batal">Batal</button></div>';
+  document.body.appendChild(ov);
+  var area=ov.querySelector('.area'),img=area.querySelector('img'),k=area.querySelector('.kotak'),sel=null,mulai=null;
+  img.src=asli.src;img.draggable=false;
+  function pos(ev){var r=img.getBoundingClientRect();var t=ev.touches?ev.touches[0]:ev;return{x:Math.max(0,Math.min(r.width,t.clientX-r.left)),y:Math.max(0,Math.min(r.height,t.clientY-r.top))}}
+  function gambar(){if(!sel)return;k.style.display='block';k.style.left=sel.x+'px';k.style.top=sel.y+'px';k.style.width=sel.w+'px';k.style.height=sel.h+'px'}
+  function turun(ev){ev.preventDefault();mulai=pos(ev);sel={x:mulai.x,y:mulai.y,w:0,h:0};gambar()}
+  function gerak(ev){if(!mulai)return;ev.preventDefault();var p=pos(ev);sel={x:Math.min(p.x,mulai.x),y:Math.min(p.y,mulai.y),w:Math.abs(p.x-mulai.x),h:Math.abs(p.y-mulai.y)};gambar()}
+  function naik(){mulai=null}
+  area.addEventListener('mousedown',turun);area.addEventListener('touchstart',turun,{passive:false});
+  window.addEventListener('mousemove',gerak);window.addEventListener('touchmove',gerak,{passive:false});
+  window.addEventListener('mouseup',naik);window.addEventListener('touchend',naik);
+  function tutup(){window.removeEventListener('mousemove',gerak);window.removeEventListener('touchmove',gerak);window.removeEventListener('mouseup',naik);window.removeEventListener('touchend',naik);ov.remove()}
+  ov.querySelector('.batal').onclick=tutup;
+  ov.querySelector('.hapus').onclick=function(){if(confirm('Hapus gambar ini dari lembar?')){asli.remove();tutup()}};
+  ov.querySelector('.ok').onclick=function(){
+    if(!sel||sel.w<10||sel.h<10){alert('Seret dulu kotak pada bagian gambar yang ingin disimpan.');return}
+    var sk=img.naturalWidth/img.getBoundingClientRect().width;
+    var c=document.createElement('canvas');c.width=Math.round(sel.w*sk);c.height=Math.round(sel.h*sk);
+    c.getContext('2d').drawImage(img,sel.x*sk,sel.y*sk,c.width,c.height,0,0,c.width,c.height);
+    asli.src=c.toDataURL('image/jpeg',0.85);
+    if(c.width<600){asli.style.width='auto';asli.style.maxWidth='100%';asli.style.margin='0 auto'}
+    tutup()
+  };
+}
+function unduh(){var pp=document.getElementById('potong');if(pp)pp.remove();var w=document.querySelector('.wrap');var on=w.isContentEditable;if(on)ubahMode();var h='<!doctype html>\n'+document.documentElement.outerHTML;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([h],{type:'text/html'}));a.download='lembar-keterangan.html';a.click();if(on)ubahMode()}
 </script><div class="wrap" contenteditable="false">
 <p>Lembar ini menjelaskan cara Kelompok PKK RT 08 membuat, mengisi, dan mengolah data warga sampai menjadi rekapitulasi. Mohon dibaca sebelum membuka <b>Form Data RT 08 Tahun 2026</b>.</p>
 
