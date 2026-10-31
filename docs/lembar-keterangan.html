@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lembar Keterangan Pendataan PKK RT 08</title>
+<style>
+  :root { --ungu: #6d28d9; --pink: #db2777; --teks: #1e293b; --abu: #64748b; --garis: #e2e8f0; --lembut: #f5f3ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #eef2f7; color: var(--teks); font: 14px/1.55 "Segoe UI", Arial, sans-serif; }
+  .lembar { width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff; padding: 16mm 16mm 14mm; box-shadow: 0 6px 24px rgba(15,23,42,.12); }
+  header { text-align: center; border-bottom: 3px double var(--ungu); padding-bottom: 10px; margin-bottom: 14px; }
+  header .kecil { font-size: 12px; letter-spacing: .08em; color: var(--abu); text-transform: uppercase; }
+  h1 { margin: 4px 0 2px; font-size: 22px; color: var(--ungu); letter-spacing: .02em; }
+  header .sub { font-weight: 600; }
+  h2 { font-size: 15px; margin: 16px 0 6px; color: var(--ungu); display: flex; align-items: center; gap: 8px; }
+  h2 .no { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ungu); color: #fff; font-size: 12px; }
+  p { margin: 4px 0; }
+  .link { margin: 10px 0 4px; padding: 10px 14px; border: 2px solid var(--ungu); border-radius: 10px; background: var(--lembut); display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; }
+  .link b { font-size: 17px; color: var(--pink); word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+  th, td { border: 1px solid var(--garis); padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--lembut); color: var(--ungu); }
+  .alur { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px; }
+  .alur div { border: 1px solid var(--garis); border-top: 4px solid var(--ungu); border-radius: 8px; padding: 7px 6px; font-size: 12px; text-align: center; background: #fff; }
+  .alur div b { display: block; color: var(--ungu); font-size: 12.5px; margin-bottom: 2px; }
+  .alur div:nth-child(even) { border-top-color: var(--pink); }
+  ol, ul { margin: 4px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  .catatan { margin-top: 12px; padding: 8px 12px; border-left: 4px solid var(--pink); background: #fdf2f8; font-size: 13px; }
+  footer { margin-top: 14px; font-size: 11.5px; color: var(--abu); text-align: center; border-top: 1px solid var(--garis); padding-top: 6px; }
+  .tombol { position: fixed; right: 16px; bottom: 16px; padding: 10px 16px; border: 0; border-radius: 10px; background: var(--ungu); color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(109,40,217,.35); }
+  @media (max-width: 820px) { .lembar { width: auto; min-height: 0; margin: 0; padding: 16px; } .alur { grid-template-columns: repeat(2, 1fr); } }
+  @page { size: A4; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .lembar { margin: 0; box-shadow: none; width: 210mm; min-height: 0; }
+    .tombol { display: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<button class="tombol" onclick="window.print()">🖨️ Cetak</button>
+<div class="lembar">
+  <header>
+    <div class="kecil">Lembar Keterangan</div>
+    <h1>SISTEM PENDATAAN WARGA KELOMPOK PKK RT 08</h1>
+    <div class="sub">Padukuhan Mantup, Kalurahan Baturetno, Kapanewon Banguntapan, Bantul — Tahun 2026</div>
+  </header>
+
+  <p>Lembar ini menjelaskan cara Kelompok PKK RT 08 membuat, mengisi, dan mengolah data warga sampai menjadi rekapitulasi. Mohon dibaca sebelum membuka <b>Form Data RT 08 Tahun 2026</b>.</p>
+
+  <h2><span class="no">1</span> Alamat (Link) Aplikasi</h2>
+  <div class="link">Buka di HP / laptop: <b>https://mantup.biz.id/data-warga/</b></div>
+  <p>Masuk memakai akun yang diberikan pengurus. Akun <b>Penilai/Viewer</b> hanya dapat <i>melihat dan mencetak laporan</i>, tidak dapat mengubah data.</p>
+
+  <h2><span class="no">2</span> Data Diolah Memakai Apa?</h2>
+  <table>
+    <tr><th style="width:30%">Bagian</th><th>Keterangan</th></tr>
+    <tr><td>Aplikasi</td><td><b>SIWARGA PKK</b> — aplikasi web buatan RT 08, dapat dibuka dari HP maupun komputer tanpa memasang aplikasi.</td></tr>
+    <tr><td>Penyimpanan data</td><td>Database di server hosting (internet), satu data yang sama untuk semua pengurus. Dicadangkan berkala.</td></tr>
+    <tr><td>Dasar format</td><td>Mengikuti <b>format buku/Excel Dasawisma PKK</b> yang sudah dipakai (Data Warga TP PKK, Data Keluarga, Catatan Keluarga, Rekap, dll.).</td></tr>
+    <tr><td>Hasil</td><td>Laporan dapat <b>dicetak / disimpan PDF</b> dan <b>diunduh Excel</b>, tampilan sama dengan lembar Excel.</td></tr>
+    <tr><td>Hak akses</td><td><b>Admin</b> (mengatur semua), <b>Editor</b> (kader pengisi data), <b>Viewer</b> (hanya lihat laporan).</td></tr>
+  </table>
+
+  <h2><span class="no">3</span> Alur Kerja Singkat</h2>
+  <div class="alur">
+    <div><b>1. Pendataan</b>Kader dasawisma mendata tiap rumah</div>
+    <div><b>2. Input</b>Data diketik ke aplikasi</div>
+    <div><b>3. Cek otomatis</b>Umur, WUS, PUS, balita, lansia dihitung sendiri</div>
+    <div><b>4. Rekap Dasawisma</b>Per kelompok dasawisma</div>
+    <div><b>5. Rekap RT</b>Gabungan seluruh dasawisma</div>
+    <div><b>6. Cetak / PDF</b>Laporan siap diserahkan</div>
+  </div>
+
+  <h2><span class="no">4</span> Cara Membuat &amp; Mengisi Data</h2>
+  <ol>
+    <li><b>Data Warga</b> — isi biodata tiap warga (NIK, nama, tanggal lahir, pendidikan, pekerjaan, status dalam keluarga, dasawisma, ikut kegiatan PKK).</li>
+    <li><b>Keluarga (KK)</b> — anggota dikelompokkan per keluarga; isi kondisi rumah (sumber air, jamban, tempat sampah, makanan pokok, kriteria rumah).</li>
+    <li><b>Ibu &amp; Anak, KB</b> — status ibu (hamil, melahirkan, nifas, menyusui) dengan <b>catatan per bulan</b>, data kelahiran, kematian, peserta KB baru, PUS baru.</li>
+    <li><b>Pekarangan &amp; IRT</b> — pemanfaatan tanah pekarangan (HATINYA PKK) dan industri rumah tangga.</li>
+    <li>Setiap perubahan tersimpan otomatis dan tercatat di <b>Riwayat Perubahan</b>; data terhapus masuk <b>Tempat Sampah</b> dan bisa dipulihkan.</li>
+  </ol>
+
+  <h2><span class="no">5</span> Sampai Rekapitulasi</h2>
+  <p>Buka menu <b>Laporan &amp; Cetak</b>, lalu pilih:</p>
+  <ul>
+    <li><b>Dasawisma:</b> Data Warga TP PKK, Data Keluarga, Catatan Keluarga, Catatan Ibu Hamil, Kelahiran &amp; Kematian, Rekap Catatan Data &amp; Kegiatan (Dasawisma), Pemanfaatan Tanah Pekarangan &amp; IRT.</li>
+    <li><b>RT:</b> Rekapitulasi Data Ibu Hamil, Melahirkan, Nifas dan Rekap Catatan Data &amp; Kegiatan (RT).</li>
+    <li>Lainnya: Data Penduduk 15–59 Tahun, Inventarisasi Kampung KB, Data WUS, Data PUS, Register Kelahiran &amp; Kematian.</li>
+  </ul>
+  <p>Pilih bulan/tahun (atau rentang bulan), lalu tekan <b>Cetak / PDF</b> atau <b>Excel</b>. Angka pada rekap dapat diklik untuk melihat daftar nama warganya, sehingga mudah dicocokkan.</p>
+
+  <div class="catatan"><b>Catatan untuk Juri:</b> semua angka rekap berasal langsung dari data warga yang diisi kader, sehingga data dasawisma dan rekap RT selalu sama dan terbaru. Periode laporan untuk akun penilai sudah diatur oleh admin.</div>
+
+  <footer>Kelompok PKK RT 08 Mantup · Lembar Keterangan Pendataan Tahun 2026</footer>
+</div>
+</body>
+</html>
