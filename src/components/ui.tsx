@@ -92,11 +92,11 @@ export function PageHeader({ title, subtitle, icon: I, color = 'violet', actions
         <motion.div initial={{ rotate: -12, scale: 0.6 }} animate={{ rotate: 0, scale: 1 }} className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/20 shadow-inner ring-1 ring-white/40 backdrop-blur">
           <I size={24} />
         </motion.div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-[calc(100%-3.75rem)] sm:basis-auto">
           <h1 className="font-display text-xl font-extrabold tracking-tight drop-shadow-sm sm:text-2xl">{title}</h1>
           {subtitle && <p className="text-sm text-white/85">{subtitle}</p>}
         </div>
-        {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+        {actions && <div className="flex w-full flex-wrap gap-2 sm:w-auto">{actions}</div>}
       </div>
     </div>
   )

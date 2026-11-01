@@ -196,13 +196,14 @@ function Header({ title, lines, def }: { title: string; lines: string[]; def: Re
   )
 }
 
-function Generic({ page, def, top, hideInfo }: { page: PageSpec; def: ReportDef; top?: ReactNode; hideInfo?: boolean }) {
+function Generic({ page, def, top, bottom, hideInfo }: { page: PageSpec; def: ReportDef; top?: ReactNode; bottom?: ReactNode; hideInfo?: boolean }) {
   const { blocks, title, infoRows, notes } = useMemo(() => analyse(page.tplId, page), [page])
   return (
     <div className="space-y-4">
       <Header title={title} lines={hideInfo ? [] : infoRows} def={def} />
       {top}
       {blocks.map((b) => <RegionTable key={b.regionId} b={b} rows={page.regions?.[b.regionId] ?? []} tplId={page.tplId} />)}
+      {bottom}
       {notes.length > 0 && <div className="flex items-start gap-2 rounded-xl bg-slate-100 p-3 text-xs text-slate-500 dark:bg-white/5"><Info size={14} className="mt-0.5 shrink-0" /><div>{notes.map((n, i) => <div key={i}>{n}</div>)}</div></div>}
     </div>
   )
@@ -333,6 +334,8 @@ function DataKeluargaWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
           {stat('Anggota', f.ang.length, 'bg-indigo-50 text-indigo-700', Users)}{stat('Laki-laki', n('G10'), 'bg-sky-50 text-sky-700', UserRound)}{stat('Perempuan', n('G12'), 'bg-pink-50 text-pink-700', PersonStanding)}
           {stat('KK', n('E13'), 'bg-amber-50 text-amber-700', IdCard)}{stat('Balita', n('G14'), 'bg-yellow-50 text-yellow-700', Baby)}{stat('PUS', n('J14'), 'bg-rose-50 text-rose-700', HeartHandshake)}{stat('WUS', n('M14'), 'bg-fuchsia-50 text-fuchsia-700', Flower2)}{stat('Lansia', n('O16'), 'bg-orange-50 text-orange-700', Armchair)}
         </div>
+      </div>
+    } bottom={
         <Card className="p-4">
           <div className="grid gap-x-6 sm:grid-cols-2">
             <Field k="Kepala rumah tangga" i={Crown}>{f.kepala?.nama}</Field><Field k="Dasa wisma" i={Home}>{f.kepala?.dasawisma}</Field>
@@ -343,7 +346,6 @@ function DataKeluargaWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
             <Field k="UP2K" i={HandCoins}><YT v={f.kepala?.up2k ?? ''} /> {f.kepala?.jenisUp2k}</Field><Field k="Usaha kesehatan lingkungan" i={Leaf}><YT v={f.kepala?.jumantik ?? ''} /></Field>
           </div>
         </Card>
-      </div>
     } />
   )
 }

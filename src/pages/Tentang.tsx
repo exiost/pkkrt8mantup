@@ -31,7 +31,7 @@ export default function Tentang() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-fuchsia-600 text-white shadow-lg"><UserRound size={28} /></div>
           <div className="min-w-0">
-            <div className="text-xs font-semibold uppercase tracking-widest text-fuchsia-600 dark:text-fuchsia-300">Digagas &amp; dibuat oleh</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-fuchsia-600 dark:text-fuchsia-300">Created by</div>
             <div className="font-display text-xl font-extrabold text-slate-900 dark:text-white">Etri Restu Lestari</div>
             <p className="text-sm text-slate-500 dark:text-slate-400">Untuk Kelompok PKK RT 08 Mantup, agar pendataan warga dan rekapitulasi lebih mudah, rapi, dan cepat.</p>
           </div>
