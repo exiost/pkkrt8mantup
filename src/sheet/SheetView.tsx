@@ -178,7 +178,8 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
     if (!t) return
     const run = () => {
       const tds = Array.from(t.querySelectorAll<HTMLTableCellElement>('td[data-nw]'))
-      tds.forEach((td) => { td.style.removeProperty('font-size') })
+      // kembalikan ukuran asli (dari gaya sel) sebelum mengukur ulang
+      tds.forEach((td) => { if (td.dataset.fs === undefined) td.dataset.fs = td.style.fontSize; td.style.fontSize = td.dataset.fs })
       const fix: [HTMLTableCellElement, number][] = []
       for (const td of tds) {
         if (td.clientWidth > 0 && td.scrollWidth > td.clientWidth) {
