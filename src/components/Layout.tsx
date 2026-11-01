@@ -30,14 +30,14 @@ export const usePeran = (): Peran => useSession((s) => (s.server ? s.user?.role 
 /** Menu yang boleh dibuka: viewer hanya Laporan, Beranda khusus admin */
 export const menuBoleh = (peran: Peran) => NAV.filter((n) => (peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
 
-function SyncBadge() {
+function SyncBadge({ compact }: { compact?: boolean }) {
   const { server, sync, pending, user } = useSession()
   if (!server) return null
   const bad = sync === 'error'
   return (
     <span title={bad ? 'Belum tersimpan ke server, mencoba lagi…' : 'Terhubung ke server'} className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${bad ? 'bg-red-50 text-red-600' : sync === 'saving' || pending ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
       {bad ? <CloudOff size={12} /> : <Cloud size={12} />}
-      {bad ? 'Gagal simpan' : sync === 'saving' || pending ? 'Menyimpan…' : user?.name ?? 'Tersimpan'}
+      <span className={compact ? 'hidden' : 'max-w-[9rem] truncate'}>{bad ? 'Gagal simpan' : sync === 'saving' || pending ? 'Menyimpan…' : user?.name ?? 'Tersimpan'}</span>
     </span>
   )
 }
@@ -59,8 +59,8 @@ function Brand() {
     <div className="flex items-center gap-3 px-2">
       <img src="./icon.svg" alt="" className="floaty h-10 w-10 rounded-xl shadow-lg shadow-violet-500/40 ring-2 ring-white dark:ring-slate-800" />
       <div className="leading-tight">
-        <div className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text font-display text-base font-extrabold text-transparent">SIWARGA PKK</div>
-        <div className="text-[11px] font-medium text-slate-500">RT 08 · Mantup</div>
+        <div className="whitespace-nowrap bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text font-display text-base font-extrabold text-transparent">SIWARGA PKK</div>
+        <div className="whitespace-nowrap text-[11px] font-medium text-slate-500">RT 08 · Mantup</div>
       </div>
     </div>
   )
@@ -192,8 +192,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Header mobile */}
       <header className="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-slate-200/70 bg-white/80 px-4 py-2.5 backdrop-blur dark:border-white/10 dark:bg-slate-900/80 lg:hidden">
         <button onClick={() => setDrawer(true)} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Menu"><Menu size={20} /></button>
-        <div className="flex-1"><Brand /></div>
-        <SyncBadge />
+        <div className="min-w-0 flex-1"><Brand /></div>
+        <SyncBadge compact />
         <button onClick={() => setPalette(true)} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Cari"><Search size={20} /></button>
         <button onClick={() => setUi({ dark: !dark })} className="grid h-9 w-9 place-items-center rounded-xl hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Tema">{dark ? <Sun size={20} /> : <Moon size={20} />}</button>
       </header>

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { House, Plus, Pencil, Trash2, Users, Droplets, Crown } from 'lucide-react'
 import { useLive, useStore } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
-import { Button, Card, Chip, Empty, IconBtn, PageHeader, SearchBox, Select, useConfirm } from '@/components/ui'
+import { Button, Card, Chip, Empty, IconBtn, PageHeader, SearchBox, Select, useConfirm, Avatar } from '@/components/ui'
 import { isKepala } from '@/lib/rules'
 import { hapusKeluargaDenganAnggota } from '@/lib/crud'
 
@@ -46,9 +46,9 @@ export default function KeluargaPage() {
             const L = ang.filter((w) => w.jk === 'L').length
             return (
               <motion.div key={k.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 15) * 0.025 }} whileHover={{ y: -3 }}>
-                <Card tone="amber" className="cursor-pointer p-4" onClick={() => nav(`/keluarga/${k.id}`)}>
+                <Card tone={dasawisma.find((d) => d.nama === kepala?.dasawisma)?.warna ?? 'amber'} className="cursor-pointer p-4" onClick={() => nav(`/keluarga/${k.id}`)}>
                   <div className="flex items-start gap-3">
-                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 font-display text-lg font-extrabold text-white shadow">{k.nomor}</div>
+                    <div className="relative shrink-0">{kepala ? <Avatar nama={kepala.nama} jk={kepala.jk} /> : <div className="grid h-10 w-10 place-items-center rounded-full bg-slate-200 text-slate-500"><House size={18} /></div>}<span className="absolute -bottom-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 px-1 text-[10px] font-extrabold text-white shadow ring-2 ring-white dark:ring-slate-900">{k.nomor}</span></div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1 truncate font-semibold text-slate-900 dark:text-white">{kepala ? <><Crown size={14} className="shrink-0 text-amber-500" />{kepala.nama}</> : <span className="text-red-500">Belum ada anggota</span>}</div>
                       <div className="truncate text-xs text-slate-400">{kks.length ? `${kks.length} No KK` : 'tanpa No KK'}</div>
@@ -60,6 +60,7 @@ export default function KeluargaPage() {
                       }} />
                     </div>
                   </div>
+                  {ang.length > 0 && <div className="mt-3 flex -space-x-2">{ang.slice(0, 7).map((w) => <span key={w.id} title={`${w.nama} · ${w.statusKeluarga}`} className={`grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900 ${w.jk === 'P' ? 'from-pink-400 to-fuchsia-500' : 'from-sky-400 to-indigo-500'}`}>{w.nama.split(/\s+/).slice(0, 2).map((x) => x[0]).join('').toUpperCase()}</span>)}{ang.length > 7 && <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 ring-2 ring-white dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-900">+{ang.length - 7}</span>}</div>}
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <Chip color={dasawisma.find((d) => d.nama === kepala?.dasawisma)?.warna ?? 'slate'} icon={Users}>{kepala?.dasawisma || '—'}</Chip>
                     <Chip color="indigo">{ang.length} jiwa · {L}L / {ang.length - L}P</Chip>

@@ -4,21 +4,14 @@ import { ArrowLeft, Pencil, Trash2, Eye, EyeOff, IdCard, House, Users, HeartPuls
 import { useState, type ReactNode } from 'react'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
-import { Avatar, Button, Card, Empty, Section, useConfirm, Chip } from '@/components/ui'
+import { Avatar, Button, Card, Empty, Section, useConfirm, Chip, InfoRow } from '@/components/ui'
 import { TagList } from '@/lib/tags'
 import { hitungUmur, statusIbu } from '@/lib/rules'
 import { maskNIK, tglIndo, todayISO, yt } from '@/lib/format'
 import { anggotaKeluarga, keluargaOf } from '@/lib/rules'
 import { hapusDenganUndo } from '@/lib/crud'
 
-function KV({ k, v }: { k: string; v: ReactNode }) {
-  return (
-    <div className="flex justify-between gap-3 border-b border-dashed border-slate-100 py-1.5 text-sm last:border-0 dark:border-white/5">
-      <span className="text-slate-500">{k}</span>
-      <span className="text-right font-medium text-slate-800 dark:text-slate-100">{v || <span className="text-slate-300">—</span>}</span>
-    </div>
-  )
-}
+const KV = ({ k, v }: { k: string; v: ReactNode }) => <InfoRow k={k} v={v} />
 
 export default function WargaDetail() {
   const { id } = useParams()

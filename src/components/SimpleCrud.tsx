@@ -6,7 +6,7 @@ import { useStore, useLive } from '@/lib/store'
 import type { CollectionName, Collections } from '@/lib/types'
 import { hapusDenganUndo, rayakan } from '@/lib/crud'
 import { tglPendek } from '@/lib/format'
-import { Button, Card, Empty, Field, IconBtn, Input, Modal, SearchBox, Select, Toggle, useConfirm, Chip } from './ui'
+import { Button, Card, Empty, Field, IconBtn, Input, Modal, SearchBox, Select, Toggle, useConfirm, Chip, ThLabel } from './ui'
 
 export interface FieldDef {
   key: string
@@ -53,17 +53,17 @@ export default function SimpleCrud<K extends CollectionName>({
         <div className="flex-1"><SearchBox value={q} onChange={setQ} placeholder={`Cari ${title.toLowerCase()}…`} /></div>
         <Button icon={Plus} onClick={() => setEdit('new')}>Tambah {title}</Button>
       </div>
-      <Card className="overflow-hidden">
+      <Card tone={color} shine={false} className="overflow-hidden">
         {list.length === 0 ? (
           <Empty title={`Belum ada data ${title.toLowerCase()}`} icon={icon} action={<Button icon={Plus} onClick={() => setEdit('new')}>Tambah</Button>} />
         ) : (
           <div className="overflow-x-auto">
             <table className="dt">
-              <thead><tr><th>No</th>{cols.map((c) => <th key={c.key}>{c.label}</th>)}<th className="text-right">Aksi</th></tr></thead>
+              <thead><tr><th className="w-px">No</th>{cols.map((c) => <th key={c.key}><ThLabel label={c.label} /></th>)}<th className="text-right">Aksi</th></tr></thead>
               <tbody>
                 {list.map((r, i) => (
                   <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}>
-                    <td className="tabular text-slate-400">{i + 1}</td>
+                    <td className="w-px tabular text-slate-400">{i + 1}</td>
                     {cols.map((c) => (
                       <td key={c.key}>
                         {c.render ? c.render(r[c.key], r) : c.type === 'bool' ? (r[c.key] ? <Chip color="emerald">Ya</Chip> : <Chip>Tidak</Chip>) : c.type === 'date' ? tglPendek(String(r[c.key] ?? '')) : c.type === 'jk' ? (r[c.key] === 'P' ? <Chip color="pink">P</Chip> : <Chip color="sky">L</Chip>) : c.type === 'color' ? <Chip color={String(r[c.key])}>{String(r[c.key])}</Chip> : String(r[c.key] ?? '')}

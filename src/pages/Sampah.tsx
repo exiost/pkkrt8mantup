@@ -33,10 +33,10 @@ export default function Sampah() {
           }
         }}>Kosongkan</Button>} />
       {items.length === 0 ? <Card><Empty title="Tempat Sampah kosong ✨" icon={Trash2} /></Card> : (
-        <Card className="divide-y divide-slate-100 dark:divide-white/5">
+        <Card tone="rose" shine={false} className="divide-y divide-slate-100 dark:divide-white/5">
           {items.map(({ c, r }) => (
             <div key={c.k + r.id} className="flex flex-wrap items-center gap-3 p-3">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-red-50 text-red-500 dark:bg-red-500/15"><c.icon size={16} /></div>
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-rose-400 to-red-500 text-white shadow"><c.icon size={17} /></div>
               <div className="min-w-0 flex-1"><div className="truncate font-semibold">{c.name(r)}</div><div className="text-xs text-slate-500">Dihapus {new Date(String(r.deletedAt)).toLocaleString('id-ID')}</div></div>
               <Chip>{c.label}</Chip>
               <Button size="sm" variant="soft" icon={RotateCcw} onClick={() => {

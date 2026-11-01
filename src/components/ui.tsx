@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { X, Search, Inbox, type LucideIcon } from 'lucide-react'
+import { labelIcon } from '@/lib/labelIcon'
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 
 /* ---------- palet warna (kelas statis agar terbaca Tailwind) ---------- */
@@ -214,7 +215,7 @@ const inputCls = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 t
 export function Field({ label, children, hint, error, className = '' }: { label: string; children: ReactNode; hint?: string; error?: string; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-semibold text-slate-600 dark:text-slate-300">{label}</span>
+      <span className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">{(() => { const I = labelIcon(label); return I ? <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-600 dark:from-violet-500/20 dark:to-fuchsia-500/20 dark:text-violet-300"><I size={12} /></span> : null })()}{label}</span>
       {children}
       {error ? <span className="mt-1 block text-xs font-medium text-red-600">{error}</span> : hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
     </label>
@@ -338,4 +339,21 @@ export function Section({ title, icon: I, color = 'violet', children, actions }:
       {children}
     </Card>
   )
+}
+
+/** Baris info "label : nilai" dengan ikon otomatis */
+export function InfoRow({ k, v }: { k: string; v: ReactNode }) {
+  const I = labelIcon(k)
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-dashed border-slate-100 py-1.5 text-sm last:border-0 dark:border-white/5">
+      <span className="flex min-w-0 items-center gap-2 text-slate-500">{I && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-600 dark:from-violet-500/20 dark:to-fuchsia-500/20 dark:text-violet-300"><I size={14} /></span>}{k}</span>
+      <span className="text-right font-medium text-slate-800 dark:text-slate-100">{v || <span className="text-slate-300">—</span>}</span>
+    </div>
+  )
+}
+
+/** Judul kolom tabel dengan ikon otomatis */
+export function ThLabel({ label }: { label: string }) {
+  const I = labelIcon(label)
+  return <span className="inline-flex items-center gap-1">{I && <I size={12} />}{label}</span>
 }

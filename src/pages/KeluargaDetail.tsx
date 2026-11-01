@@ -3,7 +3,7 @@ import { ArrowLeft, House, Pencil, UserPlus, ArrowUp, LogOut, Printer, Crown, Ar
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useEditor } from '@/components/EditorHost'
-import { Avatar, Button, Card, Chip, Empty, IconBtn, PageHeader, Section, useConfirm } from '@/components/ui'
+import { Avatar, Button, Card, Chip, Empty, IconBtn, PageHeader, Section, useConfirm, InfoRow } from '@/components/ui'
 import { hitungUmur, isBalita, isKepala, isLansia, isPUS, isWUS, anggotaKeluarga } from '@/lib/rules'
 import { todayISO } from '@/lib/format'
 
@@ -96,7 +96,7 @@ export default function KeluargaDetail() {
             ['Sumber Air', k.sumberAir], ['Makanan Pokok', k.makananPokok], ['Kriteria Rumah', k.kriteriaRumah], ['Rumah Sehat', k.rumahSehat],
             ['Kamar mandi / MCK', k.kamarMandi], ['WC / jamban', k.jumlahWC], ['SPAL', k.spal], ['Tempat Sampah', k.tps],
           ] as const).map(([a, b]) => (
-            <div key={a} className="flex justify-between border-b border-dashed border-slate-100 py-1.5 text-sm last:border-0 dark:border-white/5"><span className="text-slate-500">{a}</span><span className="font-medium">{b || '—'}</span></div>
+            <InfoRow key={a} k={a} v={b} />
           ))}
         </Section>
       </div>
