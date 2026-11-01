@@ -37,7 +37,7 @@ export default function WargaDetail() {
         <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10" />
         <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-white/10" />
         <div className="relative flex flex-wrap items-center gap-4">
-          <div className="scale-150 p-3"><Avatar nama={w.nama} jk={w.jk} /></div>
+          <div className="shrink-0 scale-125 p-2 sm:scale-150 sm:p-3"><Avatar nama={w.nama} jk={w.jk} /></div>
           <div className="min-w-0 flex-1">
             <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{w.nama}</h1>
             <div className="mt-1 flex flex-wrap gap-3 text-sm text-white/85">
@@ -52,7 +52,7 @@ export default function WargaDetail() {
               <label className="flex items-center gap-2"><input type="checkbox" checked={w.statusWarga === 'Aktif'} onChange={() => useStore.getState().update('warga', w.id, { statusWarga: w.statusWarga === 'Aktif' ? 'Nonaktif' : 'Aktif' }, w.nama)} /> Aktif (nonaktif = tidak dihitung sama sekali)</label>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex w-full gap-2 sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button variant="outline" icon={Pencil} onClick={() => openWarga(w.id)}>Ubah</Button>
             <Button variant="danger" icon={Trash2} onClick={async () => {
               if (await confirm({ title: 'Hapus warga?', message: <>Pindahkan <b>{w.nama}</b> ke Tempat Sampah?</>, okText: 'Hapus', danger: true })) { hapusDenganUndo('warga', w.id, w.nama); nav('/warga') }
