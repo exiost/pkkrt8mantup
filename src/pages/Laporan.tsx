@@ -176,7 +176,7 @@ function ReportView({ slug }: { slug: string }) {
         <button onClick={() => nav('/laporan')} className="mb-2 flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-violet-600"><ArrowLeft size={16} /> Semua laporan</button>
         <div className="flex flex-wrap items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg"><def.icon size={22} /></div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-auto">
             <h1 className="font-display text-lg font-extrabold leading-tight sm:text-xl">{def.title}</h1>
             <p className="text-xs text-slate-500">Sama dengan sheet Excel: <i>{def.sheet}</i></p>
           </div>

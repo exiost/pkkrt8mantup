@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AkunServer from './AkunServer'
-import { Server as ServerIcon, Settings, MapPin, Users, Tags, ListChecks, Palette, Plus, Trash2, Pencil, Save, Check } from 'lucide-react'
+import Tentang from './Tentang'
+import { Server as ServerIcon, Settings, MapPin, Users, Tags, ListChecks, Palette, Plus, Trash2, Pencil, Save, Check, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore, useLive } from '@/lib/store'
 import { useUi } from '@/lib/ui'
@@ -9,7 +10,7 @@ import { Button, Card, Chip, Field, IconBtn, Input, PageHeader, Section, Segment
 import { PILIHAN_LABEL, WARNA } from '@/lib/options'
 import type { Settings as S } from '@/lib/types'
 
-type Tab = 'wilayah' | 'dasawisma' | 'tag' | 'pilihan' | 'tampilan' | 'akun'
+type Tab = 'wilayah' | 'dasawisma' | 'tag' | 'pilihan' | 'tampilan' | 'akun' | 'tentang'
 
 export default function Pengaturan() {
   const [tab, setTab] = useState<Tab>('wilayah')
@@ -24,6 +25,7 @@ export default function Pengaturan() {
           { value: 'pilihan', label: 'Daftar Pilihan', icon: ListChecks },
           { value: 'tampilan', label: 'Tampilan', icon: Palette },
           { value: 'akun', label: 'Akun & Server', icon: ServerIcon },
+          { value: 'tentang', label: 'Tentang', icon: Info },
         ]} />
       </div>
       {tab === 'wilayah' && <Wilayah />}
@@ -38,6 +40,7 @@ export default function Pengaturan() {
       {tab === 'pilihan' && <Pilihan />}
       {tab === 'tampilan' && <Tampilan />}
       {tab === 'akun' && <AkunServer />}
+      {tab === 'tentang' && <Tentang />}
     </div>
   )
 }

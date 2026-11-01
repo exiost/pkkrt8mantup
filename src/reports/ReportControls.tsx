@@ -32,8 +32,9 @@ function KunciBox({ p, uses }: { p: ReportParams; uses: Use[] }) {
   const k = st.settings.kunci
   const set = (aktif: boolean) => { st.setSettings({ kunci: { aktif, acuan: p.acuan, bulan: p.bulan, bulanSampai: p.bulanSampai ?? 11, tahun: p.tahun } }); toast.success(aktif ? 'Tanggal dikunci untuk viewer 🔒' : 'Kunci dibuka') }
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-amber-100">
-      {k?.aktif ? <Lock size={16} className="shrink-0 text-amber-600" /> : <LockOpen size={16} className="shrink-0 text-amber-600" />}
+    <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-amber-200 sm:flex-row sm:items-center bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-amber-100">
+      <div className="flex min-w-0 flex-1 items-start gap-2">
+      {k?.aktif ? <Lock size={16} className="mt-0.5 shrink-0 text-amber-600" /> : <LockOpen size={16} className="mt-0.5 shrink-0 text-amber-600" />}
       <div className="min-w-0 flex-1">
         {k?.aktif
           ? <>
@@ -46,8 +47,11 @@ function KunciBox({ p, uses }: { p: ReportParams; uses: Use[] }) {
             </>
           : <><b>Belum dikunci.</b> Atur {uses.includes('rentang') ? 'bulan' : uses.includes('bulan') ? 'bulan' : 'tanggal'} di atas, lalu kunci agar akun viewer memakai pengaturan ini.</>}
       </div>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">
       {k?.aktif && <Button size="sm" variant="outline" icon={RefreshCw} onClick={() => set(true)}>Pakai tanggal di atas</Button>}
       {k?.aktif ? <Button size="sm" variant="outline" icon={LockOpen} onClick={() => set(false)}>Buka kunci</Button> : <Button size="sm" icon={Lock} onClick={() => set(true)}>Kunci tanggal ini</Button>}
+      </div>
     </div>
   )
 }
@@ -56,7 +60,7 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
   const dws = useLive('dasawisma')
   const server = useSession((s) => s.server)
   const bertanggal = uses.includes('acuan') || uses.includes('bulan') || uses.includes('tahun') || uses.includes('rentang')
-  const sel = 'h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800'
+  const sel = 'h-10 w-full rounded-xl sm:w-auto border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800'
   const items = useMemo(() => {
     if (uses.includes('warga')) return ctx.aktif.filter((w) => !p.dawis || w.dasawisma === p.dawis).map((w) => ({ id: w.id, label: `${w.noReg}. ${w.nama}` }))
     if (uses.includes('htwarga')) return ctx.aktif.filter((w) => (w.pekarangan.length || w.irt.length) && (!p.dawis || w.dasawisma === p.dawis)).map((w) => ({ id: w.id, label: w.nama }))
@@ -70,22 +74,22 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
   return (
     <Card className="no-print mt-3 p-3">
       {viewer && bertanggal && <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200"><ShieldCheck size={14} /> Data periode terkunci oleh admin</div>}
-      <div className="flex flex-wrap items-end gap-3">
-        {!viewer && uses.includes('acuan') && <Field label="Tanggal acuan umur (atur manual)"><Input type="date" value={p.acuan} onChange={(e) => e.target.value && setP({ acuan: e.target.value })} /></Field>}
+      <div className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
+        {!viewer && uses.includes('acuan') && <Field label="Tanggal acuan umur (atur manual)" className="col-span-2 sm:col-span-1"><Input type="date" value={p.acuan} onChange={(e) => e.target.value && setP({ acuan: e.target.value })} /></Field>}
         {!viewer && uses.includes('bulan') && (
           <>
             <Field label="Bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
-            <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
+            <Field label="Tahun"><Input type="number" className="sm:!w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
           </>
         )}
         {!viewer && uses.includes('rentang') && (
           <>
             <Field label="Dari bulan"><select className={sel} value={p.bulan} onChange={(e) => setP({ bulan: +e.target.value, bulanSampai: Math.max(+e.target.value, p.bulanSampai ?? 11) })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
             <Field label="Sampai bulan"><select className={sel} value={p.bulanSampai ?? 11} onChange={(e) => setP({ bulanSampai: +e.target.value, bulan: Math.min(+e.target.value, p.bulan) })}>{BULAN.map((b, i) => <option key={b} value={i}>{b}</option>)}</select></Field>
-            <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
+            <Field label="Tahun"><Input type="number" className="sm:!w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>
           </>
         )}
-        {!viewer && uses.includes('tahun') && <Field label="Tahun"><Input type="number" className="w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>}
+        {!viewer && uses.includes('tahun') && <Field label="Tahun"><Input type="number" className="sm:!w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>}
         {(uses.includes('dawis') || uses.includes('dawisWajib')) && (
           <Field label="Dasawisma">
             <select className={sel} value={p.dawis} onChange={(e) => setP({ dawis: e.target.value, pick: '' })}>
@@ -95,7 +99,7 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
           </Field>
         )}
         {uses.includes('statusIbu') && (
-          <Field label="Tampilkan status">
+          <Field label="Tampilkan status" className="col-span-2 sm:col-span-1">
             <select className={sel} value={p.statusIbu ?? ''} onChange={(e) => setP({ statusIbu: e.target.value as ReportParams['statusIbu'] })}>
               <option value="">Semua (Hamil, Melahirkan, Nifas)</option>
               <option value="hamil">Hamil saja</option>
@@ -104,20 +108,21 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
             </select>
           </Field>
         )}
-        {uses.includes('semuaPeriode') && <div className="pb-2"><Toggle checked={p.semuaPeriode} onChange={(b) => setP({ semuaPeriode: b })} label="Semua periode" /></div>}
-        {uses.includes('barisKosong') && <div className="pb-2"><Toggle checked={o.barisKosong} onChange={(b) => setO({ barisKosong: b })} label="Baris kosong seperti Excel" /></div>}
-        {uses.includes('isiKosong') && <div className="pb-2"><Toggle checked={o.isiKosong} onChange={(b) => setO({ isiKosong: b })} label="Isi kotak yang di Excel kosong" /></div>}
+        {uses.includes('semuaPeriode') && <div className="col-span-2 pb-2"><Toggle checked={p.semuaPeriode} onChange={(b) => setP({ semuaPeriode: b })} label="Semua periode" /></div>}
+        {uses.includes('barisKosong') && <div className="col-span-2 pb-2"><Toggle checked={o.barisKosong} onChange={(b) => setO({ barisKosong: b })} label="Baris kosong seperti Excel" /></div>}
+        {uses.includes('isiKosong') && <div className="col-span-2 pb-2"><Toggle checked={o.isiKosong} onChange={(b) => setO({ isiKosong: b })} label="Isi kotak yang di Excel kosong" /></div>}
+        {picker && items.length > 0 && (
+          <div className="col-span-2 flex w-full flex-wrap items-center gap-2 rounded-2xl lg:w-auto lg:min-w-[560px] lg:flex-1 border border-violet-100 bg-violet-50/60 p-2 dark:border-white/10 dark:bg-white/5">
+            <Button size="sm" variant="outline" icon={ChevronLeft} disabled={p.semua || idx <= 0} onClick={() => go(-1)} aria-label="Sebelumnya">{''}</Button>
+            <select disabled={p.semua} value={items[idx]?.id} onChange={(e) => setP({ pick: e.target.value })} className={`${sel} order-first h-9 w-full min-w-0 sm:order-none sm:w-auto sm:min-w-[14rem] sm:flex-1`}>
+              {items.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
+            </select>
+            <Button size="sm" variant="outline" icon={ChevronRight} disabled={p.semua || idx >= items.length - 1} onClick={() => go(1)} aria-label="Berikutnya">{''}</Button>
+            <div className="ml-auto flex items-center gap-2 sm:ml-0"><Layers size={16} className="text-violet-500" /><Toggle checked={p.semua} onChange={(b) => setP({ semua: b })} label={`Cetak semua (${items.length})`} /></div>
+          </div>
+        )}
       </div>
-      {picker && items.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50/60 p-2 dark:border-white/10 dark:bg-white/5">
-          <Button size="sm" variant="outline" icon={ChevronLeft} disabled={p.semua || idx <= 0} onClick={() => go(-1)} aria-label="Sebelumnya">{''}</Button>
-          <select disabled={p.semua} value={items[idx]?.id} onChange={(e) => setP({ pick: e.target.value })} className={`${sel} h-9 min-w-0 flex-1`}>
-            {items.map((i) => <option key={i.id} value={i.id}>{i.label}</option>)}
-          </select>
-          <Button size="sm" variant="outline" icon={ChevronRight} disabled={p.semua || idx >= items.length - 1} onClick={() => go(1)} aria-label="Berikutnya">{''}</Button>
-          <div className="flex items-center gap-2"><Layers size={16} className="text-violet-500" /><Toggle checked={p.semua} onChange={(b) => setP({ semua: b })} label={`Cetak semua (${items.length})`} /></div>
-        </div>
-      )}
+
       {server && admin && bertanggal && <KunciBox p={p} uses={uses} />}
       {!viewer && <p className="mt-2 hidden text-[11px] text-slate-400 sm:block">💡 Klik <b>angka</b> untuk melihat daftar nama, klik <b>nama</b> untuk mengubah datanya.</p>}
     </Card>

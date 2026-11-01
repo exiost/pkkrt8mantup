@@ -1,6 +1,6 @@
 import { useContext, useMemo, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Info, Minus } from 'lucide-react'
+import { Check, Info, Minus, Armchair, Baby, Bath, BookOpen, BookOpenCheck, Briefcase, Building2, Cake, Crown, Droplets, Flower2, GraduationCap, HandCoins, Heart, HeartHandshake, HeartPulse, Home, House, IdCard, Leaf, Map as MapIcon, MapPin, PersonStanding, PiggyBank, School, ShieldCheck, Sparkles, Stethoscope, Store, Trash2, UserRound, Users, Waves, Wheat, type LucideIcon } from 'lucide-react'
 import { Card, Chip } from '@/components/ui'
 import { STYLES, TEMPLATES, colLetter, type CellObj, type Tpl, type Val } from '@/sheet/engine'
 import { SheetCtx } from '@/sheet/SheetView'
@@ -84,6 +84,12 @@ function analyse(tplId: string, page: PageSpec) {
       if (!t || isNum(t)) return
       if (t.length > 28 && (c.cs ?? 1) < 3) { if (i === 0 && !infoRows.includes(t)) infoRows.push(t); return }
       for (let k = c.c; k < c.c + (c.cs ?? 1); k++) { const a = labels.get(k) ?? []; if (!a.includes(t)) a.push(t); labels.set(k, a) }
+    }))
+    // kolom yang hanya bagian dari sel gabungan (mis. "NO REGISTRASI" selebar 3 kolom) tidak dibuat kolom sendiri
+    headerRows.forEach((r) => r.c.forEach((c) => {
+      if ((c.cs ?? 1) < 2 || !staticText(r, c)) return
+      const below = headerRows.filter((x) => x.r >= r.r)
+      for (let k = c.c + 1; k < c.c + (c.cs ?? 1); k++) if (!below.some((x) => x.c.some((y) => y.c === k))) labels.delete(k)
     }))
     const next = regs[i + 1]
     const after = rowsIn(reg.start + 1, next ? next.start - 1 : tpl.rows[tpl.rows.length - 1].r).filter((r) => r.r > reg.end)
@@ -231,7 +237,7 @@ function KampungKBWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
   return (
     <div className="space-y-5">
       <Header title="INVENTARISASI DATA KAMPUNG KB" lines={lines} def={def} />
-      <h3 className="font-display text-base font-bold text-slate-800 dark:text-white">I. Data Kependudukan</h3>
+      <h3 className="flex items-center gap-2 font-display text-base font-bold text-slate-800 dark:text-white"><span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow"><Users size={16} /></span>I. Data Kependudukan</h3>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Mini title="1. KK menurut jenis kelamin" head={['Jenis kelamin KK', 'Jumlah']} rows={rowsOf([['Laki-laki', 'C9'], ['Perempuan', 'C10'], ['JUMLAH', 'C11']])} />
         <Mini title="2. Penduduk menurut jenis kelamin" head={['Jenis kelamin', 'Jumlah']} rows={rowsOf([['Laki-laki', 'C15'], ['Perempuan', 'C16'], ['JUMLAH', 'C17']])} />
@@ -239,13 +245,13 @@ function KampungKBWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
         <Mini title="4. Jiwa menurut kelompok umur" head={['Kelompok umur', 'Jumlah']} rows={rowsOf([['1 - < 2 th', 'C30'], ['2 - < 5 th', 'C31'], ['5 - 6 th', 'C32'], ['7 - 14 th', 'C33'], ['15 - 24 th', 'C34'], ['25 - 49 th', 'C35'], ['50 - < 65 th', 'C36'], ['> 65 th', 'C37']])} />
         <Mini title="5. Penduduk menurut usia tertentu" head={['Kelompok', 'Jumlah']} rows={rowsOf([['Usia 18-56 th', 'C41'], ['Remaja putri 12-17 th', 'C42'], ['Perempuan 15-49 th', 'C43']])} />
       </div>
-      <h3 className="font-display text-base font-bold text-slate-800 dark:text-white">II. Data Keluarga Berencana</h3>
+      <h3 className="flex items-center gap-2 font-display text-base font-bold text-slate-800 dark:text-white"><span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow"><ShieldCheck size={16} /></span>II. Data Keluarga Berencana</h3>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Mini title="1. PUS menurut kelompok umur wanita" head={['Kelompok umur', 'Jumlah']} rows={rowsOf([['< 15 th', 'H9'], ['15 - 19 th', 'H10'], ['20 - 34 th', 'H11'], ['35 - 49 th', 'H12'], ['JUMLAH', 'H13']])} />
         <Mini title="2. Peserta KB per jenis kontrasepsi" head={['Kontrasepsi', 'Jumlah']} rows={rowsOf([['IUD', 'H17'], ['MOW', 'H18'], ['MOP', 'H19'], ['Implan', 'H20'], ['Suntik', 'H21'], ['Pil', 'H22'], ['Kondom', 'H23'], ['JUMLAH', 'H24']])} />
         <Mini title="3. PUS bukan peserta KB" head={['Uraian', 'Jumlah']} rows={rowsOf([['Hamil', 'H28'], ['Ingin anak segera', 'H29'], ['Ingin anak ditunda', 'H30'], ['Tidak ingin anak lagi', 'H31'], ['JUMLAH', 'H32']])} />
       </div>
-      <h3 className="font-display text-base font-bold text-slate-800 dark:text-white">III. Data Ketahanan Keluarga</h3>
+      <h3 className="flex items-center gap-2 font-display text-base font-bold text-slate-800 dark:text-white"><span className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow"><HeartHandshake size={16} /></span>III. Data Ketahanan Keluarga</h3>
       <div className="grid gap-3 md:grid-cols-2">
         <Mini title="1. Balita ikut Posyandu & BKB" head={['Umur', 'Jumlah', 'Posyandu ikut', 'Tdk ikut', 'BKB ikut', 'Tdk ikut']} rows={[['1 - < 2 th', ...['L5', 'M5', 'N5', 'O5', 'P5'].map(g)], ['2 - < 5 th', ...['L6', 'M6', 'N6', 'O6', 'P6'].map(g)]]} />
         <Mini title="2. Remaja ikut PIK-R & BKR" head={['Umur', 'Jumlah', 'PIK-R ikut', 'Tdk ikut', 'BKR ikut', 'Tdk ikut']} rows={[['7 - 14 th', 11], ['15 - 19 th', 12], ['19 - 24 th', 13]].map(([l, r]) => [l as string, ...['L', 'M', 'N', 'O', 'P'].map((c) => g(c + r))])} />
@@ -257,8 +263,8 @@ function KampungKBWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
 }
 
 /* ---------- Data Warga TP PKK ---------- */
-function Field({ k, children }: { k: string; children: ReactNode }) {
-  return <div className="flex justify-between gap-3 border-b border-dashed border-slate-100 py-1.5 text-sm dark:border-white/5"><span className="text-slate-500">{k}</span><span className="text-right font-medium">{children || <span className="text-slate-300">—</span>}</span></div>
+function Field({ k, i: I, children }: { k: string; i?: LucideIcon; children: ReactNode }) {
+  return <div className="flex items-center justify-between gap-3 border-b border-dashed border-slate-100 py-1.5 text-sm dark:border-white/5"><span className="flex min-w-0 items-center gap-2 text-slate-500">{I && <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-600 dark:from-violet-500/20 dark:to-fuchsia-500/20 dark:text-violet-300"><I size={14} /></span>}{k}</span><span className="text-right font-medium">{children || <span className="text-slate-300">—</span>}</span></div>
 }
 const YT = ({ v }: { v: string }) => (v === 'Ya' ? <Chip color="emerald">Ya</Chip> : v === 'Tidak' ? <Chip color="rose">Tidak</Chip> : <Minus size={14} className="inline text-slate-300" />)
 
@@ -275,36 +281,36 @@ function TPPKKWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
     <div className="space-y-4">
       <Header title="DATA WARGA TP PKK" lines={[`Dasa Wisma: ${w.dasawisma}`, `No Registrasi: ${w.noReg}`]} def={def} />
       <div className="grid gap-3 md:grid-cols-2">
-        <Card className="p-4"><h4 className="mb-2 font-display text-sm font-bold text-violet-700">Identitas</h4>
-          <Field k="Nama"><button className="font-semibold text-indigo-700 hover:underline" onClick={() => act.editWarga(w.id)}>{w.nama}</button></Field>
-          <Field k="NIK / Jabatan">{w.nik} · {w.jabatan}</Field>
-          <Field k="Jenis kelamin">{w.jk === 'L' ? 'Laki-laki' : 'Perempuan'}</Field>
-          <Field k="Tempat, tgl lahir / umur">{w.tempatLahir}{w.tglLahir ? `, ${tglIndo(w.tglLahir)}` : ''}{u !== null ? ` (${u} th)` : ''}</Field>
-          <Field k="Status perkawinan">{w.statusKawin}</Field>
-          <Field k="Status dalam keluarga">{w.statusKeluarga}</Field>
-          <Field k="Agama">{w.agama}</Field>
+        <Card className="p-4"><h4 className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-violet-700"><IdCard size={16} />Identitas</h4>
+          <Field k="Nama" i={UserRound}><button className="font-semibold text-indigo-700 hover:underline" onClick={() => act.editWarga(w.id)}>{w.nama}</button></Field>
+          <Field k="NIK / Jabatan" i={IdCard}>{w.nik} · {w.jabatan}</Field>
+          <Field k="Jenis kelamin" i={Users}>{w.jk === 'L' ? 'Laki-laki' : 'Perempuan'}</Field>
+          <Field k="Tempat, tgl lahir / umur" i={Cake}>{w.tempatLahir}{w.tglLahir ? `, ${tglIndo(w.tglLahir)}` : ''}{u !== null ? ` (${u} th)` : ''}</Field>
+          <Field k="Status perkawinan" i={Heart}>{w.statusKawin}</Field>
+          <Field k="Status dalam keluarga" i={Crown}>{w.statusKeluarga}</Field>
+          <Field k="Agama" i={BookOpen}>{w.agama}</Field>
         </Card>
-        <Card className="p-4"><h4 className="mb-2 font-display text-sm font-bold text-violet-700">Alamat, pendidikan & pekerjaan</h4>
-          <Field k="Alamat">{w.alamat}</Field>
-          <Field k="Kelurahan / Kecamatan">{w.desa} / {w.kecamatan}</Field>
-          <Field k="Kabupaten / Provinsi">{w.kabupaten} / {w.provinsi}</Field>
-          <Field k="Pendidikan">{w.pendidikan}</Field>
-          <Field k="Pekerjaan">{w.pekerjaan}</Field>
+        <Card className="p-4"><h4 className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-violet-700"><MapPin size={16} />Alamat, pendidikan & pekerjaan</h4>
+          <Field k="Alamat" i={MapPin}>{w.alamat}</Field>
+          <Field k="Kelurahan / Kecamatan" i={Building2}>{w.desa} / {w.kecamatan}</Field>
+          <Field k="Kabupaten / Provinsi" i={MapIcon}>{w.kabupaten} / {w.provinsi}</Field>
+          <Field k="Pendidikan" i={GraduationCap}>{w.pendidikan}</Field>
+          <Field k="Pekerjaan" i={Briefcase}>{w.pekerjaan}</Field>
         </Card>
-        <Card className="p-4 md:col-span-2"><h4 className="mb-2 font-display text-sm font-bold text-violet-700">Kesehatan, pendidikan & ekonomi</h4>
+        <Card className="p-4 md:col-span-2"><h4 className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-violet-700"><HeartPulse size={16} />Kesehatan, pendidikan & ekonomi</h4>
           <div className="grid gap-x-6 sm:grid-cols-2">
-            <Field k="Akseptor KB">{w.kontrasepsi ? <Chip color="emerald">{w.kontrasepsi}</Chip> : <YT v="Tidak" />}</Field>
-            <Field k="Aktif posyandu"><YT v={w.posyandu} /> {w.frekPosyandu && `${w.frekPosyandu}x / bulan`}</Field>
-            <Field k="Bina Keluarga Balita"><YT v={w.bkb} /></Field>
-            <Field k="Memiliki tabungan"><YT v={w.tabungan} /></Field>
-            <Field k="Kelompok belajar"><YT v={w.kelompokBelajar} /> {w.paket.join(', ')}</Field>
-            <Field k="PAUD / sejenis"><YT v={w.paud} /></Field>
-            <Field k="Kegiatan koperasi"><YT v={w.koperasi} /> {w.jenisKoperasi}</Field>
+            <Field k="Akseptor KB" i={ShieldCheck}>{w.kontrasepsi ? <Chip color="emerald">{w.kontrasepsi}</Chip> : <YT v="Tidak" />}</Field>
+            <Field k="Aktif posyandu" i={Stethoscope}><YT v={w.posyandu} /> {w.frekPosyandu && `${w.frekPosyandu}x / bulan`}</Field>
+            <Field k="Bina Keluarga Balita" i={Baby}><YT v={w.bkb} /></Field>
+            <Field k="Memiliki tabungan" i={PiggyBank}><YT v={w.tabungan} /></Field>
+            <Field k="Kelompok belajar" i={BookOpenCheck}><YT v={w.kelompokBelajar} /> {w.paket.join(', ')}</Field>
+            <Field k="PAUD / sejenis" i={School}><YT v={w.paud} /></Field>
+            <Field k="Kegiatan koperasi" i={Store}><YT v={w.koperasi} /> {w.jenisKoperasi}</Field>
           </div>
         </Card>
       </div>
       <Card className="overflow-hidden">
-        <div className="bg-gradient-to-r from-violet-50 to-transparent px-4 py-2 font-display text-sm font-bold text-violet-700 dark:from-violet-500/15">Kegiatan warga</div>
+        <div className="bg-gradient-to-r from-violet-50 to-transparent px-4 py-2 flex items-center gap-2 font-display text-sm font-bold text-violet-700 dark:from-violet-500/15"><Sparkles size={16} />Kegiatan warga</div>
         <table className="w-full text-sm"><thead><tr className="text-left text-[10px] font-bold uppercase text-slate-400"><th className="px-4 py-1.5">Kegiatan</th><th className="px-4">Aktivitas (Y/T)</th><th className="px-4">Keterangan</th></tr></thead>
           <tbody>{keg.map(([k, y, j]) => <tr key={k} className="border-t border-slate-100 dark:border-white/5"><td className="px-4 py-2">{k}</td><td className="px-4"><YT v={y} /></td><td className="px-4 text-slate-500">{j}</td></tr>)}</tbody>
         </table>
@@ -319,22 +325,22 @@ function DataKeluargaWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
   const v = page.values ?? {}
   const n = (a: string) => (v[a] === undefined || v[a] === '' ? 0 : typeof v[a] === 'object' ? Number((v[a] as CellObj).v) : Number(v[a]))
   const k = f.k
-  const stat = (l: string, x: number, c: string) => <div key={l} className={`rounded-xl px-3 py-2 text-center ${c}`}><div className="font-display text-xl font-extrabold tabular-nums">{x}</div><div className="text-[10px] font-semibold uppercase">{l}</div></div>
+  const stat = (l: string, x: number, c: string, I: LucideIcon) => <div key={l} className={`shine relative overflow-hidden rounded-xl px-3 py-2 text-center ${c}`}><I aria-hidden size={40} className="absolute -right-2 -top-2 rotate-12 opacity-15" /><div className="flex items-center justify-center gap-1.5 font-display text-xl font-extrabold tabular-nums"><I size={16} className="opacity-70" />{x}</div><div className="text-[10px] font-semibold uppercase">{l}</div></div>
   return (
     <Generic page={page} def={def} hideInfo top={
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-          {stat('Anggota', f.ang.length, 'bg-indigo-50 text-indigo-700')}{stat('Laki-laki', n('G10'), 'bg-sky-50 text-sky-700')}{stat('Perempuan', n('G12'), 'bg-pink-50 text-pink-700')}
-          {stat('KK', n('E13'), 'bg-amber-50 text-amber-700')}{stat('Balita', n('G14'), 'bg-yellow-50 text-yellow-700')}{stat('PUS', n('J14'), 'bg-rose-50 text-rose-700')}{stat('WUS', n('M14'), 'bg-fuchsia-50 text-fuchsia-700')}{stat('Lansia', n('O16'), 'bg-orange-50 text-orange-700')}
+          {stat('Anggota', f.ang.length, 'bg-indigo-50 text-indigo-700', Users)}{stat('Laki-laki', n('G10'), 'bg-sky-50 text-sky-700', UserRound)}{stat('Perempuan', n('G12'), 'bg-pink-50 text-pink-700', PersonStanding)}
+          {stat('KK', n('E13'), 'bg-amber-50 text-amber-700', IdCard)}{stat('Balita', n('G14'), 'bg-yellow-50 text-yellow-700', Baby)}{stat('PUS', n('J14'), 'bg-rose-50 text-rose-700', HeartHandshake)}{stat('WUS', n('M14'), 'bg-fuchsia-50 text-fuchsia-700', Flower2)}{stat('Lansia', n('O16'), 'bg-orange-50 text-orange-700', Armchair)}
         </div>
         <Card className="p-4">
           <div className="grid gap-x-6 sm:grid-cols-2">
-            <Field k="Kepala rumah tangga">{f.kepala?.nama}</Field><Field k="Dasa wisma">{f.kepala?.dasawisma}</Field>
-            <Field k="Alamat">{f.kepala?.alamat}</Field><Field k="Dusun / Desa">{f.kepala?.dusun} / {f.kepala?.desa}</Field>
-            <Field k="Makanan pokok">{k.makananPokok}</Field><Field k="Sumber air">{k.sumberAir}</Field>
-            <Field k="MCK & septic tank">{(Number(k.kamarMandi) || 0) > 0 ? `Ya (${k.jumlahWC} buah)` : 'Tidak'}</Field><Field k="Tempat sampah">{k.tps}</Field>
-            <Field k="SPAL"><YT v={k.spal} /></Field><Field k="Kriteria rumah">{k.kriteriaRumah} · {k.rumahSehat}</Field>
-            <Field k="UP2K"><YT v={f.kepala?.up2k ?? ''} /> {f.kepala?.jenisUp2k}</Field><Field k="Usaha kesehatan lingkungan"><YT v={f.kepala?.jumantik ?? ''} /></Field>
+            <Field k="Kepala rumah tangga" i={Crown}>{f.kepala?.nama}</Field><Field k="Dasa wisma" i={Home}>{f.kepala?.dasawisma}</Field>
+            <Field k="Alamat" i={MapPin}>{f.kepala?.alamat}</Field><Field k="Dusun / Desa" i={Building2}>{f.kepala?.dusun} / {f.kepala?.desa}</Field>
+            <Field k="Makanan pokok" i={Wheat}>{k.makananPokok}</Field><Field k="Sumber air" i={Droplets}>{k.sumberAir}</Field>
+            <Field k="MCK & septic tank" i={Bath}>{(Number(k.kamarMandi) || 0) > 0 ? `Ya (${k.jumlahWC} buah)` : 'Tidak'}</Field><Field k="Tempat sampah" i={Trash2}>{k.tps}</Field>
+            <Field k="SPAL" i={Waves}><YT v={k.spal} /></Field><Field k="Kriteria rumah" i={House}>{k.kriteriaRumah} · {k.rumahSehat}</Field>
+            <Field k="UP2K" i={HandCoins}><YT v={f.kepala?.up2k ?? ''} /> {f.kepala?.jenisUp2k}</Field><Field k="Usaha kesehatan lingkungan" i={Leaf}><YT v={f.kepala?.jumantik ?? ''} /></Field>
           </div>
         </Card>
       </div>

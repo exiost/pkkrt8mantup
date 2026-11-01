@@ -185,7 +185,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {dark ? <Sun size={18} /> : <Moon size={18} />} {dark ? 'Mode terang' : 'Mode gelap'}
         </button>
         <div className="mt-1 px-1"><SyncBadge /></div>
-        <div className="mt-1 px-2 text-[10px] text-slate-400" title="Waktu aplikasi ini dibuat">Versi {new Date(__BUILD__).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</div>
+        <div className="mt-1 px-2 text-[10px] text-slate-400" title={`Versi ${new Date(__BUILD__).toLocaleString('id-ID')}`}>© Etri Restu Lestari · v{new Date(__BUILD__).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' })}</div>
         <UserBox />
       </aside>
 
