@@ -143,3 +143,13 @@ export const bKampungKB: Builder = (c) => {
 }
 
 export { V, yes, isBalita, isLansia, dtText }
+
+/** Data anak usia 6–18 tahun (dihitung pada tanggal acuan) */
+export const bAnak618: Builder = (c) => {
+  const list = byDawis(c)
+    .map((w) => ({ w, u: hitungUmur(w.tglLahir, c.p.acuan) }))
+    .filter((x) => x.u != null && x.u >= 6 && x.u <= 18)
+    .sort((a, b) => (a.w.tglLahir || '').localeCompare(b.w.tglLahir || ''))
+  const rows: Record<string, Val>[] = list.map(({ w, u }, i) => ({ A: i + 1, B: link(w), C: u ?? '', D: jkText(w), E: dt(w.tglLahir) }))
+  return [{ key: 'anak618', tplId: 'anak618', values: { A2: `TANGGAL / BULAN / TAHUN : ${tglPanjang(c.p.acuan)}` }, regions: { main: rows }, rowsShown: { main: rows.length } }]
+}

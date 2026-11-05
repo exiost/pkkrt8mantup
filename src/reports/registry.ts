@@ -1,6 +1,6 @@
 import { Activity, Archive, CalendarRange, Baby, Flower2, HeartHandshake, Home, House, IdCard, NotebookPen, Sprout, Stethoscope, Table, UserCheck, LayoutList, type LucideIcon } from 'lucide-react'
 import type { Builder } from './common'
-import { bKampungKB, bPencatatan, bPenduduk, bPUS, bRegister, bWUS } from './lists'
+import { bKampungKB, bPencatatan, bPenduduk, bPUS, bRegister, bWUS, bAnak618 } from './lists'
 import { bCatatanKeluarga, bDataKeluarga, bHTIRT, bTPPKK } from './forms'
 import { bIbuHamilDawis, bIbuHamilDawisTahunan, bRekapCatatan, bRekapDawis, bRekapIbuHamil, bRekapIbuHamilTahunan } from './rekap'
 
@@ -33,6 +33,7 @@ export const REPORTS: ReportDef[] = [
   { slug: 'rekap-ibu-hamil', title: 'Rekapitulasi Data Ibu Hamil, Melahirkan, Nifas', sheet: 'REKAPITULASI DATA IBU HAMIL', desc: 'Rekap per dasawisma tingkat RT', icon: Activity, color: 'red', group: 'RT', tpl: 'rekapibuhamil', uses: ['bulan', 'statusIbu'], build: bRekapIbuHamil },
   { slug: 'rekap-catatan', title: 'Rekap Catatan Data & Kegiatan (RT)', sheet: 'rekap catatan data dan kegiatan', desc: 'Tingkat RT, baris = dasawisma (30 kolom)', icon: Table, color: 'teal', group: 'RT', tpl: 'rekapcatatan', uses: ['acuan', 'rentang'], build: bRekapCatatan },
   { slug: 'penduduk-15-59', title: 'Data Penduduk 15–59 Tahun', sheet: 'DATA PENDUDUK 15-59', desc: 'Daftar warga usia 15–59 th + riwayat sakit', icon: UserCheck, color: 'sky', group: 'Kependudukan', tpl: 'penduduk', uses: ['acuan', 'dawis', 'barisKosong', 'isiKosong'], build: bPenduduk, defaults: { barisKosong: false } },
+  { slug: 'anak-6-18', title: 'Data Anak Usia 6–18 Tahun', sheet: 'DATA ANAK 6-18 TAHUN', desc: 'No, nama, usia, jenis kelamin, tanggal lahir', icon: Baby, color: 'amber', group: 'Kependudukan', tpl: 'anak618', uses: ['acuan', 'dawis'], build: bAnak618 },
   { slug: 'kampung-kb', title: 'Inventarisasi Kampung KB', sheet: 'INVENTARISASI KAMPUNG KB', desc: 'Data kependudukan, KB & ketahanan keluarga', icon: Home, color: 'emerald', group: 'Kependudukan', tpl: 'kampungkb', uses: ['acuan', 'bulan', 'manualKB'], build: bKampungKB },
   { slug: 'wus', title: 'Data WUS per Bulan', sheet: 'DATA WUS PER BULAN', desc: 'Wanita usia subur 15–49 th', icon: Flower2, color: 'pink', group: 'KB & PUS', tpl: 'wus', uses: ['acuan', 'dawis', 'barisKosong'], build: bWUS, defaults: { barisKosong: false } },
   { slug: 'pus', title: 'Data PUS per Bulan', sheet: 'DATA PUS PER BULAN', desc: 'Pasangan usia subur + kelompok umur & alkon', icon: HeartHandshake, color: 'rose', group: 'KB & PUS', tpl: 'pus', uses: ['acuan', 'dawis', 'barisKosong'], build: bPUS, defaults: { barisKosong: false } },
