@@ -70,3 +70,11 @@ Buka dengan `https://pemerintahkota.id/data-warga/`. Versi ≥ 1.2.0 sudah mendu
 
 ## Alternatif: mode statis (tanpa Node.js)
 Unggah isi folder `paket-cpanel\statis` ke `public_html`. Tanpa login & viewer; data tersimpan di browser masing-masing perangkat (data dari server lokal tidak ikut).
+
+## Memperbarui ke versi multi-RT (Desa Mantup, RT 01–17)
+1. **Cadangkan folder `DATA_DIR`** (berisi `siwarga.db`).
+2. Hapus `dist`, `server`, `app.cjs`, `package.json` lama, upload & Extract zip baru, lalu **RESTART**.
+3. Saat server menyala, database lama otomatis diubah: semua data & akun lama menjadi **RT 08** (tidak ada yang hilang). Daftar RT 01–17 dibuat otomatis.
+4. Masuk sebagai `admin` → Pengaturan → Akun & Server → **Buat Admin Desa** (sekali saja). Langkah lengkap: `docs/panduan-desa.html`.
+
+Database yang sudah diubah ke multi-RT tidak bisa dipakai lagi oleh versi lama. Bila ingin kembali ke versi lama, pakai cadangan dari langkah 1.

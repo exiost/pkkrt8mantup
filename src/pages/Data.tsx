@@ -8,6 +8,7 @@ import { Button, Card, PageHeader, Section, StatCard, Segmented, useConfirm } fr
 import { rayakan } from '@/lib/crud'
 import type { Collections } from '@/lib/types'
 import { uid } from '@/lib/format'
+import KirimRT from '@/components/KirimRT'
 
 export default function DataPage() {
   const st = useStore()
@@ -104,6 +105,7 @@ export default function DataPage() {
           </div>
         </Section>
       </div>
+      <div className="mt-4"><KirimRT /></div>
 
       {hasil && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-4">

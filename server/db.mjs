@@ -58,7 +58,6 @@ export function createStore(db) {
       ON CONFLICT(coll, id) DO UPDATE SET data = '{}', updated_at = excluded.updated_at, srv = excluded.srv, purged = 1`),
     all: db.prepare('SELECT coll, id, data, updated_at, purged FROM records WHERE purged = 0 AND rt = ?'),
     since: db.prepare('SELECT coll, id, data, updated_at, purged FROM records WHERE srv > ? AND rt = ?'),
-    wipe: db.prepare('DELETE FROM records WHERE rt = ?'),
     countAudit: db.prepare("SELECT COUNT(*) AS n FROM records WHERE coll = 'audit'"),
     pruneAudit: db.prepare("DELETE FROM records WHERE coll = 'audit' AND id IN (SELECT id FROM records WHERE coll = 'audit' ORDER BY updated_at ASC LIMIT ?)"),
     ringkasRT: db.prepare("SELECT rt, coll, COUNT(*) AS n, MAX(updated_at) AS akhir FROM records WHERE purged = 0 AND coll IN ('warga', 'keluarga', 'audit') GROUP BY rt, coll"),
@@ -128,16 +127,55 @@ export function createStore(db) {
       out.audit = out.audit.slice(0, 500)
       return out
     },
+    /** bandingkan isi file ekspor RT dengan data di server (untuk pratinjau & impor) */
+    bandingkan(berkas, rt) {
+      const out = {}
+      for (const c of COLLECTIONS) {
+        const r = { baru: [], berubah: [], lebihBaruDiServer: 0, sama: 0, milikRTLain: 0, hanyaDiServer: [] }
+        const ids = new Set()
+        for (const rec of berkas[c] ?? []) {
+          if (!rec || typeof rec.id !== 'string') continue
+          ids.add(rec.id)
+          const cur = q.getRec.get(c, rec.id)
+          if (!cur) r.baru.push(rec)
+          else if (cur.rt !== rt) r.milikRTLain++
+          else if (cur.purged) continue
+          else if ((rec.updatedAt ?? '') > cur.updated_at) r.berubah.push(rec)
+          else if ((rec.updatedAt ?? '') < cur.updated_at) r.lebihBaruDiServer++
+          else r.sama++
+        }
+        for (const row of q.all.all(rt)) if (row.coll === c && !ids.has(row.id)) r.hanyaDiServer.push(row.id)
+        out[c] = r
+      }
+      return out
+    },
+    /** cadangan otomatis per RT (5 terakhir) */
+    cadangan(rt) { try { return JSON.parse(q.getMeta.get(`cadangan:${rt}`)?.value ?? '[]') } catch { return [] } },
+    simpanCadangan(rt, ket, settings) {
+      const { audit: _a, ...cols } = this.snapshot(0, rt)
+      const list = [{ id: `${Date.now()}`, waktu: new Date().toISOString(), ket, warga: cols.warga.length, data: { ...cols, settings } }, ...this.cadangan(rt)].slice(0, 5)
+      q.setMeta.run(`cadangan:${rt}`, JSON.stringify(list))
+      return list[0]
+    },
     /** ganti seluruh data SATU RT dengan isi cadangan (RT lain tidak tersentuh) */
     restore(data, rt) {
       tx(() => {
-        q.wipe.run(rt)
         let seq = q.maxSrv.get().m
+        const now = new Date().toISOString()
         const milikLain = (c, id) => { const cur = q.getRec.get(c, id); return cur && cur.rt !== rt }
-        for (const c of COLLECTIONS) for (const rec of data[c] ?? []) {
-          if (rec && typeof rec.id === 'string' && !milikLain(c, rec.id)) q.putRec.run(c, rec.id, JSON.stringify(rec), rec.updatedAt ?? new Date().toISOString(), ++seq, rt)
+        const ada = new Map()
+        for (const row of q.all.all(rt)) if (row.coll !== 'audit') (ada.get(row.coll) ?? ada.set(row.coll, new Set()).get(row.coll)).add(row.id)
+        for (const c of COLLECTIONS) {
+          const sisa = ada.get(c) ?? new Set()
+          for (const rec of data[c] ?? []) {
+            if (!rec || typeof rec.id !== 'string' || milikLain(c, rec.id)) continue
+            sisa.delete(rec.id)
+            // dicap waktu sekarang agar perangkat lain ikut memakai isi cadangan ini
+            q.putRec.run(c, rec.id, JSON.stringify({ ...rec, updatedAt: now }), now, ++seq, rt)
+          }
+          for (const id of sisa) q.purgeRec.run(c, id, now, ++seq, rt)
         }
-        for (const e of data.audit ?? []) if (e?.id && !milikLain('audit', e.id)) q.putRec.run('audit', e.id, JSON.stringify(e), e.waktu ?? new Date().toISOString(), ++seq, rt)
+        for (const e of data.audit ?? []) if (e?.id && !milikLain('audit', e.id) && !q.getRec.get('audit', e.id)) q.putRec.run('audit', e.id, JSON.stringify(e), e.waktu ?? now, ++seq, rt)
         if (data.settings) q.setMeta.run(`settings:${rt}`, JSON.stringify(data.settings))
       })
     },

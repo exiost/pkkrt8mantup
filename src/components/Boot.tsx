@@ -13,7 +13,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle?: string
           <img src="./icon.svg" alt="" className="h-12 w-12 rounded-2xl shadow-lg shadow-violet-500/30" />
           <div>
             <div className="font-display text-lg font-extrabold leading-tight text-slate-900 dark:text-white">SIWARGA PKK</div>
-            <div className="text-xs text-slate-500">RT 08 · Mantup</div>
+            <div className="text-xs text-slate-500">PKK Mantup · RT 01–17</div>
           </div>
         </div>
         <h1 className="font-display text-xl font-bold text-slate-900 dark:text-white">{title}</h1>

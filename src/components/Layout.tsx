@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Building2, Cloud, CloudOff, LogOut, MapPinned, LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
@@ -50,8 +50,13 @@ export function RtPicker({ className = '' }: { className?: string }) {
 }
 
 function SyncBadge({ compact }: { compact?: boolean }) {
-  const { server, sync, pending, user } = useSession()
+  const { server, sync, pending, user, offline } = useSession()
   if (!server) return null
+  if (offline) return (
+    <span title="Tanpa internet: data disimpan di perangkat ini dan dikirim otomatis saat online" className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
+      <CloudOff size={12} /><span className={compact ? (pending ? '' : 'hidden') : ''}>Offline{pending ? ` · ${pending} menunggu` : ''}</span>
+    </span>
+  )
   const bad = sync === 'error'
   return (
     <span title={bad ? 'Belum tersimpan ke server, mencoba lagi…' : 'Terhubung ke server'} className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${bad ? 'bg-red-50 text-red-600' : sync === 'saving' || pending ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
@@ -180,7 +185,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [palette, setPalette] = useState(false)
   const { dark, set: setUi } = useUi()
   const peran = usePeran()
+  const loc = useLocation()
   const writable = peran !== 'viewer'
+  const fab = writable && loc.pathname !== '/rt'
   const byTo = (t: string) => NAV.find((n) => n.to === t)!
   const bawah = peran === 'admin' ? [byTo('/'), byTo('/warga'), byTo('/laporan'), byTo('/keluarga')] : peran === 'editor' ? [byTo('/warga'), byTo('/keluarga'), byTo('/laporan'), byTo('/ibu-anak')] : [byTo('/laporan')]
   const { openWarga } = useEditor()
@@ -251,7 +258,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* FAB desktop */}
-      {writable && <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => openWarga()}
+      {fab && <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => openWarga()}
         className="no-print fixed bottom-8 right-8 z-30 hidden items-center gap-2 rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 px-5 py-3.5 font-semibold text-white shadow-xl shadow-violet-500/40 lg:flex">
         <Plus size={20} /> Tambah Warga
       </motion.button>}

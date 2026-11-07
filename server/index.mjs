@@ -23,7 +23,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
 
   // Bisa dipasang di sub-alamat (mis. cPanel: domain.id/data-warga): buang awalan sebelum /api atau file aplikasi
   app.use((req, _res, next) => {
-    const m = req.url.match(/\/(api(?:[/?].*)?|assets\/.*|icon\.svg.*|manifest\.webmanifest.*)$/)
+    const m = req.url.match(/\/(api(?:[/?].*)?|assets\/.*|icon\.svg.*|manifest\.webmanifest.*|sw\.js.*)$/)
     if (m && req.url !== '/' + m[1]) req.url = '/' + m[1]
     next()
   })
@@ -216,6 +216,50 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     res.json({ ok: true, seq: store.seq() })
   }))
 
+  // --- kirim data RT lewat file (.siwarga): pratinjau, impor (perubahan terakhir menang), cadangan otomatis ---
+  const berkasRT = (req) => {
+    const b = req.body?.berkas
+    if (!b || b.format !== 'siwarga-rt' || !store.rts().includes(b.rt)) throw new Error('File ini bukan ekspor data RT dari SIWARGA')
+    if (!req.desa && b.rt !== req.user.rt) { const e = new Error(`File ini milik RT ${b.rt}. Akun Anda hanya untuk RT ${req.user.rt}.`); e.status = 403; throw e }
+    return b
+  }
+  const ringkas = (h) => Object.fromEntries(Object.entries(h).map(([c, r]) => [c, { baru: r.baru.length, berubah: r.berubah.length, lebihBaruDiServer: r.lebihBaruDiServer, sama: r.sama, milikRTLain: r.milikRTLain, hanyaDiServer: r.hanyaDiServer.length }]))
+  app.post('/api/rt-impor', auth(['admin']), (req, res) => {
+    try {
+      const b = berkasRT(req)
+      const rt = b.rt
+      const h = store.bandingkan(b, rt)
+      if (req.body.cek) return res.json({ rt, dibuat: b.dibuat, ringkas: ringkas(h) })
+      let cad
+      store.tx(() => {
+        cad = store.simpanCadangan(rt, `Sebelum impor file RT ${rt} (${b.dibuat ?? '-'})`, settingsOf(rt))
+        let seq = store.seq()
+        for (const [c, r] of Object.entries(h)) {
+          for (const rec of [...r.baru, ...r.berubah]) store.q.putRec.run(c, rec.id, JSON.stringify(rec), rec.updatedAt ?? new Date().toISOString(), ++seq, rt)
+          if (req.body.hapus) for (const id of r.hanyaDiServer) store.q.purgeRec.run(c, id, new Date().toISOString(), ++seq, rt)
+        }
+        if (b.settings && !settingsOf(rt)) store.setMeta(`settings:${rt}`, JSON.stringify(b.settings))
+        const e = { id: randomUUID(), waktu: new Date().toISOString(), koleksi: 'warga', recordId: '', aksi: 'Ubah', label: `Impor file data RT ${rt}`, oleh: req.user.name || req.user.username }
+        store.q.putRec.run('audit', e.id, JSON.stringify(e), e.waktu, ++seq, rt)
+      })
+      res.json({ ok: true, rt, cadangan: cad.id, ringkas: ringkas(h), seq: store.seq() })
+    } catch (e) { res.status(e.status ?? 400).json({ error: e.message }) }
+  })
+  const rtDari = (req) => (req.desa && req.query.rt && store.rts().includes(String(req.query.rt)) ? String(req.query.rt) : req.rt)
+  app.get('/api/rt-cadangan', auth(['admin']), (req, res) => {
+    const rt = rtDari(req)
+    res.json({ rt, list: store.cadangan(rt).map(({ data: _d, ...x }) => x) })
+  })
+  app.post('/api/rt-cadangan/pulihkan', auth(['admin']), wrap((req, res) => {
+    const rt = req.desa && req.body?.rt ? String(req.body.rt) : req.rt
+    if (!store.rts().includes(rt)) return res.status(400).json({ error: 'RT tidak dikenal' })
+    const c = store.cadangan(rt).find((x) => x.id === req.body?.id)
+    if (!c) return res.status(404).json({ error: 'Cadangan tidak ditemukan' })
+    store.simpanCadangan(rt, 'Sebelum mengembalikan cadangan', settingsOf(rt))
+    store.restore(c.data, rt)
+    res.json({ ok: true, seq: store.seq() })
+  }))
+
   // --- gabungan desa: seluruh data semua RT (hanya baca, untuk laporan Desa Mantup) ---
   app.get('/api/desa', auth(['admin']), desaOnly, (_req, res) => {
     res.json({
@@ -231,7 +275,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   // --- aplikasi web (hasil build) ---
   const dist = distDir ?? resolve(here, '../dist')
   if (existsSync(dist)) {
-    app.use(express.static(dist, { maxAge: '1h', index: 'index.html', setHeaders: (res, f) => { if (f.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache') } }))
+    app.use(express.static(dist, { maxAge: '1h', index: 'index.html', setHeaders: (res, f) => { if (f.endsWith('.html') || f.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache') } }))
     app.get('*', (_req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(join(dist, 'index.html')) })
   }
   return { app, db, store }

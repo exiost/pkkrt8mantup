@@ -16,12 +16,16 @@ interface Session {
   pending: number
   lastSync: string | null
   error: string
+  /** sedang tanpa internet: memakai salinan data terakhir, perubahan dikirim saat online lagi */
+  offline: boolean
   /** RT yang sedang dibuka ("08") */
   rt: string
   /** daftar semua RT (untuk Admin Desa) */
   rts: string[]
   /** Admin Desa: pindah ke RT lain */
   pilihRT: (rt: string) => Promise<boolean>
+  /** ambil ulang seluruh data RT ini dari server */
+  muatUlang: () => Promise<void>
   start: () => Promise<void>
   setup: (username: string, password: string, name: string) => Promise<void>
   login: (username: string, password: string) => Promise<void>
@@ -32,6 +36,13 @@ interface Session {
 interface DataResp { seq: number; rt?: string; full: boolean; collections: Partial<Collections> & { audit: AuditEntry[] }; settings: Settings | null }
 
 const QKEY = 'siwarga-queue'
+const CKEY = 'siwarga-cache'
+interface Cache { uid: string; rt: string; user: AppUser; rts: string[]; seq: number; waktu: string; data: Partial<Collections>; settings: Settings; audit: AuditEntry[] }
+const readCache = (): Cache | null => { try { return JSON.parse(localStorage.getItem(CKEY) ?? 'null') } catch { return null } }
+const clearCache = () => { try { localStorage.removeItem(CKEY) } catch { /* abaikan */ } }
+let cacheTimer: ReturnType<typeof setTimeout> | null = null
+let unsubCache: (() => void) | null = null
+let online: ReturnType<typeof setInterval> | null = null
 let queue: Op[] = []
 let seq = 0
 let timer: ReturnType<typeof setTimeout> | null = null
@@ -107,6 +118,7 @@ export const useSession = create<Session>()((set, get) => {
       const settings = d.settings ?? (d.full && d.rt ? { ...DEFAULT_SETTINGS, rt: `RT ${d.rt}` } : null)
       useStore.getState().muatDariServer(cols, settings, audit ?? [], d.full)
       if (d.rt) set({ rt: d.rt })
+      if (get().offline) set({ offline: false })
       seq = d.seq
       set({ lastSync: new Date().toISOString() })
     } catch (e) {
@@ -114,19 +126,75 @@ export const useSession = create<Session>()((set, get) => {
     }
   }
 
-  async function enter(user: AppUser, info?: { rts?: string[]; rt?: string }) {
-    if (!user.desa) setRT('')
-    set({ user, boot: 'ready', server: true, error: '', rt: info?.rt ?? user.rt ?? '', rts: info?.rts ?? [] })
+  /** simpan salinan data RT ini di perangkat (agar aplikasi tetap bisa dibuka tanpa internet) */
+  function saveCache() {
+    if (cacheTimer) clearTimeout(cacheTimer)
+    cacheTimer = setTimeout(() => {
+      const { user, rt, rts } = get()
+      if (!user || !rt) return
+      const st = useStore.getState()
+      const data: Partial<Collections> = {}
+      for (const k of ['warga', 'keluarga', 'kelahiran', 'kematian', 'pesertaKB', 'pusBaru', 'dasawisma', 'tags', 'kampungKB'] as const) (data as Record<string, unknown>)[k] = st[k]
+      const c: Cache = { uid: user.id, rt, user, rts, seq, waktu: new Date().toISOString(), data, settings: st.settings, audit: st.audit.slice(0, 100) }
+      try { localStorage.setItem(CKEY, JSON.stringify(c)) } catch { /* memori penuh: lewati */ }
+    }, 1500)
+  }
+  function watchCache() {
+    unsubCache?.()
+    unsubCache = useStore.subscribe(() => saveCache())
+  }
+  /** cek internet berkala; begitu server terjangkau lagi, kirim antrian & ambil data terbaru */
+  function watchOnline() {
+    if (online) clearInterval(online)
+    online = setInterval(async () => {
+      if (!get().offline) { if (online) clearInterval(online); online = null; return }
+      const p = await probe()
+      if (!p) return
+      try {
+        const me = await api<{ user: AppUser; rts: string[]; rt: string }>('/me')
+        set({ offline: false, user: me.user, rts: me.rts })
+        toast.success('Kembali online — perubahan dikirim ke server')
+        await flush()
+        await pull(true)
+      } catch (e) { if ((e as ApiError).status === 401) get().logout() }
+    }, 15000)
+  }
+  /** masuk tanpa internet memakai salinan terakhir di perangkat ini */
+  function enterOffline(c: Cache) {
+    if (c.user.desa) setRT(c.rt)
+    set({ user: c.user, boot: 'ready', server: true, offline: true, error: '', rt: c.rt, rts: c.rts })
     setPersistMode('server')
     loadQueue()
-    seq = 0
+    seq = c.seq
+    setGuard()
+    useStore.getState().muatDariServer(c.data, c.settings, c.audit ?? [], true)
+    setSyncHook((ops) => { queue.push(...ops); saveQueue(); set({ pending: queue.length }); schedule() })
+    set({ pending: queue.length })
+    watchCache()
+    watchOnline()
+    window.addEventListener('online', () => { void (async () => { if (get().offline && (await probe())) { set({ offline: false }); await flush(); await pull(true) } })() })
+  }
+  function setGuard() {
     setGuardHook((level) => {
       const role = get().user?.role
       const ok = level === 'admin' ? role === 'admin' : role === 'admin' || role === 'editor'
       if (!ok) toast.error(level === 'admin' ? 'Hanya admin yang boleh melakukan ini' : 'Akun Anda hanya bisa melihat data')
       return ok
     })
+  }
+
+  async function enter(user: AppUser, info?: { rts?: string[]; rt?: string }) {
+    if (!user.desa) setRT('')
+    const c = readCache()
+    if (c && (c.uid !== user.id || c.rt !== (info?.rt ?? user.rt))) clearCache()
+    set({ user, boot: 'ready', server: true, offline: false, error: '', rt: info?.rt ?? user.rt ?? '', rts: info?.rts ?? [] })
+    setPersistMode('server')
+    loadQueue()
+    seq = 0
+    setGuard()
     await pull(true)
+    watchCache()
+    saveCache()
     setSyncHook((ops) => { queue.push(...ops); saveQueue(); set({ pending: queue.length }); schedule() })
     if (queue.length) schedule(200)
     if (poll) clearInterval(poll)
@@ -140,10 +208,13 @@ export const useSession = create<Session>()((set, get) => {
   }
 
   return {
-    boot: 'checking', server: false, user: null, sync: 'idle', pending: 0, lastSync: null, error: '', rt: '', rts: [],
+    boot: 'checking', server: false, user: null, sync: 'idle', pending: 0, lastSync: null, error: '', rt: '', rts: [], offline: false,
+
+    muatUlang: async () => { await pull(true) },
 
     pilihRT: async (rt) => {
       if (!get().user?.desa || rt === get().rt) return false
+      if (get().offline) { toast.error('Sedang offline: pindah RT bisa dilakukan setelah tersambung internet'); return false }
       if (queue.length) { toast.error('Tunggu sebentar, masih ada perubahan yang belum terkirim ke server'); void flush(); return false }
       setRT(rt)
       seq = 0
@@ -158,6 +229,9 @@ export const useSession = create<Session>()((set, get) => {
       set({ boot: 'checking', error: '' })
       const p = await probe()
       if (!p) {
+        // pernah login di perangkat ini: buka salinan terakhir (tanpa internet)
+        const c = getToken() ? readCache() : null
+        if (c) { enterOffline(c); return }
         if (getBase()) { set({ boot: 'error', error: `Tidak bisa terhubung ke server ${getBase()}` }); return }
         get().useLocal()
         return
@@ -169,7 +243,11 @@ export const useSession = create<Session>()((set, get) => {
           await enter(me.user, me)
           return
         } catch (e) {
-          if ((e as ApiError).status === 0) { set({ boot: 'error', error: 'Tidak bisa terhubung ke server' }); return }
+          if ((e as ApiError).status === 0) {
+            const c = readCache()
+            if (c) { enterOffline(c); return }
+            set({ boot: 'error', error: 'Tidak bisa terhubung ke server' }); return
+          }
           setToken(null)
         }
       }
@@ -189,6 +267,7 @@ export const useSession = create<Session>()((set, get) => {
     },
 
     logout: () => {
+      if (get().offline && queue.length) { toast.error(`Masih ada ${queue.length} perubahan yang belum terkirim. Keluar setelah tersambung internet agar tidak hilang.`); return }
       setToken(null)
       setSyncHook(null)
       setGuardHook(null)
@@ -197,8 +276,10 @@ export const useSession = create<Session>()((set, get) => {
       queue = []
       saveQueue()
       setRT('')
+      clearCache()
+      unsubCache?.(); unsubCache = null
       useStore.setState({ warga: [], keluarga: [], kelahiran: [], kematian: [], pesertaKB: [], pusBaru: [], dasawisma: [], tags: [], kampungKB: [], arsip: [], audit: [] })
-      set({ user: null, boot: 'login', sync: 'idle', pending: 0, rt: '', rts: [] })
+      set({ user: null, boot: 'login', sync: 'idle', pending: 0, rt: '', rts: [], offline: false })
     },
 
     useLocal: () => {
