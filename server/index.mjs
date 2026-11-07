@@ -216,6 +216,16 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     res.json({ ok: true, seq: store.seq() })
   }))
 
+  // --- gabungan desa: seluruh data semua RT (hanya baca, untuk laporan Desa Mantup) ---
+  app.get('/api/desa', auth(['admin']), desaOnly, (_req, res) => {
+    res.json({
+      rts: store.rts().map((rt) => {
+        const { audit: _a, ...cols } = store.snapshot(0, rt)
+        return { rt, settings: settingsOf(rt), ...cols }
+      }),
+    })
+  })
+
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Tidak ditemukan' }))
 
   // --- aplikasi web (hasil build) ---

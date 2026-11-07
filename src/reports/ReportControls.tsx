@@ -13,6 +13,8 @@ import { familiesOf } from './forms'
 import type { Ctx } from './common'
 
 interface Props {
+  /** gabungan desa: pilihan "Dasawisma" berisi daftar RT */
+  gabungan?: boolean
   uses: Use[]
   p: ReportParams
   setP: (x: Partial<ReportParams>) => void
@@ -56,8 +58,8 @@ function KunciBox({ p, uses }: { p: ReportParams; uses: Use[] }) {
   )
 }
 
-export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, admin }: Props) {
-  const dws = useLive('dasawisma')
+export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, admin, gabungan }: Props) {
+  const dws = ctx.dasawisma
   const server = useSession((s) => s.server)
   const bertanggal = uses.includes('acuan') || uses.includes('bulan') || uses.includes('tahun') || uses.includes('rentang')
   const sel = 'h-10 w-full rounded-xl sm:w-auto border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-800'
@@ -91,7 +93,7 @@ export default function ReportControls({ uses, p, setP, o, setO, ctx, viewer, ad
         )}
         {!viewer && uses.includes('tahun') && <Field label="Tahun"><Input type="number" className="sm:!w-24" value={p.tahun} onChange={(e) => setP({ tahun: +e.target.value })} /></Field>}
         {(uses.includes('dawis') || uses.includes('dawisWajib')) && (
-          <Field label="Dasawisma">
+          <Field label={gabungan ? 'RT' : 'Dasawisma'}>
             <select className={sel} value={p.dawis} onChange={(e) => setP({ dawis: e.target.value, pick: '' })}>
               {uses.includes('dawis') && <option value="">Semua</option>}
               {dws.map((d) => <option key={d.id} value={d.nama}>{d.nama}</option>)}

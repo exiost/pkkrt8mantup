@@ -29,7 +29,7 @@ const STEPS = [
 export default function WargaForm({ id, preset, onClose }: { id?: string; preset?: Partial<Warga>; onClose: () => void }) {
   const st = useStore()
   const existing = id ? st.warga.find((w) => w.id === id) : undefined
-  const [d, setD] = useState<Draft>(() => ({ ...blankWarga(), dasawisma: st.dasawisma.find((x) => !x.deletedAt)?.nama ?? '', ...(existing ?? {}), ...(preset ?? {}) }) as Draft)
+  const [d, setD] = useState<Draft>(() => ({ ...blankWarga(), alamat: `Mantup ${st.settings.rt || 'RT 08'}`, dasawisma: st.dasawisma.find((x) => !x.deletedAt)?.nama ?? '', ...(existing ?? {}), ...(preset ?? {}) }) as Draft)
   const [step, setStep] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const P = st.settings.pilihan

@@ -157,6 +157,14 @@ describe('server SIWARGA', () => {
     expect((await j('/api/restore', { method: 'POST', token: t9, body: { warga: [] } })).status).toBe(200)
     expect((await j('/api/data', { token: admin, rt: '08' })).data.collections.warga.length).toBe(1)
   })
+  it('gabungan desa hanya untuk Admin Desa', async () => {
+    const d = await j('/api/desa', { token: admin })
+    expect(d.status).toBe(200)
+    expect(d.data.rts.length).toBe(17)
+    expect(d.data.rts.find((r) => r.rt === '08').warga.length).toBe(1)
+    expect(d.data.rts.find((r) => r.rt === '09').warga.length).toBe(0) // RT 09 sudah dipulihkan kosong di tes sebelumnya
+    expect((await j('/api/desa', { token: editor })).status).toBe(403)
+  })
   it('pembatas percobaan login', async () => {
     let last = 0
     for (let i = 0; i < 10; i++) last = (await j('/api/login', { method: 'POST', body: { username: 'brute', password: 'x' + i } })).status

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { Info, LayoutDashboard, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
+import { Building2, Info, LayoutDashboard, RefreshCw, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { REPORTS } from '@/reports/registry'
 import { useStore, useLive } from '@/lib/store'
@@ -10,9 +10,11 @@ import { useEditor } from '@/components/EditorHost'
 import { Avatar, Button, Card, Empty, Input, Modal, PageHeader, useConfirm } from '@/components/ui'
 import SheetView, { SheetCtx, type PrintArea } from '@/sheet/SheetView'
 import { TEMPLATES, colIndex } from '@/sheet/engine'
-import type { Ctx, ReportOpts, ReportParams } from '@/reports/common'
+import { pasangRT, type Ctx, type ReportOpts, type ReportParams } from '@/reports/common'
 import ReportControls, { ManualKB } from '@/reports/ReportControls'
 import { makeCtx } from '@/reports/ctx'
+import { GABUNGAN, NAMA_DESA, bangunDesa, dataGabungan, useDataDesa } from '@/reports/desa'
+import { useDesa } from '@/components/Layout'
 import WebReport from '@/reports/WebView'
 import PrintPanel from '@/reports/PrintPanel'
 import { effectiveScale, excelShrunk, pageGeometry, usePrintSettings } from '@/reports/usePrint'
@@ -100,14 +102,29 @@ function ReportView({ slug }: { slug: string }) {
     () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, pe, o, ym),
     [pe, o, ym, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
   )
-  const pages = useMemo(() => def.build(ctx), [def, ctx])
+  // Admin Desa: laporan gabungan seluruh RT (Desa Mantup)
+  const desa = useDesa()
+  const rtAktif = useSession((s) => s.rt)
+  const bisaGabung = desa && !!GABUNGAN[def.slug]
+  const [cakupan, setCakupanState] = useState<'rt' | 'desa'>(() => (sp.get('desa') === '1' ? 'desa' : 'rt'))
+  const gab = bisaGabung && cakupan === 'desa'
+  const setCakupan = (c: 'rt' | 'desa') => { setCakupanState(c); setP({ dawis: '', pick: '' }) }
+  const dd = useDataDesa()
+  useEffect(() => { if (gab) void dd.load() }, [gab]) // eslint-disable-line react-hooks/exhaustive-deps
+  const ctxDesa = useMemo(() => (gab && dd.list ? makeCtx(dataGabungan(dd.list), pe, o, ym) : null), [gab, dd.list, pe, o, ym])
+  const ctxPakai = ctxDesa ?? ctx
+
+  const pages = useMemo(
+    () => (gab ? (dd.list ? bangunDesa(def, dd.list, pe, o, ym) : []) : pasangRT(def.build(ctx), settings.rt, settings.teks)),
+    [gab, dd.list, def, ctx, pe, o, ym, settings.rt, settings.teks],
+  )
   // warga yang tidak ikut terhitung di laporan: beri tahu penyebabnya
   const tidakTerhitung = useMemo(() => {
-    const dw = new Set(ctx.dasawisma.map((x) => x.nama))
-    return { pkk: ctx.aktif.filter((w) => !w.ikutPKK).length, dawis: ctx.aktif.filter((w) => w.ikutPKK && !dw.has(w.dasawisma)).length }
-  }, [ctx])
+    const dw = new Set(ctxPakai.dasawisma.map((x) => x.nama))
+    return { pkk: ctxPakai.aktif.filter((w) => !w.ikutPKK).length, dawis: ctxPakai.aktif.filter((w) => w.ikutPKK && !dw.has(w.dasawisma)).length }
+  }, [ctxPakai])
 
-  const tpl = TEMPLATES[def.tpl]
+  const tpl = TEMPLATES[pages[0]?.tplId ?? def.tpl] ?? TEMPLATES[def.tpl]
   const area: PrintArea | null = ps.areaOn ? { c1: Math.max(0, colIndex(ps.c1 || 'A')), c2: Math.max(0, colIndex(ps.c2 || 'A')), r1: ps.r1, r2: ps.r2 } : null
   const g = pageGeometry(ps)
   const eff = effectiveScale(ps, nat)
@@ -194,9 +211,21 @@ function ReportView({ slug }: { slug: string }) {
             <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${view === k ? 'bg-white text-violet-700 shadow dark:bg-violet-600 dark:text-white' : 'text-slate-500'}`}><I size={14} />{l}</button>
           ))}
         </div>
+        {bisaGabung && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-xl bg-amber-100 p-1 dark:bg-amber-500/15" role="tablist" aria-label="Cakupan laporan">
+              {([['rt', `RT ${rtAktif}`], ['desa', `Gabungan ${NAMA_DESA}`]] as const).map(([k, l]) => (
+                <button key={k} role="tab" aria-selected={cakupan === k} onClick={() => setCakupan(k)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${cakupan === k ? 'bg-white text-amber-700 shadow dark:bg-amber-600 dark:text-white' : 'text-amber-800/70 dark:text-amber-100/70'}`}>{k === 'desa' && <Building2 size={14} />}{l}</button>
+              ))}
+            </div>
+            {gab && <span className="text-xs text-slate-500">{dd.loading ? 'Memuat data semua RT…' : dd.error ? <span className="text-red-600">{dd.error}</span> : `${dd.list?.length ?? 0} RT digabung`}</span>}
+            {gab && <Button size="sm" variant="ghost" icon={RefreshCw} onClick={() => void dd.load(true)}>Muat ulang</Button>}
+          </div>
+        )}
         {!web && editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
-        <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctx} viewer={!!viewer} admin={isAdmin} />
-        {def.uses.includes('manualKB') && !viewer && <ManualKB periode={periode} />}
+        <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctxPakai} viewer={!!viewer} admin={isAdmin && !gab} gabungan={gab} />
+        {def.uses.includes('manualKB') && !viewer && !gab && <ManualKB periode={periode} />}
+        {gab && def.uses.includes('manualKB') && <p className="mt-2 text-xs text-slate-500">Isian manual Kampung KB pada gabungan desa = jumlah isian semua RT. Untuk mengubahnya, buka laporan ini per RT.</p>}
         {!viewer && !def.uses.includes('warga') && !def.uses.includes('keluarga') && (tidakTerhitung.pkk > 0 || tidakTerhitung.dawis > 0) && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
             <Info size={16} className="shrink-0" />

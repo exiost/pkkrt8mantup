@@ -1,5 +1,5 @@
 import type { Dasawisma, Keluarga, KampungKBManual, Kelahiran, Kematian, PesertaKB, PUSBaru, Settings, Warga } from '@/lib/types'
-import type { CellObj, Val } from '@/sheet/engine'
+import { TEMPLATES, colLetter, type CellObj, type Val } from '@/sheet/engine'
 import type { SheetViewProps } from '@/sheet/SheetView'
 import { BULAN } from '@/lib/options'
 
@@ -98,3 +98,24 @@ export const KB_MANUAL: { title: string; cells: { addr: string; label: string; t
     cells: [{ addr: 'H29', label: 'Ingin anak segera' }, { addr: 'H30', label: 'Ingin anak ditunda' }, { addr: 'H31', label: 'Tidak ingin anak lagi' }, { addr: 'H32', label: 'Jumlah' }],
   },
 ]
+
+/**
+ * Multi-RT: teks tetap pada lembar Excel yang menyebut "RT 08" diganti dengan RT yang sedang dibuka
+ * (judul WUS/PUS/Anak, kop rekap). Nilai yang sudah diisi pembuat laporan tidak ditimpa.
+ */
+export function pasangRT(pages: PageSpec[], rt: string, teks: Record<string, string> = {}): PageSpec[] {
+  const label = (rt || 'RT 08').trim()
+  if (/^RT 08$/i.test(label)) return pages
+  return pages.map((pg) => {
+    const tpl = TEMPLATES[pg.tplId]
+    if (!tpl) return pg
+    const values: Record<string, Val> = { ...(pg.values ?? {}) }
+    for (const row of tpl.rows) for (const c of row.c) {
+      const addr = `${colLetter(c.c)}${row.r}`
+      // teks yang sudah diubah admin lewat "Ubah teks" tetap dipakai
+      if (teks[`${pg.tplId}!${addr}`] !== undefined) continue
+      if (typeof c.v === 'string' && /RT 08/.test(c.v) && !(addr in values)) values[addr] = c.v.replace(/RT 08/g, label)
+    }
+    return { ...pg, values }
+  })
+}

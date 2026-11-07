@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Building2, FolderOpen, House, RefreshCw, Save, UserPlus, Users } from 'lucide-react'
+import { Building2, FileText, FolderOpen, House, RefreshCw, Save, UserPlus, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { REPORTS } from '@/reports/registry'
+import { GABUNGAN } from '@/reports/desa'
 import { api } from '@/lib/api'
 import { useSession } from '@/lib/session'
 import { Button, Card, Chip, Field, Input, Modal, PageHeader, Select, StatCard } from '@/components/ui'
@@ -50,6 +53,18 @@ export default function KelolaRT() {
         <StatCard label="Keluarga (KK)" value={total('keluarga')} icon={House} color="emerald" i={1} />
         <StatCard label={`RT yang sudah mengisi (dari ${rows?.length ?? 17})`} value={terisi} icon={Building2} color="amber" i={2} />
       </div>
+
+      <Card className="mb-5 p-4">
+        <div className="mb-3 flex items-center gap-2 font-display font-extrabold"><FileText size={18} className="text-amber-600" /> Laporan gabungan Desa Mantup (RT 01–17)</div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {REPORTS.filter((d) => GABUNGAN[d.slug] && !d.hidden).map((d) => (
+            <Link key={d.slug} to={`/laporan/${d.slug}?desa=1`} className="shine flex items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 text-sm font-semibold text-slate-700 transition hover:shadow-md dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-slate-100">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow"><d.icon size={17} /></span>
+              <span className="min-w-0 flex-1 leading-tight">{d.title}<span className="block text-[11px] font-normal text-slate-500">{GABUNGAN[d.slug] === 'rekap' ? 'satu baris per RT + jumlah desa' : 'daftar nama semua RT + kolom RT'}</span></span>
+            </Link>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {(rows ?? []).map((r) => (
