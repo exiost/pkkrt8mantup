@@ -1,5 +1,6 @@
 const LS_URL = 'siwarga-server'
 const LS_TOKEN = 'siwarga-token'
+const LS_RT = 'siwarga-rt'
 
 const safe = <T,>(f: () => T, d: T): T => { try { return f() } catch { return d } }
 
@@ -8,6 +9,10 @@ export const getBase = () => safe(() => (localStorage.getItem(LS_URL) ?? '').rep
 export const setBase = (u: string) => safe(() => { u ? localStorage.setItem(LS_URL, u.replace(/\/+$/, '')) : localStorage.removeItem(LS_URL) }, undefined)
 export const getToken = () => safe(() => localStorage.getItem(LS_TOKEN), null)
 export const setToken = (t: string | null) => safe(() => { t ? localStorage.setItem(LS_TOKEN, t) : localStorage.removeItem(LS_TOKEN) }, undefined)
+
+/** RT yang dipilih Admin Desa (akun RT diabaikan server, selalu RT-nya sendiri) */
+export const getRT = () => safe(() => localStorage.getItem(LS_RT) ?? '', '')
+export const setRT = (rt: string) => safe(() => { rt ? localStorage.setItem(LS_RT, rt) : localStorage.removeItem(LS_RT) }, undefined)
 
 export class ApiError extends Error {
   status: number
@@ -27,6 +32,8 @@ export async function api<T = unknown>(path: string, opt: { method?: string; bod
     if (opt.body !== undefined) headers['Content-Type'] = 'application/json'
     const tok = getToken()
     if (opt.auth !== false && tok) headers.Authorization = `Bearer ${tok}`
+    const rt = getRT()
+    if (rt) headers['X-RT'] = rt
     const r = await fetch(url(path), { method: opt.method ?? 'GET', headers, body: opt.body !== undefined ? JSON.stringify(opt.body) : undefined, signal: ctl.signal })
     const data = await r.json().catch(() => null)
     if (!r.ok) throw new ApiError((data as { error?: string } | null)?.error ?? `Server membalas ${r.status}`, r.status)

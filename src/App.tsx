@@ -2,7 +2,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { Toaster } from 'sonner'
 import { useEffect } from 'react'
-import Layout, { usePeran } from './components/Layout'
+import Layout, { useDesa, usePeran } from './components/Layout'
 import { ConfirmProvider } from './components/ui'
 import { useUi } from './lib/ui'
 import Dashboard from './pages/Dashboard'
@@ -18,11 +18,13 @@ import DataPage from './pages/Data'
 import Sampah from './pages/Sampah'
 import Riwayat from './pages/Riwayat'
 import Pekarangan from './pages/Pekarangan'
+import KelolaRT from './pages/KelolaRT'
 import { EditorHost } from './components/EditorHost'
 
 /** Rute per peran: viewer hanya laporan; Beranda khusus admin */
 function Rute({ loc }: { loc: ReturnType<typeof useLocation> }) {
   const peran = usePeran()
+  const desa = useDesa()
   if (peran === 'viewer') {
     return (
       <Routes location={loc}>
@@ -47,6 +49,7 @@ function Rute({ loc }: { loc: ReturnType<typeof useLocation> }) {
       <Route path="/data" element={peran === 'admin' ? <DataPage /> : <Navigate to="/warga" replace />} />
       <Route path="/sampah" element={<Sampah />} />
       <Route path="/riwayat" element={<Riwayat />} />
+      {desa && <Route path="/rt" element={<KelolaRT />} />}
       <Route path="*" element={<Navigate to={peran === 'admin' ? '/' : '/warga'} replace />} />
     </Routes>
   )

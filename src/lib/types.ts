@@ -258,4 +258,8 @@ export interface AppUser {
   name: string
   role: Role
   active: boolean
+  /** kode RT akun ini ("08"); null = Admin Desa */
+  rt?: string | null
+  /** true = Admin Desa (bisa membuka semua RT) */
+  desa?: boolean
 }

@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
 import type { AppUser, Collections } from './types'
-import { api, ApiError, getBase, getToken, probe, setBase, setToken } from './api'
-import { setGuardHook, setPersistMode, setSyncHook, useStore, type Op } from './store'
+import { api, ApiError, getBase, getToken, probe, setBase, setRT, setToken } from './api'
+import { DEFAULT_SETTINGS, setGuardHook, setPersistMode, setSyncHook, useStore, type Op } from './store'
 import type { AuditEntry, Settings } from './types'
 
 export type Boot = 'checking' | 'local' | 'setup' | 'login' | 'ready' | 'error'
@@ -16,6 +16,12 @@ interface Session {
   pending: number
   lastSync: string | null
   error: string
+  /** RT yang sedang dibuka ("08") */
+  rt: string
+  /** daftar semua RT (untuk Admin Desa) */
+  rts: string[]
+  /** Admin Desa: pindah ke RT lain */
+  pilihRT: (rt: string) => Promise<boolean>
   start: () => Promise<void>
   setup: (username: string, password: string, name: string) => Promise<void>
   login: (username: string, password: string) => Promise<void>
@@ -23,7 +29,7 @@ interface Session {
   useLocal: () => void
 }
 
-interface DataResp { seq: number; full: boolean; collections: Partial<Collections> & { audit: AuditEntry[] }; settings: Settings | null }
+interface DataResp { seq: number; rt?: string; full: boolean; collections: Partial<Collections> & { audit: AuditEntry[] }; settings: Settings | null }
 
 const QKEY = 'siwarga-queue'
 let queue: Op[] = []
@@ -97,7 +103,10 @@ export const useSession = create<Session>()((set, get) => {
     try {
       const d = await api<DataResp>(`/data${full || !seq ? '' : `?since=${seq}`}`)
       const { audit, ...cols } = d.collections
-      useStore.getState().muatDariServer(cols, d.settings, audit ?? [], d.full)
+      // RT yang belum punya pengaturan: pakai bawaan dengan nama RT-nya sendiri
+      const settings = d.settings ?? (d.full && d.rt ? { ...DEFAULT_SETTINGS, rt: `RT ${d.rt}` } : null)
+      useStore.getState().muatDariServer(cols, settings, audit ?? [], d.full)
+      if (d.rt) set({ rt: d.rt })
       seq = d.seq
       set({ lastSync: new Date().toISOString() })
     } catch (e) {
@@ -105,8 +114,9 @@ export const useSession = create<Session>()((set, get) => {
     }
   }
 
-  async function enter(user: AppUser) {
-    set({ user, boot: 'ready', server: true, error: '' })
+  async function enter(user: AppUser, info?: { rts?: string[]; rt?: string }) {
+    if (!user.desa) setRT('')
+    set({ user, boot: 'ready', server: true, error: '', rt: info?.rt ?? user.rt ?? '', rts: info?.rts ?? [] })
     setPersistMode('server')
     loadQueue()
     seq = 0
@@ -123,8 +133,26 @@ export const useSession = create<Session>()((set, get) => {
     poll = setInterval(() => { if (document.visibilityState === 'visible') void pull() }, 15000)
   }
 
+  /** sesudah login/setup: ambil daftar RT & RT aktif dari server */
+  async function enterFresh(user: AppUser) {
+    if (!user.desa) setRT('')
+    try { const me = await api<{ user: AppUser; rts: string[]; rt: string }>('/me'); await enter(me.user, me) } catch { await enter(user) }
+  }
+
   return {
-    boot: 'checking', server: false, user: null, sync: 'idle', pending: 0, lastSync: null, error: '',
+    boot: 'checking', server: false, user: null, sync: 'idle', pending: 0, lastSync: null, error: '', rt: '', rts: [],
+
+    pilihRT: async (rt) => {
+      if (!get().user?.desa || rt === get().rt) return false
+      if (queue.length) { toast.error('Tunggu sebentar, masih ada perubahan yang belum terkirim ke server'); void flush(); return false }
+      setRT(rt)
+      seq = 0
+      useStore.setState({ warga: [], keluarga: [], kelahiran: [], kematian: [], pesertaKB: [], pusBaru: [], dasawisma: [], tags: [], kampungKB: [], arsip: [], audit: [] })
+      set({ rt })
+      await pull(true)
+      toast.success(`Sekarang membuka data RT ${rt}`)
+      return true
+    },
 
     start: async () => {
       set({ boot: 'checking', error: '' })
@@ -137,8 +165,8 @@ export const useSession = create<Session>()((set, get) => {
       if (p.needsSetup) { set({ boot: 'setup', server: true }); return }
       if (getToken()) {
         try {
-          const me = await api<{ user: AppUser }>('/me')
-          await enter(me.user)
+          const me = await api<{ user: AppUser; rts: string[]; rt: string }>('/me')
+          await enter(me.user, me)
           return
         } catch (e) {
           if ((e as ApiError).status === 0) { set({ boot: 'error', error: 'Tidak bisa terhubung ke server' }); return }
@@ -151,13 +179,13 @@ export const useSession = create<Session>()((set, get) => {
     setup: async (username, password, name) => {
       const r = await api<{ token: string; user: AppUser }>('/setup', { method: 'POST', body: { username, password, name }, auth: false })
       setToken(r.token)
-      await enter(r.user)
+      await enterFresh(r.user)
     },
 
     login: async (username, password) => {
       const r = await api<{ token: string; user: AppUser }>('/login', { method: 'POST', body: { username, password }, auth: false })
       setToken(r.token)
-      await enter(r.user)
+      await enterFresh(r.user)
     },
 
     logout: () => {
@@ -168,8 +196,9 @@ export const useSession = create<Session>()((set, get) => {
       if (timer) clearTimeout(timer)
       queue = []
       saveQueue()
-      useStore.setState({ warga: [], keluarga: [], kelahiran: [], kematian: [], pesertaKB: [], pusBaru: [], tags: [], kampungKB: [], arsip: [], audit: [] })
-      set({ user: null, boot: 'login', sync: 'idle', pending: 0 })
+      setRT('')
+      useStore.setState({ warga: [], keluarga: [], kelahiran: [], kematian: [], pesertaKB: [], pusBaru: [], dasawisma: [], tags: [], kampungKB: [], arsip: [], audit: [] })
+      set({ user: null, boot: 'login', sync: 'idle', pending: 0, rt: '', rts: [] })
     },
 
     useLocal: () => {

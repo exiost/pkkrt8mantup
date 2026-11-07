@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createApp } from '../index.mjs'
 
 let srv, base
-const j = async (path, { method = 'GET', body, token } = {}) => {
-  const r = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined })
+const j = async (path, { method = 'GET', body, token, rt = '08' } = {}) => {
+  const r = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', 'X-RT': rt, ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined })
   return { status: r.status, data: await r.json().catch(() => ({})) }
 }
 const rec = (id, extra = {}) => ({ id, updatedAt: new Date().toISOString(), createdAt: new Date().toISOString(), nama: 'X', ...extra })
@@ -45,9 +45,9 @@ describe('server SIWARGA', () => {
     expect(r.status).toBe(200)
   })
   it('admin membuat editor & viewer', async () => {
-    const e = await j('/api/users', { method: 'POST', token: admin, body: { username: 'kader', password: 'kader12345', role: 'editor', name: 'Kader' } })
+    const e = await j('/api/users', { method: 'POST', token: admin, body: { username: 'kader', password: 'kader12345', role: 'editor', name: 'Kader', rt: '08' } })
     expect(e.status).toBe(200)
-    const v = await j('/api/users', { method: 'POST', token: admin, body: { username: 'tamu', password: 'tamu123456', role: 'viewer' } })
+    const v = await j('/api/users', { method: 'POST', token: admin, body: { username: 'tamu', password: 'tamu123456', role: 'viewer', rt: '08' } })
     expect(v.status).toBe(200)
     expect((await j('/api/users', { method: 'POST', token: admin, body: { username: 'kader', password: 'kader12345', role: 'editor' } })).status).toBe(409)
     editor = (await j('/api/login', { method: 'POST', body: { username: 'kader', password: 'kader12345' } })).data.token
@@ -121,6 +121,41 @@ describe('server SIWARGA', () => {
     await j(`/api/users/${t.id}`, { method: 'PUT', token: admin, body: { active: false } })
     expect((await j('/api/data', { token: viewer })).status).toBe(401)
     expect((await j('/api/login', { method: 'POST', body: { username: 'tamu', password: 'tamu123456' } })).status).toBe(401)
+  })
+  it('multi-RT: RT lain tidak bisa melihat atau menimpa data RT 08', async () => {
+    expect((await j('/api/users', { method: 'POST', token: admin, body: { username: 'admin09', password: 'admin09pass', role: 'admin', rt: '09' } })).status).toBe(200)
+    expect((await j('/api/users', { method: 'POST', token: admin, body: { username: 'tanpaRT', password: 'admin09pass', role: 'admin' } })).status).toBe(400)
+    const a9 = (await j('/api/login', { method: 'POST', body: { username: 'admin09', password: 'admin09pass' } })).data
+    expect(a9.user.rt).toBe('09')
+    expect(a9.user.desa).toBe(false)
+    const t9 = a9.token
+    // header X-RT diabaikan untuk akun RT: tetap RT 09
+    const d9 = await j('/api/data', { token: t9, rt: '08' })
+    expect(d9.data.rt).toBe('09')
+    expect(d9.data.collections.warga).toEqual([])
+    expect((await j('/api/ops', { method: 'POST', token: t9, body: { ops: [{ t: 'put', k: 'warga', rec: rec('w1', { nama: 'Bajak' }) }] } })).status).toBe(400)
+    expect((await j('/api/ops', { method: 'POST', token: t9, body: { ops: [{ t: 'del', k: 'warga', id: 'w1' }] } })).status).toBe(400)
+    expect((await j('/api/ops', { method: 'POST', token: t9, body: { ops: [{ t: 'put', k: 'warga', rec: rec('x9', { nama: 'Warga 9' }) }] } })).status).toBe(200)
+    // Admin RT 09 hanya melihat akun RT 09, tidak bisa mengubah akun RT 08
+    const u9 = (await j('/api/users', { token: t9 })).data.users
+    expect(u9.map((u) => u.username)).toEqual(['admin09'])
+    const kader = (await j('/api/users', { token: admin })).data.users.find((u) => u.username === 'kader')
+    expect((await j(`/api/users/${kader.id}`, { method: 'PUT', token: t9, body: { active: false } })).status).toBe(404)
+    expect((await j('/api/users', { method: 'POST', token: t9, body: { username: 'desa2', password: 'desa2pass', role: 'admin', desa: true } })).status).toBe(403)
+    expect((await j('/api/rts', { token: t9 })).status).toBe(403)
+    // Admin Desa memilih RT lewat X-RT
+    expect((await j('/api/data', { token: admin, rt: '09' })).data.collections.warga.map((w) => w.nama)).toEqual(['Warga 9'])
+    expect((await j('/api/data', { token: admin, rt: '08' })).data.collections.warga.map((w) => w.nama)).toEqual(['Siti'])
+    expect((await j('/api/data', { token: admin, rt: '99' })).status).toBe(400)
+    const rts = (await j('/api/rts', { token: admin })).data.rts
+    expect(rts.length).toBe(17)
+    expect(rts.find((r) => r.rt === '09').warga).toBe(1)
+    // pengaturan per RT
+    await j('/api/ops', { method: 'POST', token: t9, body: { ops: [{ t: 'settings', settings: { rt: 'RT 09' } }] } })
+    expect((await j('/api/data', { token: admin, rt: '08' })).data.settings.rt).toBe('RT 08')
+    // pulihkan cadangan RT 09 tidak menghapus RT 08
+    expect((await j('/api/restore', { method: 'POST', token: t9, body: { warga: [] } })).status).toBe(200)
+    expect((await j('/api/data', { token: admin, rt: '08' })).data.collections.warga.length).toBe(1)
   })
   it('pembatas percobaan login', async () => {
     let last = 0

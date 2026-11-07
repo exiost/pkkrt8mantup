@@ -8,6 +8,9 @@ import { Button, Chip, Field, IconBtn, Input, Modal, Section, Select, Toggle, us
 import type { AppUser, Role } from '@/lib/types'
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'Admin (semua hak)', editor: 'Pengurus (ubah data)', viewer: 'Pembaca (hanya lihat)' }
+type Akun = AppUser & { created_at?: string; password?: string; baru?: boolean }
+/** pilihan "RT" di form akun Admin Desa: '' = Admin Desa (semua RT) */
+const rtLabel = (u: Partial<AppUser>) => (u.desa ? 'Admin Desa' : u.rt ? `RT ${u.rt}` : '')
 
 export default function AkunServer() {
   const s = useSession()
@@ -44,7 +47,7 @@ function ServerMode() {
     <div className="space-y-4">
       <Section title="Akun saya" icon={KeyRound} color="violet" actions={<Button size="sm" variant="outline" icon={LogOut} onClick={s.logout}>Keluar</Button>}>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-          <b>{user.name || user.username}</b> <Chip color="violet">{ROLE_LABEL[user.role]}</Chip> <Chip color="emerald" icon={Cloud}>Terhubung ke server {getBase() || '(server ini)'}</Chip>
+          <b>{user.name || user.username}</b> <Chip color="violet">{user.desa ? 'Admin Desa (semua RT)' : ROLE_LABEL[user.role]}</Chip>{!user.desa && user.rt && <Chip color="amber">RT {user.rt}</Chip>} <Chip color="emerald" icon={Cloud}>Terhubung ke server {getBase() || '(server ini)'}</Chip>
         </div>
         <ChangePassword />
       </Section>
@@ -79,16 +82,21 @@ function ChangePassword() {
 function Users() {
   const me = useSession((x) => x.user)!
   const confirm = useConfirm()
-  const [users, setUsers] = useState<(AppUser & { created_at?: string })[]>([])
-  const [edit, setEdit] = useState<Partial<AppUser> & { password?: string; baru?: boolean } | null>(null)
-  const load = useCallback(async () => { try { setUsers((await api<{ users: AppUser[] }>('/users')).users) } catch (e) { toast.error((e as Error).message) } }, [])
+  const { rts, rt: rtAktif } = useSession()
+  const [users, setUsers] = useState<Akun[]>([])
+  const [adaDesa, setAdaDesa] = useState(true)
+  const [edit, setEdit] = useState<Partial<Akun> | null>(null)
+  const load = useCallback(async () => {
+    try { const r = await api<{ users: AppUser[]; adaDesa: boolean }>('/users'); setUsers(r.users); setAdaDesa(r.adaDesa) } catch (e) { toast.error((e as Error).message) }
+  }, [])
   useEffect(() => { void load() }, [load])
 
   async function save() {
     if (!edit) return
     try {
-      if (edit.baru) await api('/users', { method: 'POST', body: { username: edit.username, name: edit.name, password: edit.password, role: edit.role } })
-      else await api(`/users/${edit.id}`, { method: 'PUT', body: { name: edit.name, role: edit.role, active: edit.active, ...(edit.password ? { password: edit.password } : {}) } })
+      const lokasi = me.desa || edit.desa ? { desa: !!edit.desa && edit.role === 'admin', ...(edit.desa ? {} : { rt: edit.rt }) } : {}
+      if (edit.baru) await api('/users', { method: 'POST', body: { username: edit.username, name: edit.name, password: edit.password, role: edit.role, ...lokasi } })
+      else await api(`/users/${edit.id}`, { method: 'PUT', body: { name: edit.name, role: edit.role, active: edit.active, ...(me.desa ? lokasi : {}), ...(edit.password ? { password: edit.password } : {}) } })
       toast.success('Pengguna disimpan')
       setEdit(null)
       void load()
@@ -96,12 +104,19 @@ function Users() {
   }
 
   return (
-    <Section title="Pengguna" icon={UserCog} color="indigo" actions={<Button size="sm" icon={Plus} onClick={() => setEdit({ baru: true, role: 'editor', active: true, username: '', name: '', password: '' })}>Tambah</Button>}>
+    <Section title={me.desa ? 'Pengguna (semua RT)' : `Pengguna RT ${me.rt ?? ''}`} icon={UserCog} color="indigo" actions={<Button size="sm" icon={Plus} onClick={() => setEdit({ baru: true, role: 'editor', active: true, username: '', name: '', password: '', rt: me.desa ? rtAktif : me.rt, desa: false })}>Tambah</Button>}>
+      {!adaDesa && !me.desa && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+          <span className="min-w-0 flex-1"><b>Belum ada akun Admin Desa.</b> Admin Desa bisa membuka dan mengubah data semua RT (RT 01–17). Buat sekali di sini; setelah itu hanya Admin Desa yang bisa membuat Admin Desa lain.</span>
+          <Button size="sm" icon={Plus} onClick={() => setEdit({ baru: true, role: 'admin', desa: true, active: true, username: 'desa', name: 'Admin Desa Mantup', password: '' })}>Buat Admin Desa</Button>
+        </div>
+      )}
       <div className="divide-y divide-slate-100 dark:divide-white/5">
         {users.map((u) => (
           <div key={u.id} className="flex flex-wrap items-center gap-2 py-2">
             <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-bold text-white">{(u.name || u.username).slice(0, 2).toUpperCase()}</div>
             <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{u.name || u.username} {u.id === me.id && <Chip color="emerald">Anda</Chip>}</div><div className="text-xs text-slate-500">@{u.username}</div></div>
+            {rtLabel(u) && <Chip color="amber">{rtLabel(u)}</Chip>}
             <Chip color={u.role === 'admin' ? 'red' : u.role === 'editor' ? 'violet' : 'slate'}>{u.role}</Chip>
             {!u.active && <Chip color="slate">nonaktif</Chip>}
             <IconBtn icon={Pencil} label="Ubah" onClick={() => setEdit({ ...u, password: '' })} />
@@ -119,7 +134,13 @@ function Users() {
             <Field label="Nama lengkap"><Input value={edit.name ?? ''} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
             <Field label="Nama pengguna (untuk login)"><Input value={edit.username ?? ''} disabled={!edit.baru} onChange={(e) => setEdit({ ...edit, username: e.target.value })} /></Field>
             <Field label="Peran"><Select options={['admin', 'editor', 'viewer']} value={edit.role ?? 'editor'} onChange={(v) => setEdit({ ...edit, role: (v || 'viewer') as Role })} /></Field>
-            <p className="-mt-1 text-xs text-slate-400">{ROLE_LABEL[edit.role ?? 'editor']}</p>
+            <p className="-mt-1 text-xs text-slate-400">{edit.desa ? 'Admin Desa: membuka & mengubah data semua RT' : ROLE_LABEL[edit.role ?? 'editor']}</p>
+            {me.desa && (
+              <Field label="Wilayah akun">
+                <Select options={[...(edit.role === 'admin' ? ['Admin Desa'] : []), ...rts.map((r) => `RT ${r}`)]} value={edit.desa ? 'Admin Desa' : `RT ${edit.rt ?? ''}`}
+                  onChange={(v) => setEdit({ ...edit, desa: v === 'Admin Desa', rt: v.startsWith('RT ') ? v.slice(3) : null })} />
+              </Field>
+            )}
             <Field label={edit.baru ? 'Kata sandi (min. 8)' : 'Kata sandi baru (kosongkan bila tidak diganti)'}><Input type="password" value={edit.password ?? ''} onChange={(e) => setEdit({ ...edit, password: e.target.value })} autoComplete="new-password" /></Field>
             {!edit.baru && <Toggle checked={edit.active !== false} onChange={(b) => setEdit({ ...edit, active: b })} label="Akun aktif" />}
           </div>

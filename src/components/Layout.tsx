@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Cloud, CloudOff, LogOut, LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
+  Building2, Cloud, CloudOff, LogOut, MapPinned, LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLive } from '@/lib/store'
@@ -22,13 +22,32 @@ const NAV: { to: string; color: string; label: string; icon: typeof Users; group
   { to: '/pengaturan', color: 'slate', label: 'Pengaturan', icon: Settings, group: 'Sistem' },
   { to: '/sampah', color: 'rose', label: 'Tempat Sampah', icon: Trash2, group: 'Sistem' },
   { to: '/riwayat', color: 'indigo', label: 'Riwayat Perubahan', icon: History, group: 'Sistem' },
+  { to: '/rt', color: 'amber', label: 'Kelola RT (Desa)', icon: Building2, group: 'Desa' },
 ]
 
 export type Peran = 'admin' | 'editor' | 'viewer'
 /** Peran akun saat ini; tanpa server (mode lokal) pemakai = admin */
 export const usePeran = (): Peran => useSession((s) => (s.server ? s.user?.role ?? 'viewer' : 'admin'))
 /** Menu yang boleh dibuka: viewer hanya Laporan, Beranda khusus admin */
-export const menuBoleh = (peran: Peran) => NAV.filter((n) => (peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
+export const menuBoleh = (peran: Peran, desa = false) => NAV.filter((n) => (n.to === '/rt' ? desa : peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
+/** Admin Desa: akun yang bisa membuka semua RT */
+export const useDesa = () => useSession((s) => s.server && !!s.user?.desa)
+
+/** Pilihan RT untuk Admin Desa */
+export function RtPicker({ className = '' }: { className?: string }) {
+  const { rt, rts, pilihRT } = useSession()
+  const desa = useDesa()
+  if (!desa) return null
+  return (
+    <label className={`flex items-center gap-2 rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 dark:border-amber-500/40 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-amber-200 ${className}`}>
+      <MapPinned size={16} className="shrink-0" />
+      <span className="whitespace-nowrap">Buka data</span>
+      <select aria-label="Pilih RT" value={rt} onChange={(e) => void pilihRT(e.target.value)} className="h-8 min-w-0 flex-1 rounded-lg border border-amber-200 bg-white px-2 text-sm font-bold text-slate-800 dark:border-white/10 dark:bg-slate-800 dark:text-white">
+        {rts.map((r) => <option key={r} value={r}>RT {r}</option>)}
+      </select>
+    </label>
+  )
+}
 
 function SyncBadge({ compact }: { compact?: boolean }) {
   const { server, sync, pending, user } = useSession()
@@ -48,19 +67,21 @@ function UserBox() {
   return (
     <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-100 p-2 dark:bg-white/5">
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-bold text-white">{(user.name || user.username).slice(0, 2).toUpperCase()}</div>
-      <div className="min-w-0 flex-1 leading-tight"><div className="truncate text-xs font-semibold">{user.name || user.username}</div><div className="text-[10px] uppercase tracking-wide text-slate-400">{user.role}</div></div>
+      <div className="min-w-0 flex-1 leading-tight"><div className="truncate text-xs font-semibold">{user.name || user.username}</div><div className="text-[10px] uppercase tracking-wide text-slate-400">{user.desa ? 'Admin Desa' : `${user.role} · RT ${user.rt ?? ''}`}</div></div>
       <button onClick={logout} title="Keluar" aria-label="Keluar" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-white dark:hover:bg-white/10"><LogOut size={16} /></button>
     </div>
   )
 }
 
 function Brand() {
+  const { server, rt, user } = useSession()
+  const sub = server && rt ? `${user?.desa ? 'Desa · ' : ''}RT ${rt} · Mantup` : 'RT 08 · Mantup'
   return (
     <div className="flex items-center gap-3 px-2">
       <img src="./icon.svg" alt="" className="floaty h-10 w-10 rounded-xl shadow-lg shadow-violet-500/40 ring-2 ring-white dark:ring-slate-800" />
       <div className="leading-tight">
         <div className="whitespace-nowrap bg-gradient-to-r from-violet-600 via-fuchsia-500 to-orange-500 bg-clip-text font-display text-base font-extrabold text-transparent">SIWARGA PKK</div>
-        <div className="whitespace-nowrap text-[11px] font-medium text-slate-500">RT 08 · Mantup</div>
+        <div className="whitespace-nowrap text-[11px] font-medium text-slate-500">{sub}</div>
       </div>
     </div>
   )
@@ -69,9 +90,10 @@ function Brand() {
 function NavList({ onNav }: { onNav?: () => void }) {
   let last = ''
   const peran = usePeran()
+  const desa = useDesa()
   return (
     <nav className="space-y-0.5">
-      {menuBoleh(peran).map((n) => {
+      {menuBoleh(peran, desa).map((n) => {
         const head = n.group !== last ? n.group : ''
         last = n.group
         return (
@@ -180,6 +202,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <button onClick={() => setPalette(true)} className="mt-5 flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-400 transition hover:border-violet-300 dark:border-white/10 dark:bg-white/5">
           <Search size={16} /> Cari cepat… <kbd className="ml-auto rounded bg-white px-1.5 text-[10px] text-slate-500 shadow dark:bg-white/10">Ctrl K</kbd>
         </button>
+        <RtPicker className="mt-2" />
         <div className="mt-2 flex-1 overflow-y-auto"><NavList /></div>
         <button onClick={() => setUi({ dark: !dark })} className="mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5">
           {dark ? <Sun size={18} /> : <Moon size={18} />} {dark ? 'Mode terang' : 'Mode gelap'}
@@ -204,6 +227,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/50" onClick={() => setDrawer(false)} />
             <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }} className="absolute inset-y-0 right-0 w-72 overflow-y-auto bg-white p-4 dark:bg-slate-900">
               <div className="flex items-center justify-between"><Brand /><button onClick={() => setDrawer(false)} className="p-2"><X size={20} /></button></div>
+              <RtPicker className="mt-4" />
               <div className="mt-4"><NavList onNav={() => setDrawer(false)} /></div>
               <UserBox />
             </motion.aside>

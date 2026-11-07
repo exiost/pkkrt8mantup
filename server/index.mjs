@@ -31,7 +31,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   // --- CORS (mode bearer-token, tanpa cookie) & header keamanan dasar ---
   app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin)
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-RT')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Referrer-Policy', 'no-referrer')
@@ -52,8 +52,19 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     if (!u || !u.active) return res.status(401).json({ error: 'Sesi berakhir, silakan masuk lagi' })
     if (roles && !roles.includes(u.role)) return res.status(403).json({ error: 'Akun Anda tidak boleh melakukan ini' })
     req.user = u
+    // RT yang sedang dikerjakan: akun RT selalu RT-nya sendiri; Admin Desa memilih lewat header X-RT
+    const daftar = store.rts()
+    if (u.rt) req.rt = u.rt
+    else {
+      const pilih = String(req.headers['x-rt'] ?? '')
+      if (pilih && !daftar.includes(pilih)) return res.status(400).json({ error: `RT ${pilih} tidak terdaftar` })
+      req.rt = pilih || daftar[0] || '01'
+    }
+    req.desa = !u.rt && u.role === 'admin'
     next()
   }
+  const desaOnly = (req, res, next) => (req.desa ? next() : res.status(403).json({ error: 'Hanya Admin Desa yang boleh melakukan ini' }))
+  const settingsOf = (rt) => { const v = store.meta(`settings:${rt}`); return v ? JSON.parse(v) : null }
   const wrap = (fn) => (req, res) => { try { fn(req, res) } catch (e) { console.error(e); res.status(400).json({ error: e.message || 'Permintaan tidak valid' }) } }
   const session = (u) => ({ token: signToken({ uid: u.id }, secret), user: store.publicUser(u) })
   const validPw = (pw) => typeof pw === 'string' && pw.length >= 8
@@ -64,8 +75,9 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     if (store.q.userCount.get().n > 0) return res.status(403).json({ error: 'Server sudah disiapkan' })
     const { username, password, name } = req.body ?? {}
     if (!username?.trim() || !validPw(password)) return res.status(400).json({ error: 'Isi nama pengguna dan kata sandi (minimal 8 karakter)' })
-    const u = { id: randomUUID(), username: username.trim(), name: (name ?? '').trim() || username.trim(), pass: hashPassword(password), role: 'admin' }
-    store.q.insUser.run(u.id, u.username, u.name, u.pass, 'admin', new Date().toISOString())
+    // akun pertama di server baru = Admin Desa (rt kosong)
+    const u = { id: randomUUID(), username: username.trim(), name: (name ?? '').trim() || username.trim(), pass: hashPassword(password), role: 'admin', rt: null }
+    store.q.insUser.run(u.id, u.username, u.name, u.pass, 'admin', new Date().toISOString(), null)
     res.json(session(u))
   }))
 
@@ -79,7 +91,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     res.json(session(u))
   }))
 
-  app.get('/api/me', auth(), (req, res) => res.json({ user: store.publicUser(req.user) }))
+  app.get('/api/me', auth(), (req, res) => res.json({ user: store.publicUser(req.user), rts: store.rts(), rt: req.rt }))
 
   app.post('/api/me/password', auth(), wrap((req, res) => {
     const { old, next } = req.body ?? {}
@@ -93,9 +105,8 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   app.get('/api/data', auth(), wrap((req, res) => {
     const since = Number(req.query.since) || 0
     const seq = store.seq()
-    const cols = store.snapshot(since)
-    const settings = store.meta('settings')
-    res.json({ seq, full: !since, collections: cols, settings: settings ? JSON.parse(settings) : null })
+    const cols = store.snapshot(since, req.rt)
+    res.json({ seq, rt: req.rt, full: !since, collections: cols, settings: settingsOf(req.rt) })
   }))
 
   app.post('/api/ops', auth(['admin', 'editor']), wrap((req, res) => {
@@ -110,40 +121,58 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
           // kunci tanggal laporan hanya boleh diubah admin
           const next = { ...op.settings }
           if (!admin) {
-            const cur = store.meta('settings')
-            const kunci = cur ? JSON.parse(cur).kunci : undefined
+            const kunci = settingsOf(req.rt)?.kunci
             if (kunci === undefined) delete next.kunci; else next.kunci = kunci
           }
-          store.setMeta('settings', JSON.stringify(next))
+          store.setMeta(`settings:${req.rt}`, JSON.stringify(next))
           continue
         }
-        const c = store.applyOp(op, req.user.name || req.user.username)
+        const c = store.applyOp(op, req.user.name || req.user.username, req.rt)
         if (c) conflicts.push(c)
       }
     })
     res.json({ seq: store.seq(), conflicts })
   }))
 
-  // --- pengguna (admin) ---
-  app.get('/api/users', auth(['admin']), (_req, res) => res.json({ users: store.q.users.all().map((u) => ({ ...u, active: !!u.active })) }))
+  // --- pengguna: Admin Desa mengelola semua akun; Admin RT hanya akun RT-nya ---
+  const bolehKelola = (req, u) => req.desa || (u.rt && u.rt === req.user.rt)
+  /** rt tujuan untuk akun baru/ubah. desa=true → Admin Desa (rt kosong) */
+  const rtTujuan = (req, body, lama) => {
+    if (!req.desa) return req.user.rt
+    if (body.desa) return null
+    const rt = body.rt === undefined ? lama : body.rt
+    if (!rt || !store.rts().includes(rt)) throw new Error('Pilih RT untuk akun ini')
+    return rt
+  }
+  app.get('/api/users', auth(['admin']), (req, res) => res.json({
+    adaDesa: store.q.desaCount.get().n > 0,
+    users: store.q.users.all().filter((u) => req.desa || u.rt === req.user.rt).map((u) => ({ ...u, active: !!u.active, rt: u.rt ?? null, desa: u.role === 'admin' && !u.rt })),
+  }))
 
   app.post('/api/users', auth(['admin']), wrap((req, res) => {
     const { username, name, password, role } = req.body ?? {}
     if (!username?.trim() || !validPw(password) || !ROLES.includes(role)) return res.status(400).json({ error: 'Isi nama pengguna, peran, dan kata sandi (minimal 8 karakter)' })
     if (store.q.userByName.get(username.trim())) return res.status(409).json({ error: 'Nama pengguna sudah dipakai' })
+    // akun Admin Desa hanya boleh dibuat Admin Desa, atau (sekali) oleh admin bila belum ada Admin Desa sama sekali
+    const mintaDesa = !!req.body.desa && role === 'admin'
+    if (mintaDesa && !req.desa && store.q.desaCount.get().n > 0) return res.status(403).json({ error: 'Hanya Admin Desa yang boleh membuat akun Admin Desa' })
+    const rt = mintaDesa ? null : rtTujuan(req, { ...req.body, desa: false }, undefined)
     const id = randomUUID()
-    store.q.insUser.run(id, username.trim(), (name ?? '').trim() || username.trim(), hashPassword(password), role, new Date().toISOString())
+    store.q.insUser.run(id, username.trim(), (name ?? '').trim() || username.trim(), hashPassword(password), role, new Date().toISOString(), rt)
     res.json({ user: store.publicUser(store.q.userById.get(id)) })
   }))
 
+  const sisaDesa = (u, role, active, rt) => u.role === 'admin' && !u.rt && (role !== 'admin' || !active || rt) && store.q.desaCount.get().n <= 1
   app.put('/api/users/:id', auth(['admin']), wrap((req, res) => {
     const u = store.q.userById.get(req.params.id)
-    if (!u) return res.status(404).json({ error: 'Pengguna tidak ditemukan' })
+    if (!u || !bolehKelola(req, u)) return res.status(404).json({ error: 'Pengguna tidak ditemukan' })
     const role = req.body.role ?? u.role
     const active = req.body.active === undefined ? !!u.active : !!req.body.active
     if (!ROLES.includes(role)) return res.status(400).json({ error: 'Peran tidak valid' })
-    if (u.role === 'admin' && (role !== 'admin' || !active) && store.q.adminCount.get().n <= 1) return res.status(400).json({ error: 'Harus ada minimal satu admin aktif' })
-    store.q.updUser.run((req.body.name ?? u.name).trim(), role, active ? 1 : 0, u.id)
+    const jadiDesa = role === 'admin' && (req.body.desa ?? (!u.rt && req.body.rt === undefined))
+    const rt = req.desa ? (jadiDesa ? null : rtTujuan(req, { ...req.body, desa: false }, u.rt)) : u.rt
+    if (sisaDesa(u, role, active, rt)) return res.status(400).json({ error: 'Harus ada minimal satu Admin Desa aktif' })
+    store.q.updUser.run((req.body.name ?? u.name).trim(), role, active ? 1 : 0, rt, u.id)
     if (req.body.password !== undefined) {
       if (!validPw(req.body.password)) return res.status(400).json({ error: 'Kata sandi minimal 8 karakter' })
       store.q.updPass.run(hashPassword(req.body.password), u.id)
@@ -153,22 +182,37 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
 
   app.delete('/api/users/:id', auth(['admin']), wrap((req, res) => {
     const u = store.q.userById.get(req.params.id)
-    if (!u) return res.status(404).json({ error: 'Pengguna tidak ditemukan' })
+    if (!u || !bolehKelola(req, u)) return res.status(404).json({ error: 'Pengguna tidak ditemukan' })
     if (u.id === req.user.id) return res.status(400).json({ error: 'Tidak bisa menghapus akun sendiri' })
-    if (u.role === 'admin' && store.q.adminCount.get().n <= 1) return res.status(400).json({ error: 'Harus ada minimal satu admin aktif' })
+    if (sisaDesa(u, 'x', false, null)) return res.status(400).json({ error: 'Harus ada minimal satu Admin Desa aktif' })
     store.q.delUser.run(u.id)
     res.json({ ok: true })
   }))
 
+  // --- daftar RT (Admin Desa) ---
+  app.get('/api/rts', auth(['admin']), desaOnly, (_req, res) => {
+    const ring = {}
+    for (const r of store.q.ringkasRT.all()) (ring[r.rt] ??= {})[r.coll] = r
+    const users = store.q.users.all()
+    res.json({
+      rts: store.rts().map((rt) => ({
+        rt,
+        warga: ring[rt]?.warga?.n ?? 0,
+        keluarga: ring[rt]?.keluarga?.n ?? 0,
+        akhir: [ring[rt]?.warga?.akhir, ring[rt]?.keluarga?.akhir, ring[rt]?.audit?.akhir].filter(Boolean).sort().pop() ?? null,
+        akun: users.filter((u) => u.rt === rt).map((u) => ({ username: u.username, name: u.name, role: u.role, active: !!u.active })),
+      })),
+    })
+  })
+
   // --- cadangan ---
-  app.get('/api/backup', auth(['admin']), (_req, res) => {
-    const settings = store.meta('settings')
-    res.json({ versi: 2, dibuat: new Date().toISOString(), settings: settings ? JSON.parse(settings) : null, ...store.snapshot(0) })
+  app.get('/api/backup', auth(['admin']), (req, res) => {
+    res.json({ versi: 2, rt: req.rt, dibuat: new Date().toISOString(), settings: settingsOf(req.rt), ...store.snapshot(0, req.rt) })
   })
   app.post('/api/restore', auth(['admin']), wrap((req, res) => {
     const d = req.body
     if (!d || !Array.isArray(d.warga)) return res.status(400).json({ error: 'Format cadangan tidak dikenali' })
-    store.restore(d)
+    store.restore(d, req.rt)
     res.json({ ok: true, seq: store.seq() })
   }))
 

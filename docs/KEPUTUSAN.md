@@ -47,6 +47,7 @@ Pemilik proyek menyerahkan keputusan teknis ("yang penting jadi dulu"). Berikut 
 | K23 | Kunci tanggal laporan | Admin mengunci tanggal acuan + bulan + tahun sekali, berlaku untuk semua laporan bagi akun viewer; viewer tidak melihat kontrol tanggal. Tanpa kunci: hari ini. Admin & editor tetap bebas memilih | Tanggal yang tercetak di judul lembar tetap tampil karena bagian dari hasil cetak seperti Excel |
 | K24 | Status ibu per bulan | Catatan opsional `riwayatIbu` per ibu: satu entri per bulan (Hamil / Melahirkan / Nifas / Menyusui, cara lahir, “tetap dilaporkan Hamil”). Bila ada catatan, laporan bulan itu memakai catatan; bulan tanpa catatan tidak dilaporkan. Tanpa catatan sama sekali: memakai saklar lama (sama dengan Excel) | Laporan tahunan: ibu yang sudah melahirkan SC tetap ditulis Hamil di bulan itu |
 | K25 | Urutan Status Ibu | Makin banyak status & info terisi, makin di atas (urutan baru diterapkan ±1 detik setelah saklar digeser agar kartu tidak melompat) | Permintaan pemilik |
+| K26 | Multi-RT (Desa Mantup, RT 01–17) | Satu server, setiap data & akun berlabel RT. Akun RT hanya melihat/mengubah RT-nya (dijaga server). Akun admin dengan RT kosong = **Admin Desa**: memilih RT lewat pilihan "Buka data", bisa mengubah data semua RT, menu Kelola RT. Database lama otomatis menjadi RT 08; akun lama tetap RT 08. Admin Desa pertama dibuat sekali oleh admin RT 08 (Pengaturan → Pengguna) | Permintaan pemilik (tahap 1 dari 6) |
 
 ### Perbedaan angka dengan Excel (kesalahan rumus di Excel)
 
