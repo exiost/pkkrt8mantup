@@ -51,7 +51,26 @@ let backoff = 0
 let flushing = false
 
 const loadQueue = () => { try { queue = JSON.parse(localStorage.getItem(QKEY) ?? '[]') } catch { queue = [] } }
-const saveQueue = () => { try { queue.length ? localStorage.setItem(QKEY, JSON.stringify(queue)) : localStorage.removeItem(QKEY) } catch { /* penuh */ } }
+const SKEY = 'siwarga-queue-sejak'
+const saveQueue = () => {
+  try {
+    if (queue.length) {
+      localStorage.setItem(QKEY, JSON.stringify(queue))
+      if (!localStorage.getItem(SKEY)) localStorage.setItem(SKEY, new Date().toISOString())
+    } else { localStorage.removeItem(QKEY); localStorage.removeItem(SKEY) }
+  } catch { /* penuh */ }
+}
+/** sejak kapan ada perubahan yang belum terkirim ke server (null = tidak ada) */
+export const pendingSejak = (): string | null => { try { return localStorage.getItem(SKEY) } catch { return null } }
+
+/** minta browser tidak menghapus data aplikasi ini otomatis saat memori HP hampir penuh */
+export async function mintaPenyimpananTetap(): Promise<boolean> {
+  try {
+    if (!navigator.storage?.persist) return false
+    if (await navigator.storage.persisted()) return true
+    return await navigator.storage.persist()
+  } catch { return false }
+}
 
 function coalesce(ops: Op[]): Op[] {
   const last = new Map<string, number>()
@@ -172,6 +191,7 @@ export const useSession = create<Session>()((set, get) => {
     set({ pending: queue.length })
     watchCache()
     watchOnline()
+    void mintaPenyimpananTetap()
     window.addEventListener('online', () => { void (async () => { if (get().offline && (await probe())) { set({ offline: false }); await flush(); await pull(true) } })() })
   }
   function setGuard() {
@@ -195,6 +215,7 @@ export const useSession = create<Session>()((set, get) => {
     await pull(true)
     watchCache()
     saveCache()
+    void mintaPenyimpananTetap()
     setSyncHook((ops) => { queue.push(...ops); saveQueue(); set({ pending: queue.length }); schedule() })
     if (queue.length) schedule(200)
     if (poll) clearInterval(poll)
@@ -287,6 +308,7 @@ export const useSession = create<Session>()((set, get) => {
       setSyncHook(null)
       setGuardHook(null)
       setPersistMode('local')
+      void mintaPenyimpananTetap()
       void useStore.persist.rehydrate()
       set({ boot: 'local', server: false, user: null })
     },

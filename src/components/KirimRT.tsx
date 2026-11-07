@@ -6,14 +6,12 @@ import { useSession } from '@/lib/session'
 import { useStore } from '@/lib/store'
 import { useDataDesa } from '@/reports/desa'
 import { Button, Modal, Section, Toggle, useConfirm } from '@/components/ui'
-import { COLLECTION_NAMES } from '@/lib/types'
+import { eksporRT, kodeRT } from '@/lib/eksporRT'
 
 const NAMA: Record<string, string> = { warga: 'Warga', keluarga: 'Keluarga (KK)', kelahiran: 'Kelahiran', kematian: 'Kematian', pesertaKB: 'Peserta KB baru', pusBaru: 'PUS baru', dasawisma: 'Dasawisma', tags: 'Penanda', kampungKB: 'Isian Kampung KB', arsip: 'Arsip laporan' }
 interface Ringkas { baru: number; berubah: number; lebihBaruDiServer: number; sama: number; milikRTLain: number; hanyaDiServer: number }
 interface Berkas { format: 'siwarga-rt'; versi: number; rt: string; dibuat: string; [k: string]: unknown }
 
-/** kode RT dua angka dari sesi (server) atau dari nama RT di pengaturan (mode lokal) */
-const kodeRT = (sesiRT: string, nama: string) => sesiRT || (nama.match(/\d+/)?.[0] ?? '08').padStart(2, '0')
 
 /**
  * Kirim data RT lewat file: RT mengekspor satu file .siwarga (bisa offline), Admin Desa / Admin RT
@@ -34,18 +32,6 @@ export default function KirimRT() {
     try { setCad((await api<{ list: typeof cad }>(`/rt-cadangan?rt=${s.rt}`)).list) } catch { /* abaikan */ }
   }, [bisaImpor, s.rt]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void loadCad() }, [loadCad])
-
-  function ekspor() {
-    const st = useStore.getState()
-    const rt = kodeRT(s.rt, st.settings.rt)
-    const data: Berkas = { format: 'siwarga-rt', versi: 1, rt, dibuat: new Date().toISOString(), settings: st.settings }
-    for (const c of COLLECTION_NAMES) data[c] = st[c]
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }))
-    a.download = `RT${rt}_${data.dibuat.slice(0, 10)}.siwarga`
-    a.click()
-    toast.success(`File data RT ${rt} diunduh — kirim lewat WhatsApp / flashdisk ke Admin Desa`)
-  }
 
   async function baca(f: File) {
     setBusy(true)
@@ -78,7 +64,7 @@ export default function KirimRT() {
     <Section title="Kirim data RT lewat file (.siwarga)" icon={Send} color="amber">
       <p className="mb-3 text-sm text-slate-500">Untuk RT yang bekerja offline: <b>ekspor</b> satu file berisi semua data RT ini, kirim lewat WhatsApp / flashdisk, lalu Admin Desa <b>mengimpornya</b>. Sebelum diterapkan tampil ringkasan perubahan, dan server menyimpan cadangan otomatis sehingga bisa dibatalkan.</p>
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button variant="outline" icon={FileDown} onClick={ekspor}>Ekspor data RT {kodeRT(s.rt, useStore.getState().settings.rt)}</Button>
+        <Button variant="outline" icon={FileDown} onClick={eksporRT}>Ekspor data RT {kodeRT(s.rt, useStore.getState().settings.rt)}</Button>
         {bisaImpor && <>
           <input ref={ref} type="file" accept=".siwarga,.json" hidden onChange={(e) => e.target.files?.[0] && void baca(e.target.files[0])} />
           <Button icon={FileUp} disabled={busy} onClick={() => ref.current?.click()}>{busy ? 'Membaca…' : 'Impor file data RT'}</Button>

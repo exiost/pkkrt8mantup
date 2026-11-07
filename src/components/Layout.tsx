@@ -6,7 +6,8 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLive } from '@/lib/store'
 import { useUi } from '@/lib/ui'
-import { useSession } from '@/lib/session'
+import { pendingSejak, useSession } from '@/lib/session'
+import { eksporRT } from '@/lib/eksporRT'
 import { useEditor } from './EditorHost'
 import { REPORTS } from '@/lib/modules'
 import { Avatar, col } from './ui'
@@ -54,7 +55,7 @@ function SyncBadge({ compact }: { compact?: boolean }) {
   if (!server) return null
   if (offline) return (
     <span title="Tanpa internet: data disimpan di perangkat ini dan dikirim otomatis saat online" className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
-      <CloudOff size={12} /><span className={compact ? (pending ? '' : 'hidden') : ''}>Offline{pending ? ` · ${pending} menunggu` : ''}</span>
+      <CloudOff size={12} />{compact ? (pending ? <span>{pending}</span> : null) : <span>Offline{pending ? ` · ${pending} menunggu` : ''}</span>}
     </span>
   )
   const bad = sync === 'error'
@@ -63,6 +64,28 @@ function SyncBadge({ compact }: { compact?: boolean }) {
       {bad ? <CloudOff size={12} /> : <Cloud size={12} />}
       <span className={compact ? 'hidden' : 'max-w-[9rem] truncate'}>{bad ? 'Gagal simpan' : sync === 'saving' || pending ? 'Menyimpan…' : user?.name ?? 'Tersimpan'}</span>
     </span>
+  )
+}
+
+/** peringatan bila ada perubahan yang belum terkirim lebih dari 1 hari (risiko hilang bila data browser dihapus) */
+function PeringatanAntrian() {
+  const { server, pending, offline } = useSession()
+  const [, tick] = useState(0)
+  useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 60000); return () => clearInterval(t) }, [])
+  const sejak = pendingSejak()
+  if (!server || !pending || !sejak) return null
+  const jam = (Date.now() - new Date(sejak).getTime()) / 3600000
+  if (jam < 24) return null
+  const hari = Math.floor(jam / 24)
+  return (
+    <div role="alert" className="no-print mb-4 flex flex-wrap items-start gap-3 sm:items-center rounded-2xl border-2 border-amber-400 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-100">
+      <CloudOff size={22} className="shrink-0 text-amber-600" />
+      <div className="min-w-0 flex-1 basis-[calc(100%-2.5rem)] sm:basis-0">
+        <b>{pending} perubahan belum terkirim ke server sejak {hari} hari lalu.</b> Perubahan ini baru tersimpan di perangkat ini dan bisa hilang bila data browser dihapus atau memori HP penuh.
+        {' '}{offline ? 'Sambungkan ke internet sebentar agar terkirim otomatis, atau' : 'Server belum bisa menerima perubahan ini. Untuk berjaga-jaga,'} simpan cadangan sekarang.
+      </div>
+      <button onClick={eksporRT} className="w-full shrink-0 rounded-xl sm:w-auto bg-amber-500 px-4 py-2 text-sm font-bold text-white shadow hover:bg-amber-600">Ekspor sekarang</button>
+    </div>
   )
 }
 
@@ -242,7 +265,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      <main className="mx-auto max-w-[1400px] px-4 pb-28 pt-5 sm:px-6 lg:pb-10 lg:pt-8">{children}</main>
+      <main className="mx-auto max-w-[1400px] px-4 pb-28 pt-5 sm:px-6 lg:pb-10 lg:pt-8"><PeringatanAntrian />{children}</main>
 
       {/* Bottom nav mobile */}
       <nav className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-slate-200/70 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-slate-900/90 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
