@@ -170,9 +170,20 @@ export const useStore = create<State>()(
       },
       replaceAll: (c, settings) => {
         guard('admin')
-        set((s) => ({ ...s, ...c, ...(settings ? { settings } : {}) }))
+        // data lama yang tidak ada di data baru dipindah ke Tempat Sampah (bukan dihapus permanen),
+        // dan perubahan itu ikut dikirim ke server — kalau tidak, data lama muncul lagi setelah dimuat ulang
+        const waktu = now()
+        const s0 = get()
+        const lengkap: Partial<Collections> = {}
         const ops: Op[] = []
-        for (const k of Object.keys(c) as CollectionName[]) for (const rec of (c[k] ?? []) as { id: string; updatedAt: string }[]) ops.push({ t: 'put', k, rec })
+        for (const k of COLLECTION_NAMES.filter((x) => Array.isArray(c[x]))) {
+          const baru = (c[k] ?? []) as unknown as { id: string; updatedAt: string; deletedAt?: string | null }[]
+          const ada = new Set(baru.map((r) => r.id))
+          const dibuang = (s0[k] as unknown as typeof baru).filter((r) => !ada.has(r.id)).map((r) => (r.deletedAt ? r : { ...r, deletedAt: waktu, updatedAt: waktu }))
+          ;(lengkap as Record<string, unknown>)[k] = [...baru, ...dibuang]
+          for (const rec of [...baru, ...dibuang]) ops.push({ t: 'put', k, rec })
+        }
+        set((s) => ({ ...s, ...lengkap, ...(settings ? { settings } : {}) }))
         if (settings) ops.push({ t: 'settings', settings })
         emit(ops)
       },

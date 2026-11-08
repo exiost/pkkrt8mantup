@@ -32,7 +32,7 @@ export default function DataPage() {
 
   async function simpanImpor() {
     if (!hasil) return
-    if (mode === 'ganti' && st.warga.some((w) => !w.deletedAt) && !(await confirm({ title: 'Ganti semua data?', message: 'Data warga, KK, dan kelahiran yang ada sekarang akan diganti dengan hasil impor. Sebaiknya unduh cadangan dulu.', danger: true, okText: 'Ganti' }))) return
+    if (mode === 'ganti' && st.warga.some((w) => !w.deletedAt) && !(await confirm({ title: 'Ganti semua data?', message: 'Data warga, KK, dan kelahiran yang ada sekarang akan diganti dengan hasil impor. Data lama dipindah ke Tempat Sampah (masih bisa dipulihkan). Sebaiknya unduh cadangan dulu.', danger: true, okText: 'Ganti' }))) return
     const now = new Date().toISOString()
     const dwsExisting = st.dasawisma.filter((d) => !d.deletedAt).map((d) => d.nama)
     const warnaBaru = ['teal', 'orange', 'violet', 'sky', 'lime', 'rose']
@@ -67,7 +67,7 @@ export default function DataPage() {
     try {
       const d = JSON.parse(await f.text())
       if (!Array.isArray(d.warga)) throw new Error('Format tidak dikenali')
-      if (!(await confirm({ title: 'Pulihkan dari cadangan?', message: `Semua data sekarang akan diganti dengan isi cadangan (${d.warga.length} warga, dibuat ${new Date(d.dibuat).toLocaleString('id-ID')}).`, danger: true, okText: 'Pulihkan' }))) return
+      if (!(await confirm({ title: 'Pulihkan dari cadangan?', message: `Semua data sekarang akan diganti dengan isi cadangan (${d.warga.length} warga, dibuat ${new Date(d.dibuat).toLocaleString('id-ID')}). Data yang tidak ada di cadangan dipindah ke Tempat Sampah.`, danger: true, okText: 'Pulihkan' }))) return
       const { settings, versi: _v, dibuat: _d, ...rest } = d
       st.replaceAll(rest, settings ? { ...st.settings, ...settings } : undefined)
       toast.success('Data berhasil dipulihkan')
