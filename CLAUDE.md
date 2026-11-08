@@ -2,6 +2,12 @@
 
 Baca file ini dulu. Isinya: siapa pemiliknya, cara bekerja dengannya, posisi proyek sekarang, dan apa yang belum.
 
+## 0. Untuk pemilik: cara membuka sesi baru
+1. Buka sesi baru dengan akun yang punya akses ke repository **`exiost/pkkrt8mantup`**.
+2. Pilih branch **`ccr-288141f3-4axjrb`**.
+3. Kalimat pertama: *"Baca CLAUDE.md dulu, lalu lanjutkan proyek ini."*
+4. File Excel asli (`Data_Warga_mantup_RT_8_VB.xlsm`) **tidak wajib** — upload hanya bila Claude memintanya (untuk mencocokkan angka laporan dengan Excel).
+
 ## 1. Pemilik & cara bekerja (PENTING)
 - Pemilik orang **awam**. Jawab dalam **Bahasa Indonesia sederhana**, singkat, langkah bernomor. Hindari istilah teknis.
 - **Jangan mengubah yang tidak diminta.** Bila pemilik hanya *bertanya*, jawab saja — jangan menghapus/mengubah fitur. (Pernah marah karena kontrol "Tanggal acuan umur" dihapus padahal ia hanya bertanya.)
@@ -29,7 +35,8 @@ Pengganti web (HP & desktop) untuk workbook Excel `Data_Warga_mantup_RT_8_VB.xls
 - Aturan data (umur, WUS/PUS, status ibu per bulan `riwayatIbu`, dll.): `src/lib/rules.ts`. Keputusan desain bernomor K1–K28: **`docs/KEPUTUSAN.md`**.
 - Peran: admin / editor / viewer. Viewer hanya Laporan; Beranda & Impor/Ekspor khusus admin. Admin bisa **mengunci tanggal laporan** untuk viewer (`settings.kunci`).
 
-## 4. Multi-RT (selesai, tahap 1–6) — lihat K26–K28
+## 4. Multi-RT — SEMUA TAHAP 1–6 SUDAH SELESAI (lihat K26–K28)
+Tahap: 1 akun & data per RT + Admin Desa + Kelola RT · 2 judul laporan ikut RT · 3 laporan gabungan Desa Mantup · 4 kirim data lewat file · 5 offline · 6 panduan & paket.
 - Setiap record & akun berlabel RT (kolom `rt` di SQLite). Database lama otomatis dimigrasi: semua data & akun lama = **RT 08**; daftar RT 01–17 di meta `rts`; pengaturan per RT di meta `settings:<rt>`.
 - Akun `role=admin` dengan `rt` kosong = **Admin Desa (super admin)**: memilih RT lewat header `X-RT` (UI: kotak kuning "Buka data RT" di sidebar), bisa ubah semua RT, menu **Kelola RT** (`/rt`, `src/pages/KelolaRT.tsx`). Akun RT dibatasi server ke RT-nya.
 - Admin Desa pertama dibuat **sekali** oleh admin RT lewat Pengaturan → Akun & Server → "Buat Admin Desa" (hanya muncul bila belum ada Admin Desa). Akun `admin` lama tetap Admin RT 08.
