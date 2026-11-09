@@ -7,6 +7,7 @@ import { REPORTS } from '@/reports/registry'
 import { GABUNGAN } from '@/reports/desa'
 import { api, unduhFile } from '@/lib/api'
 import { skripGoogleDrive } from '@/lib/gdrive'
+import CariDesa from '@/components/CariDesa'
 import { useSession } from '@/lib/session'
 import { Button, Card, Chip, Field, Input, Modal, PageHeader, Select, StatCard, useConfirm } from '@/components/ui'
 import type { Role } from '@/lib/types'
@@ -50,6 +51,8 @@ export default function KelolaRT() {
     <div>
       <PageHeader title="Kelola RT — Desa Mantup" subtitle="Ringkasan semua RT, buka data RT, dan buat akun Admin RT" icon={Building2} color="amber"
         actions={<Button variant="outline" icon={RefreshCw} onClick={() => void load()}>Muat ulang</Button>} />
+
+      <CariDesa />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard label="Warga seluruh desa" value={total('warga')} icon={Users} color="sky" i={0} />
