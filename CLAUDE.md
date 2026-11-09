@@ -49,10 +49,11 @@ Tahap: 1 akun & data per RT + Admin Desa + Kelola RT · 2 judul laporan ikut RT 
 - `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Desa & Admin RT), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
 - Tangkapan layar panduan diambil dengan Playwright dari server lokal; panduan berisi gambar base64.
 
-## 6. Status terakhir (8 Nov 2026)
+## 6. Status terakhir (9 Nov 2026)
 Semua sudah di-commit & push. Paket terakhir sudah dikirim ke pemilik.
 - **Belum dikonfirmasi** pemilik: apakah versi multi-RT sudah dipasang di mantup.biz.id dan akun Admin Desa sudah dibuat. Tanyakan bila relevan.
 - Pemilik belum mencoba sendiri tahap 1–6 (ia minta langsung dirampungkan).
+- 9 Nov 2026: uji praktik (tambah/ubah/hapus/pulihkan, editor, viewer, Admin Desa, RT baru, impor Excel) lulus. Bug diperbaiki: impor Excel "Ganti" & pulihkan cadangan di mode server dulu tidak menghapus data lama di server — sekarang data lama dipindah ke Tempat Sampah (`replaceAll` di `src/lib/store.ts`).
 
 ## 7. Yang belum / catatan terbuka (jangan dikerjakan tanpa diminta)
 - Admin Desa saat login pertama membuka RT 01 (bukan RT terakhir yang dipakai di perangkat lain).
