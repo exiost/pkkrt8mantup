@@ -1,5 +1,5 @@
 import express from 'express'
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { gzipSync } from 'node:zlib'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, createReadStream } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
@@ -318,6 +318,26 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     res.setHeader('Content-Type', 'application/octet-stream')
     res.setHeader('Content-Disposition', `attachment; filename="${nama}"`)
     createReadStream(join(folderCadangan, nama)).pipe(res)
+  })
+
+  // --- cadangan ke Google Drive: skrip Google Apps Script milik Admin Desa mengambil cadangan terbaru tiap hari ---
+  const kunciCadangan = () => { let k = store.meta('kunciCadangan'); if (!k) { k = randomBytes(24).toString('hex'); store.setMeta('kunciCadangan', k) } return k }
+  const cocok = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y) }
+  app.get('/api/cadangan-kunci', auth(['admin']), desaOnly, (_req, res) => res.json({ kunci: kunciCadangan() }))
+  app.post('/api/cadangan-kunci/baru', auth(['admin']), desaOnly, (_req, res) => { const k = randomBytes(24).toString('hex'); store.setMeta('kunciCadangan', k); res.json({ kunci: k }) })
+  app.get('/api/cadangan-terbaru', (req, res) => {
+    const key = `cad|${req.ip}`
+    if (limited(key)) return res.status(429).json({ error: 'Terlalu banyak percobaan. Coba lagi 15 menit lagi.' })
+    const k = store.meta('kunciCadangan')
+    if (!k || !cocok(req.query.kunci ?? '', k)) { fail(key); return res.status(401).json({ error: 'Kunci cadangan salah' }) }
+    if (!folderCadangan) return res.status(404).json({ error: 'Cadangan tidak tersedia' })
+    buatCadangan() // pastikan cadangan hari ini sudah ada
+    const terbaru = daftarCadangan(folderCadangan)[0]
+    if (!terbaru) return res.status(404).json({ error: 'Belum ada cadangan' })
+    res.setHeader('Content-Type', 'application/octet-stream')
+    res.setHeader('Content-Disposition', `attachment; filename="${terbaru.nama}"`)
+    res.setHeader('Content-Length', String(terbaru.ukuran))
+    createReadStream(join(folderCadangan, terbaru.nama)).pipe(res)
   })
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Tidak ditemukan' }))
