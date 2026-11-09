@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Building2, Info, LayoutDashboard, RefreshCw, FileText, Sparkles, Archive, ArrowLeft, Eye, FileSpreadsheet, Minus, PencilLine, Plus, Printer, Settings2, Trash2, Users, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
@@ -125,7 +125,8 @@ function ReportView({ slug }: { slug: string }) {
   }, [ctxPakai])
 
   const tpl = TEMPLATES[pages[0]?.tplId ?? def.tpl] ?? TEMPLATES[def.tpl]
-  const area: PrintArea | null = ps.areaOn ? { c1: Math.max(0, colIndex(ps.c1 || 'A')), c2: Math.max(0, colIndex(ps.c2 || 'A')), r1: ps.r1, r2: ps.r2 } : null
+  const area: PrintArea | null = useMemo(() => (ps.areaOn ? { c1: Math.max(0, colIndex(ps.c1 || 'A')), c2: Math.max(0, colIndex(ps.c2 || 'A')), r1: ps.r1, r2: ps.r2 } : null), [ps.areaOn, ps.c1, ps.c2, ps.r1, ps.r2])
+  const onEditText = useCallback((key: string, cur: string) => setEdit({ key, cur }), [])
   const g = pageGeometry(ps)
   const eff = effectiveScale(ps, nat)
   const pagesAcross = nat.w ? Math.max(1, Math.ceil((nat.w * eff) / g.printW - 0.001)) : 1
@@ -260,7 +261,7 @@ function ReportView({ slug }: { slug: string }) {
           {pages.length === 0 && <Empty title="Tidak ada data" />}
           {pages.map((pg) => (
             <div key={pg.key} className="sheet-page">
-              <SheetView {...pg} overrides={overrides} editText={editText} onEditText={(key, cur) => setEdit({ key, cur })} area={area} repeatHeader={ps.repeat} />
+              <SheetView {...pg} overrides={overrides} editText={editText} onEditText={onEditText} area={area} repeatHeader={ps.repeat} />
               {single && panel && ps.guides && nat.w > 0 && (
                 <>
                   {Array.from({ length: Math.max(0, pagesAcross - 1) }, (_, i) => <div key={'v' + i} className="sheet-guide-v no-print" data-label={`hal. kolom ${i + 2}`} style={{ left: ((i + 1) * g.printW) / eff }} />)}

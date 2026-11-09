@@ -46,6 +46,19 @@ export async function api<T = unknown>(path: string, opt: { method?: string; bod
   }
 }
 
+/** unduh file dari server (dengan login) */
+export async function unduhFile(path: string, nama: string) {
+  const headers: Record<string, string> = {}
+  const tok = getToken()
+  if (tok) headers.Authorization = `Bearer ${tok}`
+  const r = await fetch(url(path), { headers })
+  if (!r.ok) throw new ApiError(`Gagal mengunduh (${r.status})`, r.status)
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(await r.blob())
+  a.download = nama
+  a.click()
+}
+
 /** Cek apakah ada server SIWARGA di alamat ini. null = tidak ada (mode lokal). */
 export async function probe(): Promise<{ needsSetup: boolean } | null> {
   try {

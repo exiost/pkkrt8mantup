@@ -37,7 +37,7 @@ interface DesaState { list: DataRT[] | null; loading: boolean; error: string; at
 export const useDataDesa = create<DesaState>()((set, get) => ({
   list: null, loading: false, error: '', at: 0,
   load: async (force = false) => {
-    if (get().loading || (!force && get().list && Date.now() - get().at < 60000)) return
+    if (get().loading || (!force && get().list && Date.now() - get().at < 5 * 60000)) return
     set({ loading: true, error: '' })
     try { set({ list: (await api<{ rts: DataRT[] }>('/desa')).rts, at: Date.now() }) } catch (e) { set({ error: (e as Error).message }) } finally { set({ loading: false }) }
   },

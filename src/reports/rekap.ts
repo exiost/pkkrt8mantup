@@ -33,15 +33,17 @@ const cell = (x: Col, title: string): Val => (typeof x === 'number' ? n(x) : n(x
 
 export const bRekapCatatan: Builder = (c) => {
   const pkk = c.aktif.filter((w) => w.ikutPKK)
+  // hitung sekali per dasawisma, dipakai untuk baris dan JUMLAH
+  const perDawis = c.dasawisma.map((d) => rtCols(pkk.filter((w) => w.dasawisma === d.nama), c))
   const rows: Record<string, Val>[] = c.dasawisma.map((d, i) => {
-    const cols = rtCols(pkk.filter((w) => w.dasawisma === d.nama), c)
+    const cols = perDawis[i]
     const r: Record<string, Val> = { A: i + 1, B: d.nama, AD: '-' }
     RT_LETTERS.forEach((L, j) => (r[L] = cell(cols[j], `${RT_NAMES[j]} — ${d.nama}`)))
     return r
   })
   const values: Record<string, Val> = { U6: `: ${c.p.tahun}` }
-  const sums = RT_LETTERS.map((_, j) => c.dasawisma.reduce((t, d) => {
-    const x = rtCols(pkk.filter((w) => w.dasawisma === d.nama), c)[j]
+  const sums = RT_LETTERS.map((_, j) => perDawis.reduce((t, cols) => {
+    const x = cols[j]
     return { n: t.n + (typeof x === 'number' ? x : x.length), l: typeof x === 'number' ? t.l : [...t.l, ...x] }
   }, { n: 0, l: [] as Warga[] }))
   RT_LETTERS.forEach((L, j) => (values[`${L}31`] = n(sums[j].n, drill(`${RT_NAMES[j]} — seluruh RT`, sums[j].l))))
@@ -105,14 +107,15 @@ export const bRekapIbuHamil: Builder = (c) => {
   const LET = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']
   // pilihan: hanya satu dari Hamil / Melahirkan / Nifas yang ditampilkan
   const hide = (j: number) => !!c.p.statusIbu && j < 3 && ['hamil', 'melahirkan', 'nifas'][j] !== c.p.statusIbu
+  const stats = c.dasawisma.map((d) => stat(d.nama))
   const rows: Record<string, Val>[] = c.dasawisma.map((d, i) => {
-    const st = stat(d.nama)
+    const st = stats[i]
     const r: Record<string, Val> = { A: i + 1, B: d.nama }
     LET.forEach((L, j) => (r[L] = hide(j) ? '' : st[j]))
     return r
   })
   const values: Record<string, Val> = { K4: namaRentang(c), K5: String(c.p.tahun) }
-  LET.forEach((L, j) => (values[`${L}26`] = hide(j) ? '' : n(c.dasawisma.reduce((t, d) => t + Number((stat(d.nama)[j] as CellObj).v), 0))))
+  LET.forEach((L, j) => (values[`${L}26`] = hide(j) ? '' : n(stats.reduce((t, st) => t + Number((st[j] as CellObj).v), 0))))
   return [{ key: 'rekapibuhamil', tplId: 'rekapibuhamil', values, regions: { main: rows } }]
 }
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
+import { createContext, memo, useContext, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { STYLES, TEMPLATES, colLetter, type CellObj, type TplCell, type TplStyle, type Val } from './engine'
 import type { Warga } from '@/lib/types'
 
@@ -69,7 +69,7 @@ const asObj = (v: Val): CellObj | null => (v === null || v === undefined || v ==
 
 interface RRow { key: string; origR: number; h: number; cells: TplCell[]; region?: string; ri?: number; idx: number }
 
-export default function SheetView({ tplId, values, regions, rowsShown, overrides, editText, onEditText, area, repeatHeader }: SheetViewProps) {
+function SheetView({ tplId, values, regions, rowsShown, overrides, editText, onEditText, area, repeatHeader }: SheetViewProps) {
   const tpl = TEMPLATES[tplId]
   const act = useContext(SheetCtx)
   const tableRef = useRef<HTMLTableElement>(null)
@@ -189,9 +189,15 @@ export default function SheetView({ tplId, values, regions, rowsShown, overrides
       }
       fix.forEach(([td, f]) => { td.style.fontSize = `${f}px` })
     }
-    run()
-    document.fonts?.ready.then(run).catch(() => {})
-  })
+    // font sudah siap: cukup sekali. Tabel besar (mis. gabungan desa) diukur sesudah tampil agar layar tidak tertahan
+    const besar = t.rows.length > 400
+    let batal = false
+    const jalan = () => { if (!batal) run() }
+    if (!besar) run()
+    if (document.fonts && document.fonts.status !== 'loaded') document.fonts.ready.then(jalan).catch(() => {})
+    else if (besar) { const id = setTimeout(jalan, 50); return () => { batal = true; clearTimeout(id) } }
+    return () => { batal = true }
+  }, [tplId, values, regions, rowsShown, overrides, area])
 
   const headCount = repeatHeader && firstRegionIdx > 0 ? firstRegionIdx : 0
   return (
@@ -217,3 +223,6 @@ export function sheetNaturalSize(tplId: string, rowsCount?: number): { w: number
   const t = TEMPLATES[tplId]
   return { w: t.cols.reduce((a, b) => a + b, 0), h: t.rows.reduce((a, r) => a + r.h, 0) + (rowsCount ?? 0) }
 }
+
+/** digambar ulang hanya bila isinya berubah (tabel gabungan desa bisa ribuan baris) */
+export default memo(SheetView)

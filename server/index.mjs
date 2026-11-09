@@ -1,6 +1,7 @@
 import express from 'express'
 import { randomBytes, randomUUID } from 'node:crypto'
-import { existsSync, readFileSync } from 'node:fs'
+import { gzipSync } from 'node:zlib'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, createReadStream } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openDb, createStore, COLLECTIONS } from './db.mjs'
@@ -10,8 +11,23 @@ const here = dirname(fileURLToPath(import.meta.url))
 const ROLES = ['admin', 'editor', 'viewer']
 const VER = (() => { try { return JSON.parse(readFileSync(resolve(here, '../package.json'), 'utf8')).version } catch { return '' } })()
 
-export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
-  const db = openDb(dbFile ?? join(process.env.DATA_DIR ?? resolve(here, '../data'), 'siwarga.db'))
+/** cadangan harian: salinan utuh database di DATA_DIR/cadangan-harian, disimpan 14 hari terakhir */
+export function cadanganHarian(db, folder, simpan = 14, hari = new Date().toISOString().slice(0, 10)) {
+  mkdirSync(folder, { recursive: true })
+  const nama = `siwarga-${hari}.db`
+  const file = join(folder, nama)
+  if (!existsSync(file)) db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`)
+  const semua = readdirSync(folder).filter((f) => /^siwarga-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort()
+  for (const f of semua.slice(0, Math.max(0, semua.length - simpan))) { try { unlinkSync(join(folder, f)) } catch { /* abaikan */ } }
+  return nama
+}
+export const daftarCadangan = (folder) => (existsSync(folder) ? readdirSync(folder).filter((f) => /^siwarga-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort().reverse().map((f) => ({ nama: f, ukuran: statSync(join(folder, f)).size })) : [])
+
+export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {}) {
+  const file = dbFile ?? join(process.env.DATA_DIR ?? resolve(here, '../data'), 'siwarga.db')
+  const db = openDb(file)
+  const folderCadangan = backupDir ?? (file === ':memory:' ? null : join(dirname(file), 'cadangan-harian'))
+  const buatCadangan = () => { if (!folderCadangan) return null; try { return cadanganHarian(db, folderCadangan) } catch (e) { console.error('Cadangan harian gagal:', e.message); return null } }
   const store = createStore(db)
   let secret = store.meta('secret')
   if (!secret) { secret = randomBytes(32).toString('hex'); store.setMeta('secret', secret) }
@@ -40,6 +56,21 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     next()
   })
 
+  // --- jawaban data dipadatkan (gzip): data 17 RT ±5 MB → ±0,5 MB, jauh lebih cepat di sinyal HP ---
+  app.use('/api', (req, res, next) => {
+    if (!/\bgzip\b/.test(String(req.headers['accept-encoding'] ?? ''))) return next()
+    const json = res.json.bind(res)
+    res.json = (body) => {
+      const txt = JSON.stringify(body)
+      if (txt.length < 2048 || res.headersSent) return json(body)
+      res.setHeader('Content-Type', 'application/json; charset=utf-8')
+      res.setHeader('Content-Encoding', 'gzip')
+      res.setHeader('Vary', 'Accept-Encoding')
+      return res.end(gzipSync(txt, { level: 6 }))
+    }
+    next()
+  })
+
   // --- pembatas percobaan login ---
   const fails = new Map()
   const limited = (key) => { const f = fails.get(key); return f && f.n >= 8 && Date.now() - f.t < 15 * 60 * 1000 }
@@ -58,7 +89,9 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     else {
       const pilih = String(req.headers['x-rt'] ?? '')
       if (pilih && !daftar.includes(pilih)) return res.status(400).json({ error: `RT ${pilih} tidak terdaftar` })
-      req.rt = pilih || daftar[0] || '01'
+      // tanpa pilihan: RT terakhir yang dibuka akun ini (di perangkat mana pun)
+      const terakhir = store.meta(`rtTerakhir:${u.id}`)
+      req.rt = pilih || (terakhir && daftar.includes(terakhir) ? terakhir : daftar[0]) || '01'
     }
     req.desa = !u.rt && u.role === 'admin'
     next()
@@ -92,6 +125,13 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
   }))
 
   app.get('/api/me', auth(), (req, res) => res.json({ user: store.publicUser(req.user), rts: store.rts(), rt: req.rt }))
+
+  app.post('/api/me/rt', auth(['admin']), desaOnly, wrap((req, res) => {
+    const rt = String(req.body?.rt ?? '')
+    if (!store.rts().includes(rt)) return res.status(400).json({ error: 'RT tidak dikenal' })
+    store.setMeta(`rtTerakhir:${req.user.id}`, rt)
+    res.json({ ok: true, rt })
+  }))
 
   app.post('/api/me/password', auth(), wrap((req, res) => {
     const { old, next } = req.body ?? {}
@@ -270,6 +310,16 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     })
   })
 
+  // --- cadangan harian seluruh database (Admin Desa) ---
+  app.get('/api/cadangan-harian', auth(['admin']), desaOnly, (_req, res) => res.json({ list: folderCadangan ? daftarCadangan(folderCadangan) : [] }))
+  app.get('/api/cadangan-harian/:nama', auth(['admin']), desaOnly, (req, res) => {
+    const nama = String(req.params.nama)
+    if (!folderCadangan || !/^siwarga-\d{4}-\d{2}-\d{2}\.db$/.test(nama) || !existsSync(join(folderCadangan, nama))) return res.status(404).json({ error: 'Cadangan tidak ditemukan' })
+    res.setHeader('Content-Type', 'application/octet-stream')
+    res.setHeader('Content-Disposition', `attachment; filename="${nama}"`)
+    createReadStream(join(folderCadangan, nama)).pipe(res)
+  })
+
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Tidak ditemukan' }))
 
   // --- aplikasi web (hasil build) ---
@@ -278,7 +328,11 @@ export function createApp({ dbFile, distDir, corsOrigin = '*' } = {}) {
     app.use(express.static(dist, { maxAge: '1h', index: 'index.html', setHeaders: (res, f) => { if (f.endsWith('.html') || f.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache') } }))
     app.get('*', (_req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(join(dist, 'index.html')) })
   }
-  return { app, db, store }
+  // cadangan pertama saat server menyala, lalu dicek tiap jam (satu file per hari)
+  buatCadangan()
+  const jam = setInterval(buatCadangan, 60 * 60 * 1000)
+  jam.unref?.()
+  return { app, db, store, buatCadangan }
 }
 
 if (process.env.SIWARGA_LISTEN || (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))) {

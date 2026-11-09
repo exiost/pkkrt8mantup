@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Building2, FileText, FolderOpen, House, RefreshCw, Save, UserPlus, Users } from 'lucide-react'
+import { Building2, DatabaseBackup, Download, FileText, FolderOpen, House, RefreshCw, Save, UserPlus, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { REPORTS } from '@/reports/registry'
 import { GABUNGAN } from '@/reports/desa'
-import { api } from '@/lib/api'
+import { api, unduhFile } from '@/lib/api'
 import { useSession } from '@/lib/session'
 import { Button, Card, Chip, Field, Input, Modal, PageHeader, Select, StatCard } from '@/components/ui'
 import type { Role } from '@/lib/types'
@@ -20,9 +20,11 @@ export default function KelolaRT() {
   const { rt: rtAktif, pilihRT } = useSession()
   const nav = useNavigate()
   const [rows, setRows] = useState<RingkasRT[] | null>(null)
+  const [cad, setCad] = useState<{ nama: string; ukuran: number }[]>([])
   const [baru, setBaru] = useState<{ rt: string; username: string; name: string; password: string; role: Role } | null>(null)
   const load = useCallback(async () => {
     try { setRows((await api<{ rts: RingkasRT[] }>('/rts')).rts) } catch (e) { toast.error((e as Error).message) }
+    try { setCad((await api<{ list: { nama: string; ukuran: number }[] }>('/cadangan-harian')).list) } catch { /* abaikan */ }
   }, [])
   useEffect(() => { void load() }, [load])
 
@@ -90,6 +92,21 @@ export default function KelolaRT() {
         ))}
       </div>
       {!rows && <p className="text-sm text-slate-400">Memuat…</p>}
+
+      <Card className="mt-5 p-4">
+        <div className="mb-1 flex items-center gap-2 font-display font-extrabold"><DatabaseBackup size={18} className="text-sky-600" /> Cadangan harian otomatis (seluruh desa)</div>
+        <p className="mb-3 text-xs text-slate-500">Server menyalin seluruh database (semua RT &amp; akun) sekali sehari dan menyimpan 14 hari terakhir di folder <b>cadangan-harian</b> di sebelah folder data. Unduh sesekali dan simpan di laptop/Google Drive.</p>
+        {cad.length ? (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {cad.map((c) => (
+              <div key={c.nama} className="flex items-center gap-2 rounded-xl border border-slate-200 p-2 text-sm dark:border-white/10">
+                <div className="min-w-0 flex-1"><div className="font-semibold">{new Date(c.nama.slice(8, 18) + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div><div className="text-xs text-slate-500">{(c.ukuran / 1024 / 1024).toFixed(1)} MB</div></div>
+                <Button size="sm" variant="outline" icon={Download} onClick={() => void unduhFile(`/cadangan-harian/${c.nama}`, c.nama).catch((e) => toast.error((e as Error).message))}>Unduh</Button>
+              </div>
+            ))}
+          </div>
+        ) : <p className="text-sm italic text-slate-400">Belum ada cadangan.</p>}
+      </Card>
 
       <Modal open={!!baru} onClose={() => setBaru(null)} title={`Buat akun RT ${baru?.rt ?? ''}`} icon={UserPlus} color="amber" size="sm"
         footer={<><Button variant="ghost" onClick={() => setBaru(null)}>Batal</Button><Button icon={Save} onClick={simpan}>Simpan</Button></>}>

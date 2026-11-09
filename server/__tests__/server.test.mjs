@@ -190,6 +190,15 @@ describe('server SIWARGA', () => {
     const d = (await j('/api/data', { token: admin, rt: '09' })).data
     expect(d.collections.warga.map((w) => w.nama).sort()).toEqual(['Ani', 'Budi'])
   })
+  it('Admin Desa: RT terakhir diingat server (perangkat lain langsung membuka RT itu)', async () => {
+    expect((await j('/api/me/rt', { method: 'POST', token: admin, body: { rt: '09' } })).status).toBe(200)
+    expect((await j('/api/me', { token: admin, rt: '' })).data.rt).toBe('09')
+    expect((await j('/api/data', { token: admin, rt: '' })).data.rt).toBe('09')
+    expect((await j('/api/me', { token: admin, rt: '08' })).data.rt).toBe('08') // pilihan perangkat tetap menang
+    expect((await j('/api/me/rt', { method: 'POST', token: admin, body: { rt: '99' } })).status).toBe(400)
+    expect((await j('/api/me/rt', { method: 'POST', token: editor, body: { rt: '09' } })).status).toBe(403)
+    await j('/api/me/rt', { method: 'POST', token: admin, body: { rt: '08' } })
+  })
   it('pembatas percobaan login', async () => {
     let last = 0
     for (let i = 0; i < 10; i++) last = (await j('/api/login', { method: 'POST', body: { username: 'brute', password: 'x' + i } })).status

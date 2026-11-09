@@ -78,3 +78,14 @@ Unggah isi folder `paket-cpanel\statis` ke `public_html`. Tanpa login & viewer; 
 4. Masuk sebagai `admin` → Pengaturan → Akun & Server → **Buat Admin Desa** (sekali saja). Langkah lengkap: `docs/panduan-desa.html`.
 
 Database yang sudah diubah ke multi-RT tidak bisa dipakai lagi oleh versi lama. Bila ingin kembali ke versi lama, pakai cadangan dari langkah 1.
+
+## Cadangan harian otomatis
+Server menyalin seluruh database sekali sehari ke folder **`cadangan-harian`** di sebelah `siwarga.db` (di dalam `DATA_DIR`), dan menyimpan 14 hari terakhir (`siwarga-YYYY-MM-DD.db`). Admin Desa bisa mengunduhnya di menu **Kelola RT → Cadangan harian otomatis**.
+
+Mengembalikan data dari cadangan harian:
+1. Setup Node.js App → **STOP APP**.
+2. File Manager → folder `DATA_DIR`: ganti nama `siwarga.db` menjadi `siwarga-lama.db`, hapus `siwarga.db-wal` dan `siwarga.db-shm` (bila ada).
+3. Salin file cadangan (mis. `cadangan-harian/siwarga-2026-11-08.db`) ke folder `DATA_DIR` dan beri nama `siwarga.db`.
+4. **START APP** / RESTART.
+
+Catatan: bila mencadangkan manual, salin **seluruh folder `data`** (termasuk `siwarga.db-wal`), bukan hanya `siwarga.db` — perubahan terbaru bisa masih berada di file `-wal`.

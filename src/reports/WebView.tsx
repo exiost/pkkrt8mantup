@@ -1,4 +1,4 @@
-import { useContext, useMemo, type ReactNode } from 'react'
+import { memo, useContext, useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Info, Minus, Armchair, Baby, Bath, BookOpen, BookOpenCheck, Briefcase, Building2, Cake, Crown, Droplets, Flower2, GraduationCap, HandCoins, Heart, HeartHandshake, HeartPulse, Home, House, IdCard, Leaf, Map as MapIcon, MapPin, PersonStanding, PiggyBank, School, ShieldCheck, Sparkles, Stethoscope, Store, Trash2, UserRound, Users, Waves, Wheat, type LucideIcon } from 'lucide-react'
 import { Card, Chip } from '@/components/ui'
@@ -137,6 +137,19 @@ function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]
   const cols = letters.filter((L, i) => b.labels.has(i) || (L === 'A' && hasNo))
   if (!cols.length) return null
   const label = (L: string) => { const a = b.labels.get(letters.indexOf(L)) ?? (L === 'A' ? ['NO'] : []); return a }
+  // tabel sangat panjang (mis. gabungan desa): tampilkan bertahap agar HP tidak berat; cetak & Excel tetap lengkap
+  const [batas, setBatas] = useState(300)
+  const tampil = data.length > batas ? data.slice(0, batas) : data
+  const baris = (r: Record<string, Val>, ri: number) => (
+    <>
+      {cols.map((L) => (
+        <td key={L} className={`whitespace-nowrap border-b border-slate-100 px-3 py-2 dark:border-white/5 ${isRight(r[L]) ? 'text-right tabular-nums' : ''} ${L === 'A' ? 'w-px text-slate-400' : ''}`}>
+          {L === 'A' && typeof r.A === 'number' ? ri + 1 : <Cell v={r[L]} />}
+        </td>
+      ))}
+    </>
+  )
+  const kelasBaris = 'group even:bg-slate-50/60 hover:bg-violet-50/70 dark:even:bg-white/[0.03] dark:hover:bg-white/5'
   return (
     <div>
       {b.heading && <h3 className="mb-2 font-display text-sm font-bold text-violet-700 dark:text-violet-300">{b.heading}</h3>}
@@ -157,15 +170,15 @@ function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]
           </thead>
           <tbody>
             {data.length === 0 && <tr><td colSpan={cols.length} className="px-3 py-8 text-center text-sm text-slate-400">Belum ada data</td></tr>}
-            {data.map((r, ri) => (
-              <motion.tr key={ri} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(ri, 20) * 0.01 }} className="group even:bg-slate-50/60 hover:bg-violet-50/70 dark:even:bg-white/[0.03] dark:hover:bg-white/5">
-                {cols.map((L) => (
-                  <td key={L} className={`whitespace-nowrap border-b border-slate-100 px-3 py-2 dark:border-white/5 ${isRight(r[L]) ? 'text-right tabular-nums' : ''} ${L === 'A' ? 'w-px text-slate-400' : ''}`}>
-                    {L === 'A' && typeof r.A === 'number' ? ri + 1 : <Cell v={r[L]} />}
-                  </td>
-                ))}
-              </motion.tr>
-            ))}
+            {tampil.map((r, ri) => ri < 30
+              ? <motion.tr key={ri} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(ri, 20) * 0.01 }} className={kelasBaris}>{baris(r, ri)}</motion.tr>
+              : <tr key={ri} className={kelasBaris}>{baris(r, ri)}</tr>)}
+            {data.length > batas && (
+              <tr><td colSpan={cols.length} className="p-3 text-center">
+                <button onClick={() => setBatas(data.length)} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white shadow hover:bg-violet-700">Tampilkan semua ({data.length} baris)</button>
+                <div className="mt-1 text-xs text-slate-400">Ditampilkan {batas} baris pertama. Cetak / PDF dan Excel tetap berisi semua baris.</div>
+              </td></tr>
+            )}
           </tbody>
           {b.footer.length > 0 && (
             <tfoot>
@@ -351,9 +364,9 @@ function DataKeluargaWeb({ page, def }: { page: PageSpec; def: ReportDef }) {
 }
 
 /* ---------- pintu masuk ---------- */
-export default function WebReport({ page, def }: { page: PageSpec; def: ReportDef }) {
+export default memo(function WebReport({ page, def }: { page: PageSpec; def: ReportDef }) {
   if (def.slug === 'kampung-kb') return <KampungKBWeb page={page} def={def} />
   if (def.slug === 'data-warga-tp-pkk' && page.warga) return <TPPKKWeb page={page} def={def} />
   if (def.slug === 'data-keluarga' && page.fam) return <DataKeluargaWeb page={page} def={def} />
   return <Generic page={page} def={def} />
-}
+})

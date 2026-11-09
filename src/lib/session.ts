@@ -205,6 +205,7 @@ export const useSession = create<Session>()((set, get) => {
 
   async function enter(user: AppUser, info?: { rts?: string[]; rt?: string }) {
     if (!user.desa) setRT('')
+    else if (info?.rt) setRT(info.rt)
     const c = readCache()
     if (c && (c.uid !== user.id || c.rt !== (info?.rt ?? user.rt))) clearCache()
     set({ user, boot: 'ready', server: true, offline: false, error: '', rt: info?.rt ?? user.rt ?? '', rts: info?.rts ?? [] })
@@ -238,6 +239,7 @@ export const useSession = create<Session>()((set, get) => {
       if (get().offline) { toast.error('Sedang offline: pindah RT bisa dilakukan setelah tersambung internet'); return false }
       if (queue.length) { toast.error('Tunggu sebentar, masih ada perubahan yang belum terkirim ke server'); void flush(); return false }
       setRT(rt)
+      void api('/me/rt', { method: 'POST', body: { rt } }).catch(() => {})
       seq = 0
       useStore.setState({ warga: [], keluarga: [], kelahiran: [], kematian: [], pesertaKB: [], pusBaru: [], dasawisma: [], tags: [], kampungKB: [], arsip: [], audit: [] })
       set({ rt })
