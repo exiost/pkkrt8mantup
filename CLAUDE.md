@@ -46,17 +46,17 @@ Tahap: 1 akun & data per RT + Admin Desa + Kelola RT · 2 judul laporan ikut RT 
 - **Offline** (`src/lib/session.ts`, `public/sw.js`): salinan data RT di localStorage (`siwarga-cache`), antrean perubahan (`siwarga-queue`, `siwarga-queue-sejak`), service worker untuk membuka aplikasi tanpa internet, cek online tiap 15 detik. Keluar ditolak saat offline bila ada antrean. Peringatan kuning + "Ekspor sekarang" bila antrean > 1 hari. `navigator.storage.persist()` diminta (tidak dijamin dikabulkan browser).
 
 ## 5. Dokumen untuk pemilik / juri
-- `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Desa & Admin RT), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
+- `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Desa & Admin RT), `docs/panduan-rt.html` (panduan singkat untuk Admin RT baru, dibagikan ke 17 RT), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
 - Tangkapan layar panduan diambil dengan Playwright dari server lokal; panduan berisi gambar base64.
 
-## 6. Status terakhir (9 Nov 2026)
+## 6. Status terakhir (9 Nov 2026, sore)
 Semua sudah di-commit & push. Paket terakhir sudah dikirim ke pemilik.
 - **Belum dikonfirmasi** pemilik: apakah versi multi-RT sudah dipasang di mantup.biz.id dan akun Admin Desa sudah dibuat. Tanyakan bila relevan.
 - Pemilik belum mencoba sendiri tahap 1–6 (ia minta langsung dirampungkan).
 - 9 Nov 2026: uji praktik (tambah/ubah/hapus/pulihkan, editor, viewer, Admin Desa, RT baru, impor Excel) lulus. Bug diperbaiki: impor Excel "Ganti" & pulihkan cadangan di mode server dulu tidak menghapus data lama di server — sekarang data lama dipindah ke Tempat Sampah (`replaceAll` di `src/lib/store.ts`).
+- 9 Nov 2026 (persiapan 17 RT): cadangan harian otomatis seluruh database (`cadanganHarian` di `server/index.mjs`, folder `DATA_DIR/cadangan-harian`, 14 hari, unduh di Kelola RT; cara mengembalikan di `docs/CPANEL.md`); Admin Desa membuka RT terakhir (meta `rtTerakhir:<uid>`, `POST /api/me/rt`); jawaban `/api` dipadatkan gzip (data 17 RT 4,8 MB → 0,3 MB); uji beban 17 RT ±3.100 warga di HP diperlambat 4× — gabungan Rekap/WUS ±2 detik (sebelumnya 7–13 detik): rekap dihitung sekali per baris, tabel web menampilkan 300 baris dulu (tombol "Tampilkan semua"; cetak/Excel tetap lengkap), `SheetView` & `WebReport` di-`memo`, pengecil huruf tidak diulang. Panduan singkat Admin RT: `docs/panduan-rt.html` (3 halaman A4).
 
 ## 7. Yang belum / catatan terbuka (jangan dikerjakan tanpa diminta)
-- Admin Desa saat login pertama membuka RT 01 (bukan RT terakhir yang dipakai di perangkat lain).
 - Gabungan "Pencatatan Ibu Hamil, KB & PUS": bagian B sudah punya kolom RT bawaan Excel, jadi ada dua kolom berjudul "RT".
 - Laporan per keluarga/per dasawisma (Data Keluarga, Catatan Keluarga, TP PKK, HT/IRT, Rekap per Dasawisma, Catatan Ibu Hamil per Dasawisma) tidak ada versi gabungan desa — tetap per RT.
 - Mode lokal (tanpa server) bisa mengekspor `.siwarga` tetapi tidak bisa mengimpornya.
