@@ -46,7 +46,7 @@ Tahap: 1 akun & data per RT + Admin Desa + Kelola RT · 2 judul laporan ikut RT 
 - **Offline** (`src/lib/session.ts`, `public/sw.js`): salinan data RT di localStorage (`siwarga-cache`), antrean perubahan (`siwarga-queue`, `siwarga-queue-sejak`), service worker untuk membuka aplikasi tanpa internet, cek online tiap 15 detik. Keluar ditolak saat offline bila ada antrean. Peringatan kuning + "Ekspor sekarang" bila antrean > 1 hari. `navigator.storage.persist()` diminta (tidak dijamin dikabulkan browser).
 
 ## 5. Dokumen untuk pemilik / juri
-- `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Desa & Admin RT), `docs/panduan-rt.html` (panduan singkat untuk Admin RT baru, dibagikan ke 17 RT), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
+- `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Desa & Admin RT), `docs/panduan-rt.html` (panduan singkat untuk Admin RT baru, dibagikan ke 17 RT), `docs/panduan-google-drive.html` (memasang cadangan harian ke Google Drive; gambar hanya dari aplikasi, halaman Google dijelaskan dengan tulisan), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
 - Tangkapan layar panduan diambil dengan Playwright dari server lokal; panduan berisi gambar base64.
 
 ## 6. Status terakhir (9 Nov 2026, sore)
