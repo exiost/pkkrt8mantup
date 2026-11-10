@@ -94,6 +94,7 @@ Catatan: bila mencadangkan manual, salin **seluruh folder `data`** (termasuk `si
 Beranda Padukuhan → tab **Cadangan** → **Cadangan otomatis ke Google Drive**: tekan **Salin skrip**, tempel di script.google.com (Proyek baru), Simpan, pilih fungsi `pasangJadwalHarian` → Jalankan → izinkan. Skrip mengambil `api/cadangan-terbaru?kunci=…` tiap hari jam 01.00–02.00 WIB dan menyimpan `siwarga-YYYY-MM-DD.db` di folder Drive **Cadangan SIWARGA** (60 hari). Bila skrip gagal dengan kode 403/503 dari Cloudflare, buat aturan di Cloudflare (Security → WAF) yang melewatkan jalur `/data-warga/api/cadangan-terbaru`. Kunci bocor → **Buat kunci baru** lalu ganti skrip.
 
 ## Lupa kata sandi / nama pengguna (pemulihan darurat)
+Panduan bergambar: `docs/panduan-lupa-sandi.html`.
 Hanya bisa dilakukan pemegang akses cPanel.
 1. File Manager → buka folder data (`DATA_DIR`, tempat `siwarga.db`) → **+ File** → nama **`reset-admin-desa.txt`**.
 2. Edit file itu, isi **satu baris**:
