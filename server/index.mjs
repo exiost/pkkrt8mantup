@@ -1,7 +1,7 @@
 import express from 'express'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { gzipSync } from 'node:zlib'
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, createReadStream } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, createReadStream, writeFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openDb, createStore, COLLECTIONS } from './db.mjs'
@@ -22,6 +22,48 @@ export function cadanganHarian(db, folder, simpan = 14, hari = new Date().toISOS
   return nama
 }
 export const daftarCadangan = (folder) => (existsSync(folder) ? readdirSync(folder).filter((f) => /^siwarga-\d{4}-\d{2}-\d{2}\.db$/.test(f)).sort().reverse().map((f) => ({ nama: f, ukuran: statSync(join(folder, f)).size })) : [])
+
+/**
+ * Pemulihan darurat lewat cPanel (hanya bisa oleh pemegang akses hosting):
+ * buat file DATA_DIR/reset-admin-desa.txt lalu RESTART aplikasi.
+ *  - isi "katasandibaru"            → semua akun Admin Desa diberi kata sandi itu (bila belum ada Admin Desa: dibuat akun "desa")
+ *  - isi "namapengguna: katasandi"  → hanya akun itu (akun apa saja, mis. admin RT)
+ * Akun yang direset diaktifkan & wajib ganti kata sandi saat masuk. Isi file diganti laporan hasil (tanpa kata sandi).
+ */
+export function resetDarurat(store, file) {
+  if (!file || !existsSync(file)) return null
+  const tulis = (teks) => { try { writeFileSync(file, teks + '\n') } catch { /* abaikan */ } }
+  const waktu = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+  const isi = readFileSync(file, 'utf8').replace(/^\uFEFF/, '').trim()
+  if (!isi || /^(BERHASIL|GAGAL)/.test(isi)) return null // sudah diproses sebelumnya
+  const m = isi.match(/^([^:\s]+)\s*:\s*(.+)$/)
+  const sandi = (m ? m[2] : isi).trim()
+  if (sandi.length < 8) { tulis(`GAGAL (${waktu}): kata sandi baru minimal 8 karakter. Tulis ulang isi file ini lalu RESTART.`); return { ok: false } }
+  const semua = store.q.users.all()
+  let sasaran
+  if (m) {
+    sasaran = semua.filter((u) => u.username.toLowerCase() === m[1].toLowerCase())
+    if (!sasaran.length) { tulis(`GAGAL (${waktu}): nama pengguna "${m[1]}" tidak ada.\nNama pengguna yang ada: ${semua.map((u) => `${u.username} (${u.rt ? `RT ${u.rt}, ${u.role}` : 'Admin Desa'})`).join(', ')}`); return { ok: false } }
+  } else {
+    sasaran = semua.filter((u) => u.role === 'admin' && !u.rt)
+    if (!sasaran.length) {
+      let nama = 'desa'; let n = 2
+      while (semua.some((u) => u.username.toLowerCase() === nama)) nama = `desa${n++}`
+      const id = randomUUID()
+      store.q.insUser.run(id, nama, 'Admin Desa', hashPassword(sandi), 'admin', new Date().toISOString(), null)
+      sasaran = [store.q.userById.get(id)]
+    }
+  }
+  for (const u of sasaran) {
+    store.q.updPass.run(hashPassword(sandi), u.id)
+    store.q.updUser.run(u.name, u.role, 1, u.rt ?? null, u.id)
+    store.q.setGanti.run(1, u.id)
+  }
+  const daftar = sasaran.map((u) => `  - ${u.username} (${u.rt ? `RT ${u.rt}` : 'Admin Desa'})`).join('\n')
+  tulis(`BERHASIL (${waktu}). Kata sandi akun berikut sudah diganti dengan yang Anda tulis:\n${daftar}\nMasuk dengan nama pengguna di atas, lalu Anda diminta membuat kata sandi baru.\nSetelah berhasil masuk, HAPUS file ini.`)
+  console.log(`Pemulihan darurat: kata sandi direset untuk ${sasaran.map((u) => u.username).join(', ')}`)
+  return { ok: true, akun: sasaran.map((u) => u.username) }
+}
 
 export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {}) {
   const file = dbFile ?? join(process.env.DATA_DIR ?? resolve(here, '../data'), 'siwarga.db')
@@ -419,6 +461,8 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     app.use(express.static(dist, { maxAge: '1h', index: 'index.html', setHeaders: (res, f) => { if (f.endsWith('.html') || f.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache') } }))
     app.get('*', (_req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(join(dist, 'index.html')) })
   }
+  // pemulihan darurat kata sandi (file reset-admin-desa.txt di folder data), lalu cadangan pertama
+  if (file !== ':memory:') resetDarurat(store, join(dirname(file), 'reset-admin-desa.txt'))
   // cadangan pertama saat server menyala, lalu dicek tiap jam (satu file per hari)
   buatCadangan()
   const jam = setInterval(buatCadangan, 60 * 60 * 1000)

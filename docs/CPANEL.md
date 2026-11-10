@@ -92,3 +92,15 @@ Catatan: bila mencadangkan manual, salin **seluruh folder `data`** (termasuk `si
 
 ## Cadangan ke Google Drive (Google Apps Script)
 Beranda Desa → tab **Cadangan** → **Cadangan otomatis ke Google Drive**: tekan **Salin skrip**, tempel di script.google.com (Proyek baru), Simpan, pilih fungsi `pasangJadwalHarian` → Jalankan → izinkan. Skrip mengambil `api/cadangan-terbaru?kunci=…` tiap hari jam 01.00–02.00 WIB dan menyimpan `siwarga-YYYY-MM-DD.db` di folder Drive **Cadangan SIWARGA** (60 hari). Bila skrip gagal dengan kode 403/503 dari Cloudflare, buat aturan di Cloudflare (Security → WAF) yang melewatkan jalur `/data-warga/api/cadangan-terbaru`. Kunci bocor → **Buat kunci baru** lalu ganti skrip.
+
+## Lupa kata sandi / nama pengguna (pemulihan darurat)
+Hanya bisa dilakukan pemegang akses cPanel.
+1. File Manager → buka folder data (`DATA_DIR`, tempat `siwarga.db`) → **+ File** → nama **`reset-admin-desa.txt`**.
+2. Edit file itu, isi **satu baris**:
+   - `KataSandiBaru123` → semua akun **Admin Desa** diberi kata sandi itu (bila belum ada Admin Desa, dibuat akun `desa`), atau
+   - `admin: KataSandiBaru123` → hanya akun bernama `admin` (bisa akun apa saja, mis. Admin RT).
+   Kata sandi minimal 8 karakter. Simpan.
+3. Setup Node.js App → **RESTART**.
+4. Buka lagi file `reset-admin-desa.txt`: isinya berganti menjadi **BERHASIL** + daftar nama pengguna yang direset (atau **GAGAL** + alasannya + daftar nama pengguna yang ada).
+5. Masuk dengan nama pengguna itu + kata sandi yang Anda tulis → aplikasi meminta membuat kata sandi baru.
+6. **Hapus file `reset-admin-desa.txt`.**

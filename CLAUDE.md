@@ -32,7 +32,7 @@ Pengganti web (HP & desktop) untuk workbook Excel `Data_Warga_mantup_RT_8_VB.xls
 - React 18 + Vite + TS + Tailwind + Framer Motion + Zustand, HashRouter, lucide-react. Server: Express + `node:sqlite` (`server/index.mjs`, `server/db.mjs`), dijalankan lewat `app.cjs`. Bisa di sub-alamat `/data-warga` (middleware membuang awalan).
 - Mesin lembar Excel: `src/sheet/templates.json` (gaya + sheet, JSON ringkas) dirender `src/sheet/SheetView.tsx`. Tampilan web "Tampilan" di `src/reports/WebView.tsx`.
 - Laporan: `src/reports/registry.ts` (daftar laporan, `uses`, `hidden`), pembangun di `lists.ts`, `rekap.ts`, `forms.ts`; konteks di `ctx.ts`; halaman `src/pages/Laporan.tsx`.
-- Aturan data (umur, WUS/PUS, status ibu per bulan `riwayatIbu`, dll.): `src/lib/rules.ts`. Keputusan desain bernomor K1–K31: **`docs/KEPUTUSAN.md`**.
+- Aturan data (umur, WUS/PUS, status ibu per bulan `riwayatIbu`, dll.): `src/lib/rules.ts`. Keputusan desain bernomor K1–K32: **`docs/KEPUTUSAN.md`**.
 - Peran: admin / editor / viewer. Viewer hanya Laporan; Beranda & Impor/Ekspor khusus admin. Admin bisa **mengunci tanggal laporan** untuk viewer (`settings.kunci`).
 
 ## 4. Multi-RT — SEMUA TAHAP 1–6 SUDAH SELESAI (lihat K26–K28)
@@ -58,6 +58,7 @@ Semua sudah di-commit & push. Paket terakhir sudah dikirim ke pemilik.
 - Cari warga se-desa (Admin Desa): `src/components/CariDesa.tsx` di atas Kelola RT; memakai data `/api/desa` (`useDataDesa`), cari nama/NIK/KK/alamat/umur dll. (`bahanCari`), toleran salah ketik, tampil RT + keluarga + tanda NIK sama di RT lain, tombol Buka data (pindah RT + buka detail).
 - 10 Nov 2026 — fitur bantu (K30): menu **Cek Data** (`/cek`), peringatan NIK di RT lain, tombol **Pindah RT** (Admin Desa, di detail warga), **Pengingat** di Beranda, **Ringkasan Desa** + **aktivitas desa** + penanda RT tidak diperbarui di Kelola RT, **wajib ganti kata sandi** untuk akun baru (akun lama tidak terpengaruh).
 - 10 Nov 2026 — **Beranda Desa** (K31): Beranda Admin Desa = halaman desa dengan tab Ringkasan / RT & Akun / Laporan / Aktivitas / Cadangan; Pengingat & Cek Data se-desa; Cetak (A4/F4) & Excel ringkasan. Panduan Admin Desa & Google Drive dipotret ulang (menu "Kelola RT" sekarang "Beranda Desa").
+- 10 Nov 2026 — **lupa kata sandi** (K32): pemulihan darurat lewat file `reset-admin-desa.txt` di folder data + RESTART (langkah di `docs/CPANEL.md`).
 - Cadangan ke Google Drive (K29): kartu di Kelola RT, skrip `src/lib/gdrive.ts`, endpoint `/api/cadangan-terbaru`, `/api/cadangan-kunci`. **Belum dicoba di akun Google sungguhan** (tidak ada akses) — pemilik perlu memasangnya sekali; bila gagal karena Cloudflare lihat `docs/CPANEL.md`.
 
 ## 7. Yang belum / catatan terbuka (jangan dikerjakan tanpa diminta)
