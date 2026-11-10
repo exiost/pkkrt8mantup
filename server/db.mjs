@@ -39,6 +39,8 @@ function migrateRT(db) {
   const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name)
   if (!cols('records').includes('rt')) db.exec("ALTER TABLE records ADD COLUMN rt TEXT NOT NULL DEFAULT '08'")
   if (!cols('users').includes('rt')) db.exec("ALTER TABLE users ADD COLUMN rt TEXT DEFAULT '08'")
+  // 1 = wajib ganti kata sandi saat masuk (akun baru / kata sandi diatur orang lain)
+  if (!cols('users').includes('ganti')) db.exec('ALTER TABLE users ADD COLUMN ganti INTEGER NOT NULL DEFAULT 0')
   db.exec('CREATE INDEX IF NOT EXISTS idx_records_rt_srv ON records(rt, srv)')
   const get = db.prepare('SELECT value FROM meta WHERE key = ?')
   const old = get.get('settings')
@@ -70,13 +72,17 @@ export function createStore(db) {
     insUser: db.prepare('INSERT INTO users(id, username, name, pass, role, active, created_at, rt) VALUES(?, ?, ?, ?, ?, 1, ?, ?)'),
     updUser: db.prepare('UPDATE users SET name = ?, role = ?, active = ?, rt = ? WHERE id = ?'),
     updPass: db.prepare('UPDATE users SET pass = ? WHERE id = ?'),
+    setGanti: db.prepare('UPDATE users SET ganti = ? WHERE id = ?'),
+    pindahRec: db.prepare('UPDATE records SET rt = ?, data = ?, updated_at = ?, srv = ? WHERE coll = ? AND id = ?'),
+    auditSemua: db.prepare("SELECT rt, data FROM records WHERE coll = 'audit' AND purged = 0 ORDER BY updated_at DESC LIMIT ?"),
+    nikSemua: db.prepare("SELECT rt, id, data FROM records WHERE coll = 'warga' AND purged = 0 AND data LIKE ?"),
     delUser: db.prepare('DELETE FROM users WHERE id = ?'),
   }
   const tx = (fn) => {
     db.exec('BEGIN IMMEDIATE')
     try { const r = fn(); db.exec('COMMIT'); return r } catch (e) { db.exec('ROLLBACK'); throw e }
   }
-  const publicUser = (u) => ({ id: u.id, username: u.username, name: u.name, role: u.role, active: !!u.active, rt: u.rt ?? null, desa: u.role === 'admin' && !u.rt })
+  const publicUser = (u) => ({ id: u.id, username: u.username, name: u.name, role: u.role, active: !!u.active, rt: u.rt ?? null, desa: u.role === 'admin' && !u.rt, harusGanti: !!u.ganti })
   const parse = (r) => ({ ...JSON.parse(r.data), ...(r.purged ? { purged: true, id: r.id, updatedAt: r.updated_at } : {}) })
 
   return {

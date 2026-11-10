@@ -58,6 +58,9 @@ export default function Boot({ children }: { children: ReactNode }) {
     }
   }
 
+  // layar wajib ganti sandi: kata sandi yang barusan diketik dipakai sebagai "kata sandi sekarang"
+  useEffect(() => { if (s.boot === 'ganti') { setU((x) => (p ? p : x === s.user?.username ? '' : x)); setP(''); setP2(''); setErr('') } }, [s.boot]) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (s.boot === 'ready' || s.boot === 'local') return <>{children}</>
 
   if (s.boot === 'checking')
@@ -75,6 +78,26 @@ export default function Boot({ children }: { children: ReactNode }) {
           <Button className="w-full" variant="outline" onClick={() => { setBase(''); s.useLocal() }}>Pakai mode lokal (tanpa server)</Button>
           <p className="pt-1 text-center text-[11px] text-slate-400">Alamat server: {getBase() || '(server ini)'}</p>
         </div>
+      </Shell>
+    )
+
+  if (s.boot === 'ganti')
+    return (
+      <Shell title="Ganti kata sandi dulu" subtitle={`Halo ${s.user?.name || s.user?.username}! Demi keamanan, ganti kata sandi pemberian admin dengan kata sandi Anda sendiri.`}>
+        <form className="space-y-3" onSubmit={async (e) => {
+          e.preventDefault(); setErr('')
+          if (p !== p2) return setErr('Kata sandi baru dan ulangannya tidak sama')
+          if (p.length < 8) return setErr('Kata sandi baru minimal 8 karakter')
+          setBusy(true)
+          try { await s.gantiSandiAwal(u, p) } catch (x) { setErr((x as Error).message) } finally { setBusy(false) }
+        }}>
+          <Field label="Kata sandi sekarang (dari admin)"><Input id="ganti-lama" type="password" value={u} onChange={(e) => setU(e.target.value)} autoComplete="current-password" required /></Field>
+          <Field label="Kata sandi baru (min. 8 karakter)"><Input id="ganti-baru" type="password" value={p} onChange={(e) => setP(e.target.value)} autoComplete="new-password" required minLength={8} /></Field>
+          <Field label="Ulangi kata sandi baru"><Input id="ganti-baru2" type="password" value={p2} onChange={(e) => setP2(e.target.value)} autoComplete="new-password" required /></Field>
+          {err && <p className="rounded-xl bg-red-50 p-2 text-sm text-red-600">{err}</p>}
+          <Button className="w-full" icon={busy ? Loader2 : KeyRound} disabled={busy} type="submit">Simpan & masuk</Button>
+          <button type="button" className="w-full text-center text-xs text-slate-400 hover:text-slate-600" onClick={s.logout}>Keluar</button>
+        </form>
       </Shell>
     )
 

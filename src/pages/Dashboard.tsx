@@ -1,13 +1,14 @@
 import { useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Users, House, UserRound as Mars, PersonStanding as Venus, Baby, Flower2, HeartHandshake, Armchair, AlertTriangle, Sparkles, FileText, Database, Cake } from 'lucide-react'
+import { BellRing, Users, House, UserRound as Mars, PersonStanding as Venus, Baby, Flower2, HeartHandshake, Armchair, AlertTriangle, Sparkles, FileText, Database, Cake } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import { useStore, useLive } from '@/lib/store'
 import { Button, Card, Chip, Empty, Section, StatCard, Avatar, col } from '@/components/ui'
 import { aktif, hariMenujuHPL, hitungUmur, isBalita, isKepala, isLansia, isPUS, isWUS } from '@/lib/rules'
 import { todayISO } from '@/lib/format'
 import { REPORTS } from '@/lib/modules'
+import { periksaData } from '@/lib/periksa'
 
 const PIE = ['#7c3aed', '#ec4899', '#f59e0b', '#10b981', '#0ea5e9', '#ef4444', '#14b8a6', '#a855f7', '#64748b']
 
@@ -50,6 +51,24 @@ export default function Dashboard() {
   const warga = semuaAktif.filter((w) => w.ikutPKK) // yang tidak ikut PKK / nonaktif tidak dihitung
   const tidakIkut = semuaAktif.length - warga.length
   const acuan = todayISO()
+  const keluarga = useLive('keluarga')
+  const cekN = useMemo(() => periksaData(all, keluarga, dws, acuan), [all, keluarga, dws, acuan])
+  // pengingat bulan ini / tahun ini
+  const pengingat = useMemo(() => {
+    const now = new Date(acuan + 'T00:00:00')
+    const th = now.getFullYear(), bl = now.getMonth()
+    const lahir = (w: (typeof semuaAktif)[number]) => (w.tglLahir ? new Date(w.tglLahir + 'T00:00:00') : null)
+    const genap = (n: number, bulanSaja: boolean) => semuaAktif.filter((w) => { const d = lahir(w); return !!d && th - d.getFullYear() === n && (!bulanSaja || d.getMonth() === bl) })
+    const hplBulan = semuaAktif.filter((w) => w.hamil && w.hpl && Number(w.hpl.slice(0, 4)) === th && Number(w.hpl.slice(5, 7)) - 1 === bl)
+    return [
+      { judul: 'Perkiraan lahir (HPL) bulan ini', warna: 'fuchsia', list: hplBulan, info: (w: (typeof semuaAktif)[number]) => w.hpl.split('-').reverse().join('/') },
+      { judul: 'Genap 1 tahun bulan ini (imunisasi / posyandu)', warna: 'sky', list: genap(1, true), info: () => '' },
+      { judul: 'Genap 15 tahun bulan ini (masuk WUS)', warna: 'pink', list: genap(15, true).filter((w) => w.jk === 'P'), info: () => '' },
+      { judul: 'Genap 17 tahun bulan ini (bisa buat KTP)', warna: 'violet', list: genap(17, true), info: () => '' },
+      { judul: 'Masuk usia sekolah (7 tahun) tahun ini', warna: 'emerald', list: genap(7, false), info: () => '' },
+      { judul: `Masuk usia lansia (${s.umurLansia} tahun) tahun ini`, warna: 'orange', list: genap(s.umurLansia, false), info: () => '' },
+    ].filter((x) => x.list.length > 0)
+  }, [semuaAktif, acuan, s.umurLansia])
 
   const d = useMemo(() => {
     const count = (f: (w: (typeof warga)[number]) => boolean) => warga.filter(f).length
@@ -71,6 +90,7 @@ export default function Dashboard() {
       { label: 'Dasawisma belum jelas / kosong', color: 'red', to: '/warga', n: count((w) => !dws.some((x) => x.nama === w.dasawisma)) },
       { label: 'NIK ganda', color: 'red', to: '/warga', n: (() => { const m = new Map<string, number>(); warga.forEach((w) => w.nik && m.set(w.nik, (m.get(w.nik) ?? 0) + 1)); return [...m.values()].filter((x) => x > 1).length })() },
     ].filter((x) => x.n > 0)
+    if (cekN.length) perhatian.unshift({ label: 'Cek Data: hal yang perlu dibetulkan', color: 'red', to: '/cek', n: cekN.length })
     const bulanIni = new Date().getMonth()
     const ultah = warga.filter((w) => w.tglLahir && new Date(w.tglLahir).getMonth() === bulanIni).sort((a, b) => a.tglLahir.slice(8).localeCompare(b.tglLahir.slice(8)))
     return {
@@ -80,7 +100,7 @@ export default function Dashboard() {
       pendidikan: groupBy((w) => w.pendidikan).slice(0, 8), pekerjaan: groupBy((w) => w.pekerjaan).slice(0, 8),
       piramida, perDw, perhatian, ultah,
     }
-  }, [warga, dws, acuan, s])
+  }, [warga, dws, acuan, s, cekN])
 
   if (!all.length)
     return (
@@ -132,6 +152,22 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-2">
             {d.perhatian.map((p) => (
               <Link key={p.label} to={p.to}><Chip color={p.color} pulse={p.color === 'fuchsia'} className="!px-3 !py-1.5 !text-xs">{p.label}: {p.n}</Chip></Link>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {pengingat.length > 0 && (
+        <Section title="Pengingat" icon={BellRing} color="fuchsia">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {pengingat.map((p) => (
+              <div key={p.judul} className="rounded-xl border border-slate-200 p-3 dark:border-white/10">
+                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300"><span className="min-w-0 flex-1">{p.judul}</span><Chip color={p.warna}>{p.list.length}</Chip></div>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.list.slice(0, 12).map((w) => <Link key={w.id} to={`/warga/${w.id}`} className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold hover:bg-violet-100 dark:bg-white/10">{w.nama}{p.info(w) ? ` · ${p.info(w)}` : ''}</Link>)}
+                  {p.list.length > 12 && <span className="px-1 text-xs text-slate-400">+{p.list.length - 12} lagi</span>}
+                </div>
+              </div>
             ))}
           </div>
         </Section>

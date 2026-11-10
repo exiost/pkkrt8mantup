@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
@@ -10,6 +10,8 @@ import { infoDariNIK, hitungUmur, isKepala, kepalaKeluarga } from '@/lib/rules'
 import { todayISO } from '@/lib/format'
 import { rayakan } from '@/lib/crud'
 import type { Warga } from '@/lib/types'
+import { api } from '@/lib/api'
+import { useSession } from '@/lib/session'
 import { Button, Field, Input, Modal, Select, Textarea, Toggle, YesNo, Chip, col } from './ui'
 
 type Draft = Omit<Warga, 'id' | 'createdAt' | 'updatedAt'>
@@ -81,6 +83,20 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
   }
 
   const nikInfo = infoDariNIK(d.nik)
+  // NIK yang sama di RT lain (mode server): beri tahu sejak diketik, tidak menghalangi simpan
+  const server = useSession((x) => x.server && !x.offline)
+  const rtIni = useSession((x) => x.rt)
+  const [nikLain, setNikLain] = useState<{ rt: string; nama: string; dihapus: boolean; status?: string }[]>([])
+  useEffect(() => {
+    setNikLain([])
+    if (!server || !/^\d{16}$/.test(d.nik)) return
+    const t = setTimeout(() => {
+      api<{ ada: { rt: string; nama: string; dihapus: boolean; status?: string }[] }>(`/cek-nik?nik=${d.nik}${id ? `&kecuali=${encodeURIComponent(id)}` : ''}`)
+        .then((r) => setNikLain(r.ada.filter((x) => x.rt !== rtIni)))
+        .catch(() => {})
+    }, 400)
+    return () => clearTimeout(t)
+  }, [d.nik, server, rtIni, id])
   const S = STEPS[step]
   const Y = (label: string, k: keyof Draft) => <YesNo key={k as string} label={label} value={d[k] as never} onChange={(v) => set(k, v as never)} />
 
@@ -127,6 +143,11 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
                       <Button size="sm" variant="soft" icon={Wand2} className="h-10" onClick={() => setD((x) => ({ ...x, tglLahir: x.tglLahir || nikInfo.tglLahir, jk: nikInfo.jk }))}>Isi</Button>
                     )}
                   </div>
+                  {nikLain.length > 0 && (
+                    <div role="alert" className="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+                      ⚠️ NIK ini sudah tercatat di {nikLain.map((x) => `RT ${x.rt} (${x.nama}${x.dihapus ? ', di Tempat Sampah' : x.status && x.status !== 'Aktif' ? `, ${x.status}` : ''})`).join(', ')}. Bila orangnya sama dan pindah RT, minta Admin Desa memakai <b>Pindah RT</b> agar datanya tidak dobel.
+                    </div>
+                  )}
                 </Field>
                 <Field label="Jenis Kelamin">
                   <div className="flex gap-2">

@@ -6,6 +6,12 @@ const j = async (path, { method = 'GET', body, token, rt = '08' } = {}) => {
   const r = await fetch(base + path, { method, headers: { 'Content-Type': 'application/json', 'X-RT': rt, ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined })
   return { status: r.status, data: await r.json().catch(() => ({})) }
 }
+/** akun baru wajib ganti kata sandi: ganti ke sementara lalu kembali ke semula agar tes lain tetap memakai sandi yang sama */
+const siap = async (token, pw) => {
+  await j('/api/me/password', { method: 'POST', token, body: { old: pw, next: pw + '-tmp' } })
+  await j('/api/me/password', { method: 'POST', token, body: { old: pw + '-tmp', next: pw } })
+  return token
+}
 const rec = (id, extra = {}) => ({ id, updatedAt: new Date().toISOString(), createdAt: new Date().toISOString(), nama: 'X', ...extra })
 
 let admin, editor, viewer
@@ -50,8 +56,13 @@ describe('server SIWARGA', () => {
     const v = await j('/api/users', { method: 'POST', token: admin, body: { username: 'tamu', password: 'tamu123456', role: 'viewer', rt: '08' } })
     expect(v.status).toBe(200)
     expect((await j('/api/users', { method: 'POST', token: admin, body: { username: 'kader', password: 'kader12345', role: 'editor' } })).status).toBe(409)
-    editor = (await j('/api/login', { method: 'POST', body: { username: 'kader', password: 'kader12345' } })).data.token
-    viewer = (await j('/api/login', { method: 'POST', body: { username: 'tamu', password: 'tamu123456' } })).data.token
+    const e0 = (await j('/api/login', { method: 'POST', body: { username: 'kader', password: 'kader12345' } })).data
+    expect(e0.user.harusGanti).toBe(true)
+    expect((await j('/api/data', { token: e0.token })).status).toBe(403) // belum ganti sandi: ditolak
+    expect((await j('/api/me', { token: e0.token })).status).toBe(200)
+    editor = await siap(e0.token, 'kader12345')
+    expect((await j('/api/me', { token: editor })).data.user.harusGanti).toBe(false)
+    viewer = await siap((await j('/api/login', { method: 'POST', body: { username: 'tamu', password: 'tamu123456' } })).data.token, 'tamu123456')
     expect((await j('/api/users', { token: editor })).status).toBe(403)
   })
   it('editor menyimpan data, viewer hanya membaca', async () => {
@@ -129,7 +140,7 @@ describe('server SIWARGA', () => {
     const a9 = (await j('/api/login', { method: 'POST', body: { username: 'admin09', password: 'admin09pass' } })).data
     expect(a9.user.rt).toBe('09')
     expect(a9.user.desa).toBe(false)
-    const t9 = a9.token
+    const t9 = await siap(a9.token, 'admin09pass')
     // header X-RT diabaikan untuk akun RT: tetap RT 09
     const d9 = await j('/api/data', { token: t9, rt: '08' })
     expect(d9.data.rt).toBe('09')
@@ -176,7 +187,7 @@ describe('server SIWARGA', () => {
     expect(cek.status).toBe(200)
     expect(cek.data.ringkas.warga).toMatchObject({ baru: 1, berubah: 1, milikRTLain: 1, hanyaDiServer: 1 })
     // Admin RT 08 tidak boleh mengimpor file RT 09; file asal-asalan ditolak
-    const t8 = (await j('/api/login', { method: 'POST', body: { username: 'admin8', password: 'admin8pass' } })).data.token
+    const t8 = await siap((await j('/api/login', { method: 'POST', body: { username: 'admin8', password: 'admin8pass' } })).data.token, 'admin8pass')
     expect((await j('/api/rt-impor', { method: 'POST', token: t8, body: { berkas, cek: true } })).status).toBe(403)
     expect((await j('/api/rt-impor', { method: 'POST', token: admin, body: { berkas: { warga: [] } } })).status).toBe(400)
     expect((await j('/api/rt-impor', { method: 'POST', token: admin, body: { berkas } })).status).toBe(200)
@@ -198,6 +209,46 @@ describe('server SIWARGA', () => {
     expect((await j('/api/me/rt', { method: 'POST', token: admin, body: { rt: '99' } })).status).toBe(400)
     expect((await j('/api/me/rt', { method: 'POST', token: editor, body: { rt: '09' } })).status).toBe(403)
     await j('/api/me/rt', { method: 'POST', token: admin, body: { rt: '08' } })
+  })
+  it('cek NIK di semua RT, pindah warga antar-RT, catatan aktivitas desa', async () => {
+    const t9 = (await j('/api/login', { method: 'POST', body: { username: 'admin09', password: 'admin09pass' } })).data.token
+    const now = new Date().toISOString()
+    await j('/api/ops', { method: 'POST', token: admin, rt: '08', body: { ops: [
+      { t: 'put', k: 'keluarga', rec: { id: 'k8', nomor: 7, updatedAt: now } },
+      { t: 'put', k: 'warga', rec: rec('p1', { nama: 'Siti Aminah', nik: '3404011111110001', keluargaId: 'k8', dasawisma: 'Drupadi I', alamat: 'Mantup RT 08' }) },
+      { t: 'put', k: 'warga', rec: rec('p2', { nama: 'Budi Santoso', nik: '3404011111110002', keluargaId: 'k8', dasawisma: 'Drupadi I', alamat: 'Mantup RT 08' }) },
+    ] } })
+    // RT 09 mengetik NIK yang sudah ada di RT 08 → diberi tahu, nama disamarkan
+    const c9 = (await j('/api/cek-nik?nik=3404 0111 1111 0001', { token: t9 })).data.ada
+    expect(c9).toEqual([{ rt: '08', nama: 'Siti A.', dihapus: false }])
+    const cd = (await j('/api/cek-nik?nik=3404011111110001', { token: admin })).data.ada
+    expect(cd[0]).toMatchObject({ rt: '08', nama: 'Siti Aminah', id: 'p1' })
+    expect((await j('/api/cek-nik?nik=3404011111110001&kecuali=p1', { token: admin })).data.ada).toEqual([])
+    expect([401, 403]).toContain((await j('/api/cek-nik?nik=3404011111110001', { token: viewer })).status) // viewer (akun tamu sudah dinonaktifkan di tes sebelumnya)
+    // pindah: hanya Admin Desa; sekeluarga ikut, nomor keluarga baru, alamat & dasawisma disesuaikan
+    expect((await j('/api/pindah-rt', { method: 'POST', token: t9, body: { id: 'p1', keRT: '09' } })).status).toBe(403)
+    const gen8 = (await j('/api/data', { token: admin, rt: '08' })).data.gen
+    const r = await j('/api/pindah-rt', { method: 'POST', token: admin, body: { id: 'p1', keRT: '09', sekeluarga: true } })
+    expect(r.status).toBe(200)
+    expect(r.data).toMatchObject({ jumlah: 2, keluarga: true })
+    const d8 = (await j('/api/data', { token: admin, rt: '08' })).data
+    expect(d8.gen).not.toBe(gen8) // perangkat RT 08 tahu harus memuat ulang
+    expect(d8.collections.warga.some((w) => w.id === 'p1' || w.id === 'p2')).toBe(false)
+    const d9 = (await j('/api/data', { token: t9 })).data.collections
+    const p1 = d9.warga.find((w) => w.id === 'p1')
+    expect(p1).toMatchObject({ keluargaId: 'k8', dasawisma: '', alamat: 'Mantup RT 09' })
+    expect(d9.keluarga.find((k) => k.id === 'k8')).toBeTruthy()
+    // Admin RT 09 sekarang bisa mengubahnya; RT 08 tidak lagi
+    expect((await j('/api/ops', { method: 'POST', token: t9, body: { ops: [{ t: 'put', k: 'warga', rec: { ...p1, nama: 'Siti Aminah', updatedAt: new Date(Date.now() + 1000).toISOString() } }] } })).status).toBe(200)
+    expect((await j('/api/ops', { method: 'POST', token: admin, rt: '08', body: { ops: [{ t: 'put', k: 'warga', rec: rec('p1') }] } })).status).toBe(400)
+    // pindah satu orang saja: keluarganya dikosongkan
+    expect((await j('/api/pindah-rt', { method: 'POST', token: admin, body: { id: 'p2', keRT: '08' } })).data).toMatchObject({ jumlah: 1, keluarga: false })
+    expect((await j('/api/data', { token: admin, rt: '08' })).data.collections.warga.find((w) => w.id === 'p2').keluargaId).toBe('')
+    // catatan aktivitas desa mencatat pindah di kedua RT
+    const akt = (await j('/api/aktivitas', { token: admin })).data.list
+    expect(akt.some((a) => a.rt === '08' && /Pindah ke RT 09/.test(a.label))).toBe(true)
+    expect(akt.some((a) => a.rt === '09' && /Pindah dari RT 08/.test(a.label))).toBe(true)
+    expect((await j('/api/aktivitas', { token: t9 })).status).toBe(403)
   })
   it('pembatas percobaan login', async () => {
     let last = 0

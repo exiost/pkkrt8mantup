@@ -94,8 +94,12 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
       req.rt = pilih || (terakhir && daftar.includes(terakhir) ? terakhir : daftar[0]) || '01'
     }
     req.desa = !u.rt && u.role === 'admin'
+    if (u.ganti && req.path !== '/api/me' && req.path !== '/api/me/password') return res.status(403).json({ error: 'Ganti kata sandi dulu sebelum memakai aplikasi', harusGanti: true })
     next()
   }
+  /** nomor "generasi" data RT: naik bila data dipindah/dipulihkan, agar perangkat lain memuat ulang penuh */
+  const genRT = (rt) => store.meta(`gen:${rt}`) ?? '0'
+  const naikGen = (rt) => store.setMeta(`gen:${rt}`, String(Number(genRT(rt)) + 1))
   const desaOnly = (req, res, next) => (req.desa ? next() : res.status(403).json({ error: 'Hanya Admin Desa yang boleh melakukan ini' }))
   const settingsOf = (rt) => { const v = store.meta(`settings:${rt}`); return v ? JSON.parse(v) : null }
   const wrap = (fn) => (req, res) => { try { fn(req, res) } catch (e) { console.error(e); res.status(400).json({ error: e.message || 'Permintaan tidak valid' }) } }
@@ -137,7 +141,9 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     const { old, next } = req.body ?? {}
     if (!verifyPassword(String(old ?? ''), req.user.pass)) return res.status(400).json({ error: 'Kata sandi lama salah' })
     if (!validPw(next)) return res.status(400).json({ error: 'Kata sandi baru minimal 8 karakter' })
+    if (verifyPassword(String(next), req.user.pass)) return res.status(400).json({ error: 'Kata sandi baru harus berbeda dari yang lama' })
     store.q.updPass.run(hashPassword(next), req.user.id)
+    store.q.setGanti.run(0, req.user.id)
     res.json({ ok: true })
   }))
 
@@ -146,7 +152,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     const since = Number(req.query.since) || 0
     const seq = store.seq()
     const cols = store.snapshot(since, req.rt)
-    res.json({ seq, rt: req.rt, full: !since, collections: cols, settings: settingsOf(req.rt) })
+    res.json({ seq, rt: req.rt, gen: genRT(req.rt), full: !since, collections: cols, settings: settingsOf(req.rt) })
   }))
 
   app.post('/api/ops', auth(['admin', 'editor']), wrap((req, res) => {
@@ -199,6 +205,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     const rt = mintaDesa ? null : rtTujuan(req, { ...req.body, desa: false }, undefined)
     const id = randomUUID()
     store.q.insUser.run(id, username.trim(), (name ?? '').trim() || username.trim(), hashPassword(password), role, new Date().toISOString(), rt)
+    store.q.setGanti.run(1, id) // akun baru wajib mengganti kata sandi pemberian admin
     res.json({ user: store.publicUser(store.q.userById.get(id)) })
   }))
 
@@ -216,6 +223,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     if (req.body.password !== undefined) {
       if (!validPw(req.body.password)) return res.status(400).json({ error: 'Kata sandi minimal 8 karakter' })
       store.q.updPass.run(hashPassword(req.body.password), u.id)
+      if (u.id !== req.user.id) store.q.setGanti.run(1, u.id)
     }
     res.json({ user: store.publicUser(store.q.userById.get(u.id)) })
   }))
@@ -253,6 +261,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     const d = req.body
     if (!d || !Array.isArray(d.warga)) return res.status(400).json({ error: 'Format cadangan tidak dikenali' })
     store.restore(d, req.rt)
+    naikGen(req.rt)
     res.json({ ok: true, seq: store.seq() })
   }))
 
@@ -297,8 +306,70 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     if (!c) return res.status(404).json({ error: 'Cadangan tidak ditemukan' })
     store.simpanCadangan(rt, 'Sebelum mengembalikan cadangan', settingsOf(rt))
     store.restore(c.data, rt)
+    naikGen(rt)
     res.json({ ok: true, seq: store.seq() })
   }))
+
+  // --- cek NIK di semua RT (peringatan saat mengisi data) ---
+  app.get('/api/cek-nik', auth(['admin', 'editor']), (req, res) => {
+    const nik = String(req.query.nik ?? '').replace(/\D/g, '')
+    if (nik.length < 10) return res.json({ ada: [] })
+    const kecuali = String(req.query.kecuali ?? '')
+    const samar = (n) => String(n ?? '').split(/\s+/).filter(Boolean).map((k, i) => (i === 0 ? k : `${k[0]}.`)).join(' ')
+    const ada = store.q.nikSemua.all(`%${nik.slice(-6)}%`).map((r) => ({ r, w: JSON.parse(r.data) }))
+      .filter(({ r, w }) => r.id !== kecuali && String(w.nik ?? '').replace(/\D/g, '') === nik)
+      .map(({ r, w }) => {
+        const boleh = req.desa || r.rt === req.rt
+        return { rt: r.rt, nama: boleh ? w.nama : samar(w.nama), id: boleh ? r.id : undefined, dihapus: !!w.deletedAt, status: w.statusWarga }
+      })
+    res.json({ ada })
+  })
+
+  // --- pindah warga antar-RT (Admin Desa) ---
+  app.post('/api/pindah-rt', auth(['admin']), desaOnly, wrap((req, res) => {
+    const { id, keRT, sekeluarga } = req.body ?? {}
+    const cur = store.q.getRec.get('warga', String(id ?? ''))
+    if (!cur || cur.purged) return res.status(404).json({ error: 'Warga tidak ditemukan' })
+    const dari = cur.rt
+    if (!store.rts().includes(keRT) || keRT === dari) return res.status(400).json({ error: 'Pilih RT tujuan yang berbeda' })
+    const w0 = JSON.parse(cur.data)
+    const now = new Date().toISOString()
+    const tujuan = store.snapshot(0, keRT)
+    const dwTujuan = new Set(tujuan.dasawisma.filter((d) => !d.deletedAt).map((d) => d.nama))
+    const pindahkan = []
+    let kel = null
+    if (sekeluarga && w0.keluargaId) {
+      const k = store.q.getRec.get('keluarga', w0.keluargaId)
+      if (k && !k.purged && k.rt === dari) kel = JSON.parse(k.data)
+      for (const w of store.snapshot(0, dari).warga) if (!w.deletedAt && w.keluargaId === w0.keluargaId) pindahkan.push(w)
+    } else pindahkan.push(w0)
+    const alamatBaru = (a) => String(a ?? '').replace(new RegExp(`RT\\s*0*${Number(dari)}\\b`, 'i'), `RT ${keRT}`)
+    store.tx(() => {
+      let seq = store.seq()
+      if (kel) {
+        const nomor = tujuan.keluarga.reduce((m, k) => Math.max(m, Number(k.nomor) || 0), 0) + 1
+        store.q.pindahRec.run(keRT, JSON.stringify({ ...kel, nomor, updatedAt: now }), now, ++seq, 'keluarga', kel.id)
+      }
+      for (const w of pindahkan) {
+        const baru = { ...w, keluargaId: kel ? w.keluargaId : '', dasawisma: dwTujuan.has(w.dasawisma) ? w.dasawisma : '', alamat: alamatBaru(w.alamat), updatedAt: now }
+        store.q.pindahRec.run(keRT, JSON.stringify(baru), now, ++seq, 'warga', w.id)
+      }
+      const oleh = req.user.name || req.user.username
+      const nama = pindahkan.map((w) => w.nama).join(', ')
+      for (const [rt, label] of [[dari, `Pindah ke RT ${keRT}: ${nama}`], [keRT, `Pindah dari RT ${dari}: ${nama}`]]) {
+        const e = { id: randomUUID(), waktu: now, koleksi: 'warga', recordId: w0.id, aksi: 'Ubah', label, oleh }
+        store.q.putRec.run('audit', e.id, JSON.stringify(e), now, ++seq, rt)
+      }
+      naikGen(dari); naikGen(keRT)
+    })
+    res.json({ ok: true, dari, keRT, jumlah: pindahkan.length, keluarga: !!kel })
+  }))
+
+  // --- catatan aktivitas seluruh desa (Admin Desa) ---
+  app.get('/api/aktivitas', auth(['admin']), desaOnly, (req, res) => {
+    const n = Math.min(1000, Math.max(1, Number(req.query.limit) || 300))
+    res.json({ list: store.q.auditSemua.all(n).map((r) => ({ ...JSON.parse(r.data), rt: r.rt })) })
+  })
 
   // --- gabungan desa: seluruh data semua RT (hanya baca, untuk laporan Desa Mantup) ---
   app.get('/api/desa', auth(['admin']), desaOnly, (_req, res) => {

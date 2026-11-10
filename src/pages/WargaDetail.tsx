@@ -10,6 +10,7 @@ import { hitungUmur, statusIbu } from '@/lib/rules'
 import { maskNIK, tglIndo, todayISO, yt } from '@/lib/format'
 import { anggotaKeluarga, keluargaOf } from '@/lib/rules'
 import { hapusDenganUndo } from '@/lib/crud'
+import PindahRT from '@/components/PindahRT'
 
 const KV = ({ k, v }: { k: string; v: ReactNode }) => <InfoRow k={k} v={v} />
 
@@ -54,6 +55,7 @@ export default function WargaDetail() {
           </div>
           <div className="flex w-full gap-2 sm:w-auto [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button variant="outline" icon={Pencil} onClick={() => openWarga(w.id)}>Ubah</Button>
+            <PindahRT w={w} anggota={anggota} />
             <Button variant="danger" icon={Trash2} onClick={async () => {
               if (await confirm({ title: 'Hapus warga?', message: <>Pindahkan <b>{w.nama}</b> ke Tempat Sampah?</>, okText: 'Hapus', danger: true })) { hapusDenganUndo('warga', w.id, w.nama); nav('/warga') }
             }}>Hapus</Button>

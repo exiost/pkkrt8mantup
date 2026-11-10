@@ -262,4 +262,6 @@ export interface AppUser {
   rt?: string | null
   /** true = Admin Desa (bisa membuka semua RT) */
   desa?: boolean
+  /** wajib ganti kata sandi sebelum memakai aplikasi */
+  harusGanti?: boolean
 }

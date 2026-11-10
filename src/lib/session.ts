@@ -5,7 +5,7 @@ import { api, ApiError, getBase, getToken, probe, setBase, setRT, setToken } fro
 import { DEFAULT_SETTINGS, setGuardHook, setPersistMode, setSyncHook, useStore, type Op } from './store'
 import type { AuditEntry, Settings } from './types'
 
-export type Boot = 'checking' | 'local' | 'setup' | 'login' | 'ready' | 'error'
+export type Boot = 'checking' | 'local' | 'setup' | 'login' | 'ganti' | 'ready' | 'error'
 export type SyncState = 'idle' | 'saving' | 'error'
 
 interface Session {
@@ -29,11 +29,13 @@ interface Session {
   start: () => Promise<void>
   setup: (username: string, password: string, name: string) => Promise<void>
   login: (username: string, password: string) => Promise<void>
+  /** ganti kata sandi wajib saat pertama masuk */
+  gantiSandiAwal: (old: string, next: string) => Promise<void>
   logout: () => void
   useLocal: () => void
 }
 
-interface DataResp { seq: number; rt?: string; full: boolean; collections: Partial<Collections> & { audit: AuditEntry[] }; settings: Settings | null }
+interface DataResp { seq: number; rt?: string; gen?: string; full: boolean; collections: Partial<Collections> & { audit: AuditEntry[] }; settings: Settings | null }
 
 const QKEY = 'siwarga-queue'
 const CKEY = 'siwarga-cache'
@@ -48,6 +50,7 @@ let seq = 0
 let timer: ReturnType<typeof setTimeout> | null = null
 let poll: ReturnType<typeof setInterval> | null = null
 let backoff = 0
+let gen: string | null = null
 let flushing = false
 
 const loadQueue = () => { try { queue = JSON.parse(localStorage.getItem(QKEY) ?? '[]') } catch { queue = [] } }
@@ -132,6 +135,9 @@ export const useSession = create<Session>()((set, get) => {
     if (queue.length && !full) return // jangan menimpa perubahan yang belum terkirim
     try {
       const d = await api<DataResp>(`/data${full || !seq ? '' : `?since=${seq}`}`)
+      // data RT ini dipindah/dipulihkan di perangkat lain: muat ulang penuh agar tidak ada sisa data lama
+      if (!d.full && d.gen !== undefined && gen !== null && d.gen !== gen) { gen = null; seq = 0; return pull(true) }
+      if (d.gen !== undefined) gen = d.gen
       const { audit, ...cols } = d.collections
       // RT yang belum punya pengaturan: pakai bawaan dengan nama RT-nya sendiri
       const settings = d.settings ?? (d.full && d.rt ? { ...DEFAULT_SETTINGS, rt: `RT ${d.rt}` } : null)
@@ -204,6 +210,9 @@ export const useSession = create<Session>()((set, get) => {
   }
 
   async function enter(user: AppUser, info?: { rts?: string[]; rt?: string }) {
+    // akun baru / kata sandi diatur admin: wajib ganti dulu sebelum masuk
+    if (user.harusGanti) { set({ user, boot: 'ganti', server: true, error: '' }); return }
+    gen = null
     if (!user.desa) setRT('')
     else if (info?.rt) setRT(info.rt)
     const c = readCache()
@@ -281,6 +290,12 @@ export const useSession = create<Session>()((set, get) => {
       const r = await api<{ token: string; user: AppUser }>('/setup', { method: 'POST', body: { username, password, name }, auth: false })
       setToken(r.token)
       await enterFresh(r.user)
+    },
+
+    gantiSandiAwal: async (old, next) => {
+      await api('/me/password', { method: 'POST', body: { old, next } })
+      const me = await api<{ user: AppUser; rts: string[]; rt: string }>('/me')
+      await enter(me.user, me)
     },
 
     login: async (username, password) => {

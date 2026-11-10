@@ -1,7 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Building2, Cloud, CloudOff, LogOut, MapPinned, LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
+  Building2, ClipboardCheck, Cloud, CloudOff, LogOut, MapPinned, LayoutDashboard, Users, House, Baby, FileText, Settings, Database, Trash2, History, Plus, Moon, Sun, Menu, Search, Sprout, X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useLive } from '@/lib/store'
@@ -18,6 +18,7 @@ const NAV: { to: string; color: string; label: string; icon: typeof Users; group
   { to: '/keluarga', color: 'emerald', label: 'Keluarga (KK)', icon: House, group: 'Data' },
   { to: '/ibu-anak', color: 'fuchsia', label: 'Ibu & Anak, KB', icon: Baby, group: 'Data' },
   { to: '/pekarangan', color: 'lime', label: 'Pekarangan & IRT', icon: Sprout, group: 'Data' },
+  { to: '/cek', color: 'emerald', label: 'Cek Data', icon: ClipboardCheck, group: 'Data' },
   { to: '/laporan', color: 'orange', label: 'Laporan & Cetak', icon: FileText, group: 'Laporan' },
   { to: '/data', color: 'teal', label: 'Impor / Ekspor', icon: Database, group: 'Sistem' },
   { to: '/pengaturan', color: 'slate', label: 'Pengaturan', icon: Settings, group: 'Sistem' },

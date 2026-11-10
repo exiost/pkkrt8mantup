@@ -19,6 +19,7 @@ import Sampah from './pages/Sampah'
 import Riwayat from './pages/Riwayat'
 import Pekarangan from './pages/Pekarangan'
 import KelolaRT from './pages/KelolaRT'
+import CekData from './pages/CekData'
 import { EditorHost } from './components/EditorHost'
 
 /** Rute per peran: viewer hanya laporan; Beranda khusus admin */
@@ -49,6 +50,7 @@ function Rute({ loc }: { loc: ReturnType<typeof useLocation> }) {
       <Route path="/data" element={peran === 'admin' ? <DataPage /> : <Navigate to="/warga" replace />} />
       <Route path="/sampah" element={<Sampah />} />
       <Route path="/riwayat" element={<Riwayat />} />
+      <Route path="/cek" element={<CekData />} />
       {desa && <Route path="/rt" element={<KelolaRT />} />}
       <Route path="*" element={<Navigate to={peran === 'admin' ? '/' : '/warga'} replace />} />
     </Routes>

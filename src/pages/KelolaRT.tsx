@@ -8,6 +8,8 @@ import { GABUNGAN } from '@/reports/desa'
 import { api, unduhFile } from '@/lib/api'
 import { skripGoogleDrive } from '@/lib/gdrive'
 import CariDesa from '@/components/CariDesa'
+import RingkasanDesa from '@/components/RingkasanDesa'
+import AktivitasDesa from '@/components/AktivitasDesa'
 import { useSession } from '@/lib/session'
 import { Button, Card, Chip, Field, Input, Modal, PageHeader, Select, StatCard, useConfirm } from '@/components/ui'
 import type { Role } from '@/lib/types'
@@ -54,8 +56,10 @@ export default function KelolaRT() {
 
       <CariDesa />
 
+      <RingkasanDesa />
+
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatCard label="Warga seluruh desa" value={total('warga')} icon={Users} color="sky" i={0} />
+        <StatCard label="Semua warga terdaftar (termasuk nonaktif / tidak ikut PKK)" value={total('warga')} icon={Users} color="sky" i={0} />
         <StatCard label="Keluarga (KK)" value={total('keluarga')} icon={House} color="emerald" i={1} />
         <StatCard label={`RT yang sudah mengisi (dari ${rows?.length ?? 17})`} value={terisi} icon={Building2} color="amber" i={2} />
       </div>
@@ -82,7 +86,9 @@ export default function KelolaRT() {
                 <div className="text-xs text-slate-500">{r.warga} warga · {r.keluarga} KK</div>
               </div>
             </div>
-            <div className="mt-2 text-xs text-slate-500">Terakhir diperbarui: <b className="text-slate-700 dark:text-slate-200">{tgl(r.akhir)}</b></div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">Terakhir diperbarui: <b className="text-slate-700 dark:text-slate-200">{tgl(r.akhir)}</b>
+              {(() => { const hari = r.akhir ? Math.floor((Date.now() - new Date(r.akhir).getTime()) / 864e5) : null; return hari === null ? <Chip color="slate">belum ada data</Chip> : hari >= 30 ? <Chip color="red">belum diperbarui {hari} hari</Chip> : null })()}
+            </div>
             <div className="mt-2 flex min-h-[1.75rem] flex-wrap gap-1">
               {r.akun.length ? r.akun.map((a) => (
                 <Chip key={a.username} color={a.role === 'admin' ? 'red' : a.role === 'editor' ? 'violet' : 'slate'}>@{a.username} · {PERAN[a.role]}{a.active ? '' : ' (nonaktif)'}</Chip>
@@ -111,6 +117,8 @@ export default function KelolaRT() {
           </div>
         ) : <p className="text-sm italic text-slate-400">Belum ada cadangan.</p>}
       </Card>
+
+      <AktivitasDesa />
 
       <GoogleDrive />
 
