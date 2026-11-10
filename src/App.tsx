@@ -37,7 +37,8 @@ function Rute({ loc }: { loc: ReturnType<typeof useLocation> }) {
   }
   return (
     <Routes location={loc}>
-      <Route path="/" element={peran === 'admin' ? <Dashboard /> : <Navigate to="/warga" replace />} />
+      <Route path="/" element={desa ? <KelolaRT /> : peran === 'admin' ? <Dashboard /> : <Navigate to="/warga" replace />} />
+      {desa && <Route path="/beranda-rt" element={<Dashboard />} />}
       <Route path="/warga" element={<WargaPage />} />
       <Route path="/warga/:id" element={<WargaDetail />} />
       <Route path="/keluarga" element={<KeluargaPage />} />

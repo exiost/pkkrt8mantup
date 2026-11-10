@@ -9,6 +9,7 @@ import { aktif, hariMenujuHPL, hitungUmur, isBalita, isKepala, isLansia, isPUS, 
 import { todayISO } from '@/lib/format'
 import { REPORTS } from '@/lib/modules'
 import { periksaData } from '@/lib/periksa'
+import { buatPengingat } from '@/lib/pengingat'
 
 const PIE = ['#7c3aed', '#ec4899', '#f59e0b', '#10b981', '#0ea5e9', '#ef4444', '#14b8a6', '#a855f7', '#64748b']
 
@@ -54,21 +55,7 @@ export default function Dashboard() {
   const keluarga = useLive('keluarga')
   const cekN = useMemo(() => periksaData(all, keluarga, dws, acuan), [all, keluarga, dws, acuan])
   // pengingat bulan ini / tahun ini
-  const pengingat = useMemo(() => {
-    const now = new Date(acuan + 'T00:00:00')
-    const th = now.getFullYear(), bl = now.getMonth()
-    const lahir = (w: (typeof semuaAktif)[number]) => (w.tglLahir ? new Date(w.tglLahir + 'T00:00:00') : null)
-    const genap = (n: number, bulanSaja: boolean) => semuaAktif.filter((w) => { const d = lahir(w); return !!d && th - d.getFullYear() === n && (!bulanSaja || d.getMonth() === bl) })
-    const hplBulan = semuaAktif.filter((w) => w.hamil && w.hpl && Number(w.hpl.slice(0, 4)) === th && Number(w.hpl.slice(5, 7)) - 1 === bl)
-    return [
-      { judul: 'Perkiraan lahir (HPL) bulan ini', warna: 'fuchsia', list: hplBulan, info: (w: (typeof semuaAktif)[number]) => w.hpl.split('-').reverse().join('/') },
-      { judul: 'Genap 1 tahun bulan ini (imunisasi / posyandu)', warna: 'sky', list: genap(1, true), info: () => '' },
-      { judul: 'Genap 15 tahun bulan ini (masuk WUS)', warna: 'pink', list: genap(15, true).filter((w) => w.jk === 'P'), info: () => '' },
-      { judul: 'Genap 17 tahun bulan ini (bisa buat KTP)', warna: 'violet', list: genap(17, true), info: () => '' },
-      { judul: 'Masuk usia sekolah (7 tahun) tahun ini', warna: 'emerald', list: genap(7, false), info: () => '' },
-      { judul: `Masuk usia lansia (${s.umurLansia} tahun) tahun ini`, warna: 'orange', list: genap(s.umurLansia, false), info: () => '' },
-    ].filter((x) => x.list.length > 0)
-  }, [semuaAktif, acuan, s.umurLansia])
+  const pengingat = useMemo(() => buatPengingat(all, acuan, s.umurLansia), [all, acuan, s.umurLansia])
 
   const d = useMemo(() => {
     const count = (f: (w: (typeof warga)[number]) => boolean) => warga.filter(f).length

@@ -2,14 +2,16 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Building2, Cloud, Copy, DatabaseBackup, Download, Eye, EyeOff, FileText, KeyRound, FolderOpen, House, RefreshCw, Save, UserPlus, Users } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { REPORTS } from '@/reports/registry'
-import { GABUNGAN } from '@/reports/desa'
+import { GABUNGAN, useDataDesa } from '@/reports/desa'
 import { api, unduhFile } from '@/lib/api'
 import { skripGoogleDrive } from '@/lib/gdrive'
 import CariDesa from '@/components/CariDesa'
 import RingkasanDesa from '@/components/RingkasanDesa'
 import AktivitasDesa from '@/components/AktivitasDesa'
+import { CekDesa, PengingatDesa } from '@/components/DaftarDesa'
+import { Activity, BarChart3, LayoutDashboard } from 'lucide-react'
 import { useSession } from '@/lib/session'
 import { Button, Card, Chip, Field, Input, Modal, PageHeader, Select, StatCard, useConfirm } from '@/components/ui'
 import type { Role } from '@/lib/types'
@@ -43,20 +45,39 @@ export default function KelolaRT() {
   }
   async function buka(rt: string) {
     if (rt !== rtAktif && !(await pilihRT(rt))) return
-    nav('/')
+    nav('/beranda-rt')
   }
 
   const total = (k: 'warga' | 'keluarga') => (rows ?? []).reduce((a, r) => a + r[k], 0)
   const terisi = (rows ?? []).filter((r) => r.warga > 0).length
+  // tab: ringkasan · rt · laporan · aktivitas · cadangan (diingat di perangkat ini)
+  const [sp, setSp] = useSearchParams()
+  const TABS = [
+    { k: 'ringkasan', l: 'Ringkasan', I: BarChart3 },
+    { k: 'rt', l: 'RT & Akun', I: Building2 },
+    { k: 'laporan', l: 'Laporan', I: FileText },
+    { k: 'aktivitas', l: 'Aktivitas', I: Activity },
+    { k: 'cadangan', l: 'Cadangan', I: DatabaseBackup },
+  ] as const
+  type Tab = (typeof TABS)[number]['k']
+  const tabTersimpan = (() => { try { return localStorage.getItem('siwarga-tab-desa') } catch { return null } })()
+  const tab = ((TABS.some((t) => t.k === sp.get('tab')) ? sp.get('tab') : TABS.some((t) => t.k === tabTersimpan) ? tabTersimpan : 'ringkasan') as Tab)
+  const pilihTab = (k: Tab) => { setSp((x) => { x.set('tab', k); return x }, { replace: true }); try { localStorage.setItem('siwarga-tab-desa', k) } catch { /* abaikan */ } ; window.scrollTo({ top: 0 }) }
 
   return (
     <div>
-      <PageHeader title="Kelola RT — Desa Mantup" subtitle="Ringkasan semua RT, buka data RT, dan buat akun Admin RT" icon={Building2} color="amber"
-        actions={<Button variant="outline" icon={RefreshCw} onClick={() => void load()}>Muat ulang</Button>} />
+      <PageHeader title="Beranda Desa Mantup" subtitle="Ringkasan 17 RT, cari warga, akun RT, laporan gabungan, aktivitas & cadangan" icon={Building2} color="amber"
+        actions={<><Button variant="outline" icon={LayoutDashboard} onClick={() => nav('/beranda-rt')}>Beranda RT {rtAktif}</Button><Button variant="outline" icon={RefreshCw} onClick={() => { void load(); void useDataDesa.getState().load(true) }}>Muat ulang</Button></>} />
 
+      <div role="tablist" aria-label="Bagian Beranda Desa" className="sticky top-[57px] z-20 -mx-4 mb-4 flex gap-1 overflow-x-auto bg-slate-50/90 px-4 py-2 backdrop-blur dark:bg-slate-950/80 sm:mx-0 sm:rounded-2xl sm:px-2 lg:top-2">
+        {TABS.map(({ k, l, I }) => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => pilihTab(k)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition ${tab === k ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10'}`}><I size={16} />{l}</button>
+        ))}
+      </div>
+
+      {tab === 'ringkasan' && <>
       <CariDesa />
-
-      <RingkasanDesa />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatCard label="Semua warga terdaftar (termasuk nonaktif / tidak ikut PKK)" value={total('warga')} icon={Users} color="sky" i={0} />
@@ -64,6 +85,12 @@ export default function KelolaRT() {
         <StatCard label={`RT yang sudah mengisi (dari ${rows?.length ?? 17})`} value={terisi} icon={Building2} color="amber" i={2} />
       </div>
 
+      <RingkasanDesa />
+      <PengingatDesa />
+      <CekDesa />
+      </>}
+
+      {tab === 'laporan' && (
       <Card className="mb-5 p-4">
         <div className="mb-3 flex items-center gap-2 font-display font-extrabold"><FileText size={18} className="text-amber-600" /> Laporan gabungan Desa Mantup (RT 01–17)</div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -75,7 +102,9 @@ export default function KelolaRT() {
           ))}
         </div>
       </Card>
+      )}
 
+      {tab === 'rt' && <>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {(rows ?? []).map((r) => (
           <Card key={r.rt} shine className={`p-4 ${r.rt === rtAktif ? 'ring-2 ring-amber-400' : ''}`}>
@@ -102,8 +131,10 @@ export default function KelolaRT() {
         ))}
       </div>
       {!rows && <p className="text-sm text-slate-400">Memuat…</p>}
+      </>}
 
-      <Card className="mt-5 p-4">
+      {tab === 'cadangan' && <>
+      <Card className="p-4">
         <div className="mb-1 flex items-center gap-2 font-display font-extrabold"><DatabaseBackup size={18} className="text-sky-600" /> Cadangan harian otomatis (seluruh desa)</div>
         <p className="mb-3 text-xs text-slate-500">Server menyalin seluruh database (semua RT &amp; akun) sekali sehari dan menyimpan 14 hari terakhir di folder <b>cadangan-harian</b> di sebelah folder data. Unduh sesekali dan simpan di laptop/Google Drive.</p>
         {cad.length ? (
@@ -118,9 +149,10 @@ export default function KelolaRT() {
         ) : <p className="text-sm italic text-slate-400">Belum ada cadangan.</p>}
       </Card>
 
-      <AktivitasDesa />
-
       <GoogleDrive />
+      </>}
+
+      {tab === 'aktivitas' && <AktivitasDesa />}
 
       <Modal open={!!baru} onClose={() => setBaru(null)} title={`Buat akun RT ${baru?.rt ?? ''}`} icon={UserPlus} color="amber" size="sm"
         footer={<><Button variant="ghost" onClick={() => setBaru(null)}>Batal</Button><Button icon={Save} onClick={simpan}>Simpan</Button></>}>

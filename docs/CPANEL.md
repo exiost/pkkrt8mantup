@@ -80,7 +80,7 @@ Unggah isi folder `paket-cpanel\statis` ke `public_html`. Tanpa login & viewer; 
 Database yang sudah diubah ke multi-RT tidak bisa dipakai lagi oleh versi lama. Bila ingin kembali ke versi lama, pakai cadangan dari langkah 1.
 
 ## Cadangan harian otomatis
-Server menyalin seluruh database sekali sehari ke folder **`cadangan-harian`** di sebelah `siwarga.db` (di dalam `DATA_DIR`), dan menyimpan 14 hari terakhir (`siwarga-YYYY-MM-DD.db`). Admin Desa bisa mengunduhnya di menu **Kelola RT → Cadangan harian otomatis**.
+Server menyalin seluruh database sekali sehari ke folder **`cadangan-harian`** di sebelah `siwarga.db` (di dalam `DATA_DIR`), dan menyimpan 14 hari terakhir (`siwarga-YYYY-MM-DD.db`). Admin Desa bisa mengunduhnya di **Beranda Desa → tab Cadangan → Cadangan harian otomatis**.
 
 Mengembalikan data dari cadangan harian:
 1. Setup Node.js App → **STOP APP**.
@@ -91,4 +91,4 @@ Mengembalikan data dari cadangan harian:
 Catatan: bila mencadangkan manual, salin **seluruh folder `data`** (termasuk `siwarga.db-wal`), bukan hanya `siwarga.db` — perubahan terbaru bisa masih berada di file `-wal`.
 
 ## Cadangan ke Google Drive (Google Apps Script)
-Kelola RT → **Cadangan otomatis ke Google Drive**: tekan **Salin skrip**, tempel di script.google.com (Proyek baru), Simpan, pilih fungsi `pasangJadwalHarian` → Jalankan → izinkan. Skrip mengambil `api/cadangan-terbaru?kunci=…` tiap hari jam 01.00–02.00 WIB dan menyimpan `siwarga-YYYY-MM-DD.db` di folder Drive **Cadangan SIWARGA** (60 hari). Bila skrip gagal dengan kode 403/503 dari Cloudflare, buat aturan di Cloudflare (Security → WAF) yang melewatkan jalur `/data-warga/api/cadangan-terbaru`. Kunci bocor → **Buat kunci baru** lalu ganti skrip.
+Beranda Desa → tab **Cadangan** → **Cadangan otomatis ke Google Drive**: tekan **Salin skrip**, tempel di script.google.com (Proyek baru), Simpan, pilih fungsi `pasangJadwalHarian` → Jalankan → izinkan. Skrip mengambil `api/cadangan-terbaru?kunci=…` tiap hari jam 01.00–02.00 WIB dan menyimpan `siwarga-YYYY-MM-DD.db` di folder Drive **Cadangan SIWARGA** (60 hari). Bila skrip gagal dengan kode 403/503 dari Cloudflare, buat aturan di Cloudflare (Security → WAF) yang melewatkan jalur `/data-warga/api/cadangan-terbaru`. Kunci bocor → **Buat kunci baru** lalu ganti skrip.

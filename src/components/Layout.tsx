@@ -24,14 +24,14 @@ const NAV: { to: string; color: string; label: string; icon: typeof Users; group
   { to: '/pengaturan', color: 'slate', label: 'Pengaturan', icon: Settings, group: 'Sistem' },
   { to: '/sampah', color: 'rose', label: 'Tempat Sampah', icon: Trash2, group: 'Sistem' },
   { to: '/riwayat', color: 'indigo', label: 'Riwayat Perubahan', icon: History, group: 'Sistem' },
-  { to: '/rt', color: 'amber', label: 'Kelola RT (Desa)', icon: Building2, group: 'Desa' },
+  { to: '/beranda-rt', color: 'amber', label: 'Beranda RT', icon: Building2, group: 'Desa' },
 ]
 
 export type Peran = 'admin' | 'editor' | 'viewer'
 /** Peran akun saat ini; tanpa server (mode lokal) pemakai = admin */
 export const usePeran = (): Peran => useSession((s) => (s.server ? s.user?.role ?? 'viewer' : 'admin'))
 /** Menu yang boleh dibuka: viewer hanya Laporan, Beranda khusus admin */
-export const menuBoleh = (peran: Peran, desa = false) => NAV.filter((n) => (n.to === '/rt' ? desa : peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
+export const menuBoleh = (peran: Peran, desa = false) => NAV.filter((n) => (n.to === '/beranda-rt' ? desa : peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
 /** Admin Desa: akun yang bisa membuka semua RT */
 export const useDesa = () => useSession((s) => s.server && !!s.user?.desa)
 
@@ -120,6 +120,7 @@ function NavList({ onNav }: { onNav?: () => void }) {
   let last = ''
   const peran = usePeran()
   const desa = useDesa()
+  const rt = useSession((x) => x.rt)
   return (
     <nav className="space-y-0.5">
       {menuBoleh(peran, desa).map((n) => {
@@ -136,7 +137,7 @@ function NavList({ onNav }: { onNav?: () => void }) {
                   <>
                     {isActive && <motion.span layoutId="nav-active" className={`absolute inset-0 rounded-xl bg-gradient-to-r ${c.banner}`} />}
                     <span className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-lg transition group-hover:scale-110 group-hover:rotate-3 ${isActive ? 'bg-white/25 text-white ring-1 ring-white/40' : `bg-gradient-to-br text-white shadow ${c.grad}`}`}><n.icon size={17} /></span>
-                    <span className="relative">{n.label}</span>
+                    <span className="relative">{desa && n.to === '/' ? 'Beranda Desa' : desa && n.to === '/beranda-rt' ? `Beranda RT ${rt}` : n.label}</span>
                   </>
                 )
               }}
@@ -210,8 +211,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { dark, set: setUi } = useUi()
   const peran = usePeran()
   const loc = useLocation()
+  const desaNow = useDesa()
   const writable = peran !== 'viewer'
-  const fab = writable && loc.pathname !== '/rt'
+  const fab = writable && loc.pathname !== '/rt' && !(desaNow && loc.pathname === '/')
   const byTo = (t: string) => NAV.find((n) => n.to === t)!
   const bawah = peran === 'admin' ? [byTo('/'), byTo('/warga'), byTo('/laporan'), byTo('/keluarga')] : peran === 'editor' ? [byTo('/warga'), byTo('/keluarga'), byTo('/laporan'), byTo('/ibu-anak')] : [byTo('/laporan')]
   const { openWarga } = useEditor()
