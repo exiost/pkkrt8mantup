@@ -1,5 +1,5 @@
 /**
- * Laporan gabungan DESA MANTUP (RT 01–17), khusus Admin Desa.
+ * Laporan gabungan PADUKUHAN MANTUP (RT 01–17), khusus Admin Padukuhan.
  *
  * - Laporan rekap (baris = dasawisma): semua data digabung dan setiap RT diperlakukan sebagai satu
  *   "kelompok", sehingga rumus rekap yang sama menghasilkan satu baris per RT + JUMLAH desa.
@@ -16,7 +16,7 @@ import type { ReportDef } from './registry'
 
 export interface DataRT extends Pick<Collections, 'warga' | 'keluarga' | 'kelahiran' | 'kematian' | 'pesertaKB' | 'pusBaru' | 'dasawisma' | 'kampungKB'> { rt: string; settings: Settings | null }
 
-/** cara tiap laporan digabung tingkat desa (laporan lain tetap per RT) */
+/** cara tiap laporan digabung tingkat padukuhan (laporan lain tetap per RT) */
 export const GABUNGAN: Record<string, 'rekap' | 'daftar'> = {
   'rekap-catatan': 'rekap',
   'rekap-ibu-hamil': 'rekap',
@@ -29,7 +29,7 @@ export const GABUNGAN: Record<string, 'rekap' | 'daftar'> = {
   'pencatatan-hamil-kb': 'daftar',
 }
 
-export const NAMA_DESA = 'DESA MANTUP'
+export const NAMA_DESA = 'PADUKUHAN MANTUP'
 const live = <T extends { deletedAt?: string | null }>(xs: T[] | undefined) => (xs ?? []).filter((x) => !x.deletedAt)
 
 /* ---------- data semua RT (diambil dari server sekali, bisa dimuat ulang) ---------- */
@@ -110,7 +110,7 @@ const geser = (L: string) => (colIndex(L) === 0 ? L : colLetter(colIndex(L) + 1)
 const geserAddr = (a: string) => { const m = a.match(/^([A-Z]+)(\d+)$/); return m ? `${geser(m[1])}${m[2]}` : a }
 const tanpaTautan = (v: Val): Val => (v && typeof v === 'object' && 'w' in v ? { ...(v as CellObj), w: undefined } : v)
 
-/** judul lembar: "… RT 08 MANTUP" → "… DESA MANTUP", ": RT 08" → ": RT 01 – 17" */
+/** judul lembar: "… RT 08 MANTUP" → "… PADUKUHAN MANTUP", ": RT 08" → ": RT 01 – 17" */
 function judulDesa(pages: PageSpec[], list: DataRT[]): PageSpec[] {
   const rentang = list.length ? `RT ${list[0].rt} – ${list[list.length - 1].rt}` : 'RT'
   return pages.map((pg) => {
@@ -131,7 +131,7 @@ function judulDesa(pages: PageSpec[], list: DataRT[]): PageSpec[] {
   })
 }
 
-/** susun laporan gabungan desa */
+/** susun laporan gabungan padukuhan */
 export function bangunDesa(def: ReportDef, list: DataRT[], p: ReportParams, o: ReportOpts, ym: string): PageSpec[] {
   const mode = GABUNGAN[def.slug]
   const pilih = p.dawis ? list.filter((d) => labelRT(d.rt) === p.dawis) : list

@@ -22,10 +22,10 @@ Baca file ini dulu. Isinya: siapa pemiliknya, cara bekerja dengannya, posisi pro
 - Akhiri jawaban dengan cara pasang: cadangkan folder `data` → hapus `dist`, `server`, `app.cjs`, `package.json` lama → Upload & Extract zip → **RESTART** di Setup Node.js App → Ctrl+F5.
 
 ## 2. Apa ini
-Pengganti web (HP & desktop) untuk workbook Excel `Data_Warga_mantup_RT_8_VB.xlsm` Kelompok PKK RT 08 Mantup, sekarang **multi-RT: Desa Mantup RT 01–17**. Setiap sheet Excel = satu laporan dengan hasil cetak **sama persis** dengan Excel. CRUD lengkap, mode server (SQLite + login), bisa offline.
+Pengganti web (HP & desktop) untuk workbook Excel `Data_Warga_mantup_RT_8_VB.xlsm` Kelompok PKK RT 08 Mantup, sekarang **multi-RT: Padukuhan Mantup RT 01–17**. Setiap sheet Excel = satu laporan dengan hasil cetak **sama persis** dengan Excel. CRUD lengkap, mode server (SQLite + login), bisa offline.
 
 - Produksi: **https://mantup.biz.id/data-warga/** (cPanel, Node 22, di belakang Cloudflare). App root cPanel `pemerintahkota.id/data-warga`, `DATA_DIR=/home/eriarmedia/pemerintahkota.id/data-warga/data`, startup `app.cjs`. Detail: `docs/CPANEL.md`.
-- GitHub Pages (https://exiost.github.io/pkkrt8mantup/) terbit otomatis dari branch ini, tetapi **statis = mode lokal** (tanpa login/server): fitur multi-RT, Admin Desa, gabungan desa, impor file RT **tidak tampil** di sana. Ini wajar.
+- GitHub Pages (https://exiost.github.io/pkkrt8mantup/) terbit otomatis dari branch ini, tetapi **statis = mode lokal** (tanpa login/server): fitur multi-RT, Admin Padukuhan, gabungan padukuhan, impor file RT **tidak tampil** di sana. Ini wajar.
 - File Excel asli **tidak ada di repo** (gitignore). Tes kecocokan dengan Excel butuh `XLSM_PATH=/path/file.xlsm npm test`; tanpa itu 5 tes dilewati (normal).
 
 ## 3. Arsitektur singkat
@@ -36,34 +36,34 @@ Pengganti web (HP & desktop) untuk workbook Excel `Data_Warga_mantup_RT_8_VB.xls
 - Peran: admin / editor / viewer. Viewer hanya Laporan; Beranda & Impor/Ekspor khusus admin. Admin bisa **mengunci tanggal laporan** untuk viewer (`settings.kunci`).
 
 ## 4. Multi-RT — SEMUA TAHAP 1–6 SUDAH SELESAI (lihat K26–K28)
-Tahap: 1 akun & data per RT + Admin Desa + Kelola RT · 2 judul laporan ikut RT · 3 laporan gabungan Desa Mantup · 4 kirim data lewat file · 5 offline · 6 panduan & paket.
+Tahap: 1 akun & data per RT + Admin Padukuhan + Kelola RT · 2 judul laporan ikut RT · 3 laporan gabungan Padukuhan Mantup · 4 kirim data lewat file · 5 offline · 6 panduan & paket.
 - Setiap record & akun berlabel RT (kolom `rt` di SQLite). Database lama otomatis dimigrasi: semua data & akun lama = **RT 08**; daftar RT 01–17 di meta `rts`; pengaturan per RT di meta `settings:<rt>`.
-- Akun `role=admin` dengan `rt` kosong = **Admin Desa (super admin)**: memilih RT lewat header `X-RT` (UI: kotak kuning "Buka data RT" di sidebar), bisa ubah semua RT, **Beranda Desa** (`/` untuk Admin Desa, juga `/rt`; `src/pages/KelolaRT.tsx`, 5 tab; beranda RT-nya di `/beranda-rt`). Akun RT dibatasi server ke RT-nya.
-- Admin Desa pertama dibuat **sekali** oleh admin RT lewat Pengaturan → Akun & Server → "Buat Admin Desa" (hanya muncul bila belum ada Admin Desa). Akun `admin` lama tetap Admin RT 08.
+- Akun `role=admin` dengan `rt` kosong = **Admin Padukuhan (super admin)**: memilih RT lewat header `X-RT` (UI: kotak kuning "Buka data RT" di sidebar), bisa ubah semua RT, **Beranda Padukuhan** (`/` untuk Admin Padukuhan, juga `/rt`; `src/pages/KelolaRT.tsx`, 5 tab; beranda RT-nya di `/beranda-rt`). Akun RT dibatasi server ke RT-nya.
+- Admin Padukuhan pertama dibuat **sekali** oleh admin RT lewat Pengaturan → Akun & Server → "Buat Admin Padukuhan" (hanya muncul bila belum ada Admin Padukuhan). Akun `admin` lama tetap Admin RT 08.
 - Judul laporan "RT 08" otomatis mengikuti RT (`pasangRT` di `src/reports/common.ts`), kecuali teks yang diubah lewat "Ubah teks".
-- **Gabungan Desa Mantup** (`src/reports/desa.ts`, endpoint `GET /api/desa`): rekap = satu baris per RT + JUMLAH; daftar nama = disambung per RT dengan kolom RT disisipkan. Daftar laporan yang bisa digabung: konstanta `GABUNGAN`.
+- **Gabungan Padukuhan Mantup** (`src/reports/desa.ts`, endpoint `GET /api/desa`): rekap = satu baris per RT + JUMLAH; daftar nama = disambung per RT dengan kolom RT disisipkan. Daftar laporan yang bisa digabung: konstanta `GABUNGAN`.
 - **Kirim data lewat file** `.siwarga` (`src/components/KirimRT.tsx`, `src/lib/eksporRT.ts`, endpoint `/api/rt-impor`, `/api/rt-cadangan`): pratinjau, perubahan terakhir menang, "hanya di server" tidak dihapus kecuali dicentang, cadangan otomatis 5 terakhir per RT + Kembalikan.
 - **Offline** (`src/lib/session.ts`, `public/sw.js`): salinan data RT di localStorage (`siwarga-cache`), antrean perubahan (`siwarga-queue`, `siwarga-queue-sejak`), service worker untuk membuka aplikasi tanpa internet, cek online tiap 15 detik. Keluar ditolak saat offline bila ada antrean. Peringatan kuning + "Ekspor sekarang" bila antrean > 1 hari. `navigator.storage.persist()` diminta (tidak dijamin dikabulkan browser).
 
 ## 5. Dokumen untuk pemilik / juri
-- `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Desa & Admin RT), `docs/panduan-rt.html` (panduan singkat untuk Admin RT baru, dibagikan ke 17 RT), `docs/panduan-google-drive.html` (memasang cadangan harian ke Google Drive; gambar hanya dari aplikasi, halaman Google dijelaskan dengan tulisan), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
+- `docs/panduan-admin.html`, `docs/panduan-viewer.html` (RT 08, ada akun demo), `docs/panduan-desa.html` (Admin Padukuhan & Admin RT), `docs/panduan-rt.html` (panduan singkat untuk Admin RT baru, dibagikan ke 17 RT), `docs/panduan-google-drive.html` (memasang cadangan harian ke Google Drive; gambar hanya dari aplikasi, halaman Google dijelaskan dengan tulisan), `docs/lembar-keterangan.html` (lembar untuk juri; versi pemilik dengan gambar kualitas penuh — jangan dikompres).
 - Tangkapan layar panduan diambil dengan Playwright dari server lokal; panduan berisi gambar base64.
 
 ## 6. Status terakhir (10 Nov 2026)
 Semua sudah di-commit & push. Paket terakhir sudah dikirim ke pemilik.
-- **Belum dikonfirmasi** pemilik: apakah versi multi-RT sudah dipasang di mantup.biz.id dan akun Admin Desa sudah dibuat. Tanyakan bila relevan.
+- **Belum dikonfirmasi** pemilik: apakah versi multi-RT sudah dipasang di mantup.biz.id dan akun Admin Padukuhan sudah dibuat. Tanyakan bila relevan.
 - Pemilik belum mencoba sendiri tahap 1–6 (ia minta langsung dirampungkan).
-- 9 Nov 2026: uji praktik (tambah/ubah/hapus/pulihkan, editor, viewer, Admin Desa, RT baru, impor Excel) lulus. Bug diperbaiki: impor Excel "Ganti" & pulihkan cadangan di mode server dulu tidak menghapus data lama di server — sekarang data lama dipindah ke Tempat Sampah (`replaceAll` di `src/lib/store.ts`).
-- 9 Nov 2026 (persiapan 17 RT): cadangan harian otomatis seluruh database (`cadanganHarian` di `server/index.mjs`, folder `DATA_DIR/cadangan-harian`, 14 hari, unduh di Kelola RT; cara mengembalikan di `docs/CPANEL.md`); Admin Desa membuka RT terakhir (meta `rtTerakhir:<uid>`, `POST /api/me/rt`); jawaban `/api` dipadatkan gzip (data 17 RT 4,8 MB → 0,3 MB); uji beban 17 RT ±3.100 warga di HP diperlambat 4× — gabungan Rekap/WUS ±2 detik (sebelumnya 7–13 detik): rekap dihitung sekali per baris, tabel web menampilkan 300 baris dulu (tombol "Tampilkan semua"; cetak/Excel tetap lengkap), `SheetView` & `WebReport` di-`memo`, pengecil huruf tidak diulang. Panduan singkat Admin RT: `docs/panduan-rt.html` (3 halaman A4).
-- Cari warga se-desa (Admin Desa): `src/components/CariDesa.tsx` di atas Kelola RT; memakai data `/api/desa` (`useDataDesa`), cari nama/NIK/KK/alamat/umur dll. (`bahanCari`), toleran salah ketik, tampil RT + keluarga + tanda NIK sama di RT lain, tombol Buka data (pindah RT + buka detail).
-- 10 Nov 2026 — fitur bantu (K30): menu **Cek Data** (`/cek`), peringatan NIK di RT lain, tombol **Pindah RT** (Admin Desa, di detail warga), **Pengingat** di Beranda, **Ringkasan Desa** + **aktivitas desa** + penanda RT tidak diperbarui di Kelola RT, **wajib ganti kata sandi** untuk akun baru (akun lama tidak terpengaruh).
-- 10 Nov 2026 — **Beranda Desa** (K31): Beranda Admin Desa = halaman desa dengan tab Ringkasan / RT & Akun / Laporan / Aktivitas / Cadangan; Pengingat & Cek Data se-desa; Cetak (A4/F4) & Excel ringkasan. Panduan Admin Desa & Google Drive dipotret ulang (menu "Kelola RT" sekarang "Beranda Desa").
+- 9 Nov 2026: uji praktik (tambah/ubah/hapus/pulihkan, editor, viewer, Admin Padukuhan, RT baru, impor Excel) lulus. Bug diperbaiki: impor Excel "Ganti" & pulihkan cadangan di mode server dulu tidak menghapus data lama di server — sekarang data lama dipindah ke Tempat Sampah (`replaceAll` di `src/lib/store.ts`).
+- 9 Nov 2026 (persiapan 17 RT): cadangan harian otomatis seluruh database (`cadanganHarian` di `server/index.mjs`, folder `DATA_DIR/cadangan-harian`, 14 hari, unduh di Kelola RT; cara mengembalikan di `docs/CPANEL.md`); Admin Padukuhan membuka RT terakhir (meta `rtTerakhir:<uid>`, `POST /api/me/rt`); jawaban `/api` dipadatkan gzip (data 17 RT 4,8 MB → 0,3 MB); uji beban 17 RT ±3.100 warga di HP diperlambat 4× — gabungan Rekap/WUS ±2 detik (sebelumnya 7–13 detik): rekap dihitung sekali per baris, tabel web menampilkan 300 baris dulu (tombol "Tampilkan semua"; cetak/Excel tetap lengkap), `SheetView` & `WebReport` di-`memo`, pengecil huruf tidak diulang. Panduan singkat Admin RT: `docs/panduan-rt.html` (3 halaman A4).
+- Cari warga se-padukuhan (Admin Padukuhan): `src/components/CariDesa.tsx` di atas Kelola RT; memakai data `/api/desa` (`useDataDesa`), cari nama/NIK/KK/alamat/umur dll. (`bahanCari`), toleran salah ketik, tampil RT + keluarga + tanda NIK sama di RT lain, tombol Buka data (pindah RT + buka detail).
+- 10 Nov 2026 — fitur bantu (K30): menu **Cek Data** (`/cek`), peringatan NIK di RT lain, tombol **Pindah RT** (Admin Padukuhan, di detail warga), **Pengingat** di Beranda, **Ringkasan Padukuhan** + **aktivitas desa** + penanda RT tidak diperbarui di Kelola RT, **wajib ganti kata sandi** untuk akun baru (akun lama tidak terpengaruh).
+- 10 Nov 2026 — **Beranda Padukuhan** (K31): Beranda Admin Padukuhan = halaman desa dengan tab Ringkasan / RT & Akun / Laporan / Aktivitas / Cadangan; Pengingat & Cek Data se-padukuhan; Cetak (A4/F4) & Excel ringkasan. Panduan Admin Padukuhan & Google Drive dipotret ulang (menu "Kelola RT" sekarang "Beranda Padukuhan").
 - 10 Nov 2026 — **lupa kata sandi** (K32): pemulihan darurat lewat file `reset-admin-desa.txt` di folder data + RESTART (langkah di `docs/CPANEL.md`).
 - Cadangan ke Google Drive (K29): kartu di Kelola RT, skrip `src/lib/gdrive.ts`, endpoint `/api/cadangan-terbaru`, `/api/cadangan-kunci`. **Belum dicoba di akun Google sungguhan** (tidak ada akses) — pemilik perlu memasangnya sekali; bila gagal karena Cloudflare lihat `docs/CPANEL.md`.
 
 ## 7. Yang belum / catatan terbuka (jangan dikerjakan tanpa diminta)
 - Gabungan "Pencatatan Ibu Hamil, KB & PUS": bagian B sudah punya kolom RT bawaan Excel, jadi ada dua kolom berjudul "RT".
-- Laporan per keluarga/per dasawisma (Data Keluarga, Catatan Keluarga, TP PKK, HT/IRT, Rekap per Dasawisma, Catatan Ibu Hamil per Dasawisma) tidak ada versi gabungan desa — tetap per RT.
+- Laporan per keluarga/per dasawisma (Data Keluarga, Catatan Keluarga, TP PKK, HT/IRT, Rekap per Dasawisma, Catatan Ibu Hamil per Dasawisma) tidak ada versi gabungan padukuhan — tetap per RT.
 - Mode lokal (tanpa server) bisa mengekspor `.siwarga` tetapi tidak bisa mengimpornya.
 - Laporan tahunan/rentang Rekap Ibu Hamil & Catatan Ibu Hamil sengaja disembunyikan (`hidden: true`) atas permintaan pemilik — jangan dihapus.
-- Isian manual Kampung KB pada gabungan desa = jumlah isian semua RT (tidak bisa diubah dari tampilan gabungan).
+- Isian manual Kampung KB pada gabungan padukuhan = jumlah isian semua RT (tidak bisa diubah dari tampilan gabungan).

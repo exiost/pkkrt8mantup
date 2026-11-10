@@ -26,7 +26,7 @@ export const daftarCadangan = (folder) => (existsSync(folder) ? readdirSync(fold
 /**
  * Pemulihan darurat lewat cPanel (hanya bisa oleh pemegang akses hosting):
  * buat file DATA_DIR/reset-admin-desa.txt lalu RESTART aplikasi.
- *  - isi "katasandibaru"            → semua akun Admin Desa diberi kata sandi itu (bila belum ada Admin Desa: dibuat akun "desa")
+ *  - isi "katasandibaru"            → semua akun Admin Padukuhan diberi kata sandi itu (bila belum ada Admin Padukuhan: dibuat akun "padukuhan")
  *  - isi "namapengguna: katasandi"  → hanya akun itu (akun apa saja, mis. admin RT)
  * Akun yang direset diaktifkan & wajib ganti kata sandi saat masuk. Isi file diganti laporan hasil (tanpa kata sandi).
  */
@@ -43,14 +43,14 @@ export function resetDarurat(store, file) {
   let sasaran
   if (m) {
     sasaran = semua.filter((u) => u.username.toLowerCase() === m[1].toLowerCase())
-    if (!sasaran.length) { tulis(`GAGAL (${waktu}): nama pengguna "${m[1]}" tidak ada.\nNama pengguna yang ada: ${semua.map((u) => `${u.username} (${u.rt ? `RT ${u.rt}, ${u.role}` : 'Admin Desa'})`).join(', ')}`); return { ok: false } }
+    if (!sasaran.length) { tulis(`GAGAL (${waktu}): nama pengguna "${m[1]}" tidak ada.\nNama pengguna yang ada: ${semua.map((u) => `${u.username} (${u.rt ? `RT ${u.rt}, ${u.role}` : 'Admin Padukuhan'})`).join(', ')}`); return { ok: false } }
   } else {
     sasaran = semua.filter((u) => u.role === 'admin' && !u.rt)
     if (!sasaran.length) {
-      let nama = 'desa'; let n = 2
-      while (semua.some((u) => u.username.toLowerCase() === nama)) nama = `desa${n++}`
+      let nama = 'padukuhan'; let n = 2
+      while (semua.some((u) => u.username.toLowerCase() === nama)) nama = `padukuhan${n++}`
       const id = randomUUID()
-      store.q.insUser.run(id, nama, 'Admin Desa', hashPassword(sandi), 'admin', new Date().toISOString(), null)
+      store.q.insUser.run(id, nama, 'Admin Padukuhan', hashPassword(sandi), 'admin', new Date().toISOString(), null)
       sasaran = [store.q.userById.get(id)]
     }
   }
@@ -59,7 +59,7 @@ export function resetDarurat(store, file) {
     store.q.updUser.run(u.name, u.role, 1, u.rt ?? null, u.id)
     store.q.setGanti.run(1, u.id)
   }
-  const daftar = sasaran.map((u) => `  - ${u.username} (${u.rt ? `RT ${u.rt}` : 'Admin Desa'})`).join('\n')
+  const daftar = sasaran.map((u) => `  - ${u.username} (${u.rt ? `RT ${u.rt}` : 'Admin Padukuhan'})`).join('\n')
   tulis(`BERHASIL (${waktu}). Kata sandi akun berikut sudah diganti dengan yang Anda tulis:\n${daftar}\nMasuk dengan nama pengguna di atas, lalu Anda diminta membuat kata sandi baru.\nSetelah berhasil masuk, HAPUS file ini.`)
   console.log(`Pemulihan darurat: kata sandi direset untuk ${sasaran.map((u) => u.username).join(', ')}`)
   return { ok: true, akun: sasaran.map((u) => u.username) }
@@ -125,7 +125,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     if (!u || !u.active) return res.status(401).json({ error: 'Sesi berakhir, silakan masuk lagi' })
     if (roles && !roles.includes(u.role)) return res.status(403).json({ error: 'Akun Anda tidak boleh melakukan ini' })
     req.user = u
-    // RT yang sedang dikerjakan: akun RT selalu RT-nya sendiri; Admin Desa memilih lewat header X-RT
+    // RT yang sedang dikerjakan: akun RT selalu RT-nya sendiri; Admin Padukuhan memilih lewat header X-RT
     const daftar = store.rts()
     if (u.rt) req.rt = u.rt
     else {
@@ -142,7 +142,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
   /** nomor "generasi" data RT: naik bila data dipindah/dipulihkan, agar perangkat lain memuat ulang penuh */
   const genRT = (rt) => store.meta(`gen:${rt}`) ?? '0'
   const naikGen = (rt) => store.setMeta(`gen:${rt}`, String(Number(genRT(rt)) + 1))
-  const desaOnly = (req, res, next) => (req.desa ? next() : res.status(403).json({ error: 'Hanya Admin Desa yang boleh melakukan ini' }))
+  const desaOnly = (req, res, next) => (req.desa ? next() : res.status(403).json({ error: 'Hanya Admin Padukuhan yang boleh melakukan ini' }))
   const settingsOf = (rt) => { const v = store.meta(`settings:${rt}`); return v ? JSON.parse(v) : null }
   const wrap = (fn) => (req, res) => { try { fn(req, res) } catch (e) { console.error(e); res.status(400).json({ error: e.message || 'Permintaan tidak valid' }) } }
   const session = (u) => ({ token: signToken({ uid: u.id }, secret), user: store.publicUser(u) })
@@ -154,7 +154,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     if (store.q.userCount.get().n > 0) return res.status(403).json({ error: 'Server sudah disiapkan' })
     const { username, password, name } = req.body ?? {}
     if (!username?.trim() || !validPw(password)) return res.status(400).json({ error: 'Isi nama pengguna dan kata sandi (minimal 8 karakter)' })
-    // akun pertama di server baru = Admin Desa (rt kosong)
+    // akun pertama di server baru = Admin Padukuhan (rt kosong)
     const u = { id: randomUUID(), username: username.trim(), name: (name ?? '').trim() || username.trim(), pass: hashPassword(password), role: 'admin', rt: null }
     store.q.insUser.run(u.id, u.username, u.name, u.pass, 'admin', new Date().toISOString(), null)
     res.json(session(u))
@@ -222,9 +222,9 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     res.json({ seq: store.seq(), conflicts })
   }))
 
-  // --- pengguna: Admin Desa mengelola semua akun; Admin RT hanya akun RT-nya ---
+  // --- pengguna: Admin Padukuhan mengelola semua akun; Admin RT hanya akun RT-nya ---
   const bolehKelola = (req, u) => req.desa || (u.rt && u.rt === req.user.rt)
-  /** rt tujuan untuk akun baru/ubah. desa=true → Admin Desa (rt kosong) */
+  /** rt tujuan untuk akun baru/ubah. desa=true → Admin Padukuhan (rt kosong) */
   const rtTujuan = (req, body, lama) => {
     if (!req.desa) return req.user.rt
     if (body.desa) return null
@@ -241,9 +241,9 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     const { username, name, password, role } = req.body ?? {}
     if (!username?.trim() || !validPw(password) || !ROLES.includes(role)) return res.status(400).json({ error: 'Isi nama pengguna, peran, dan kata sandi (minimal 8 karakter)' })
     if (store.q.userByName.get(username.trim())) return res.status(409).json({ error: 'Nama pengguna sudah dipakai' })
-    // akun Admin Desa hanya boleh dibuat Admin Desa, atau (sekali) oleh admin bila belum ada Admin Desa sama sekali
+    // akun Admin Padukuhan hanya boleh dibuat Admin Padukuhan, atau (sekali) oleh admin bila belum ada Admin Padukuhan sama sekali
     const mintaDesa = !!req.body.desa && role === 'admin'
-    if (mintaDesa && !req.desa && store.q.desaCount.get().n > 0) return res.status(403).json({ error: 'Hanya Admin Desa yang boleh membuat akun Admin Desa' })
+    if (mintaDesa && !req.desa && store.q.desaCount.get().n > 0) return res.status(403).json({ error: 'Hanya Admin Padukuhan yang boleh membuat akun Admin Padukuhan' })
     const rt = mintaDesa ? null : rtTujuan(req, { ...req.body, desa: false }, undefined)
     const id = randomUUID()
     store.q.insUser.run(id, username.trim(), (name ?? '').trim() || username.trim(), hashPassword(password), role, new Date().toISOString(), rt)
@@ -260,7 +260,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     if (!ROLES.includes(role)) return res.status(400).json({ error: 'Peran tidak valid' })
     const jadiDesa = role === 'admin' && (req.body.desa ?? (!u.rt && req.body.rt === undefined))
     const rt = req.desa ? (jadiDesa ? null : rtTujuan(req, { ...req.body, desa: false }, u.rt)) : u.rt
-    if (sisaDesa(u, role, active, rt)) return res.status(400).json({ error: 'Harus ada minimal satu Admin Desa aktif' })
+    if (sisaDesa(u, role, active, rt)) return res.status(400).json({ error: 'Harus ada minimal satu Admin Padukuhan aktif' })
     store.q.updUser.run((req.body.name ?? u.name).trim(), role, active ? 1 : 0, rt, u.id)
     if (req.body.password !== undefined) {
       if (!validPw(req.body.password)) return res.status(400).json({ error: 'Kata sandi minimal 8 karakter' })
@@ -274,12 +274,12 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     const u = store.q.userById.get(req.params.id)
     if (!u || !bolehKelola(req, u)) return res.status(404).json({ error: 'Pengguna tidak ditemukan' })
     if (u.id === req.user.id) return res.status(400).json({ error: 'Tidak bisa menghapus akun sendiri' })
-    if (sisaDesa(u, 'x', false, null)) return res.status(400).json({ error: 'Harus ada minimal satu Admin Desa aktif' })
+    if (sisaDesa(u, 'x', false, null)) return res.status(400).json({ error: 'Harus ada minimal satu Admin Padukuhan aktif' })
     store.q.delUser.run(u.id)
     res.json({ ok: true })
   }))
 
-  // --- daftar RT (Admin Desa) ---
+  // --- daftar RT (Admin Padukuhan) ---
   app.get('/api/rts', auth(['admin']), desaOnly, (_req, res) => {
     const ring = {}
     for (const r of store.q.ringkasRT.all()) (ring[r.rt] ??= {})[r.coll] = r
@@ -367,7 +367,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     res.json({ ada })
   })
 
-  // --- pindah warga antar-RT (Admin Desa) ---
+  // --- pindah warga antar-RT (Admin Padukuhan) ---
   app.post('/api/pindah-rt', auth(['admin']), desaOnly, wrap((req, res) => {
     const { id, keRT, sekeluarga } = req.body ?? {}
     const cur = store.q.getRec.get('warga', String(id ?? ''))
@@ -407,13 +407,13 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     res.json({ ok: true, dari, keRT, jumlah: pindahkan.length, keluarga: !!kel })
   }))
 
-  // --- catatan aktivitas seluruh desa (Admin Desa) ---
+  // --- catatan aktivitas seluruh padukuhan (Admin Padukuhan) ---
   app.get('/api/aktivitas', auth(['admin']), desaOnly, (req, res) => {
     const n = Math.min(1000, Math.max(1, Number(req.query.limit) || 300))
     res.json({ list: store.q.auditSemua.all(n).map((r) => ({ ...JSON.parse(r.data), rt: r.rt })) })
   })
 
-  // --- gabungan desa: seluruh data semua RT (hanya baca, untuk laporan Desa Mantup) ---
+  // --- gabungan padukuhan: seluruh data semua RT (hanya baca, untuk laporan Padukuhan Mantup) ---
   app.get('/api/desa', auth(['admin']), desaOnly, (_req, res) => {
     res.json({
       rts: store.rts().map((rt) => {
@@ -423,7 +423,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     })
   })
 
-  // --- cadangan harian seluruh database (Admin Desa) ---
+  // --- cadangan harian seluruh database (Admin Padukuhan) ---
   app.get('/api/cadangan-harian', auth(['admin']), desaOnly, (_req, res) => res.json({ list: folderCadangan ? daftarCadangan(folderCadangan) : [] }))
   app.get('/api/cadangan-harian/:nama', auth(['admin']), desaOnly, (req, res) => {
     const nama = String(req.params.nama)
@@ -433,7 +433,7 @@ export function createApp({ dbFile, distDir, corsOrigin = '*', backupDir } = {})
     createReadStream(join(folderCadangan, nama)).pipe(res)
   })
 
-  // --- cadangan ke Google Drive: skrip Google Apps Script milik Admin Desa mengambil cadangan terbaru tiap hari ---
+  // --- cadangan ke Google Drive: skrip Google Apps Script milik Admin Padukuhan mengambil cadangan terbaru tiap hari ---
   const kunciCadangan = () => { let k = store.meta('kunciCadangan'); if (!k) { k = randomBytes(24).toString('hex'); store.setMeta('kunciCadangan', k) } return k }
   const cocok = (a, b) => { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y) }
   app.get('/api/cadangan-kunci', auth(['admin']), desaOnly, (_req, res) => res.json({ kunci: kunciCadangan() }))

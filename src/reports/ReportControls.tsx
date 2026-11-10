@@ -13,7 +13,7 @@ import { familiesOf } from './forms'
 import type { Ctx } from './common'
 
 interface Props {
-  /** gabungan desa: pilihan "Dasawisma" berisi daftar RT */
+  /** gabungan padukuhan: pilihan "Dasawisma" berisi daftar RT */
   gabungan?: boolean
   uses: Use[]
   p: ReportParams

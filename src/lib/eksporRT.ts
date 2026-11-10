@@ -16,5 +16,5 @@ export function eksporRT() {
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }))
   a.download = `RT${rt}_${String(data.dibuat).slice(0, 10)}.siwarga`
   a.click()
-  toast.success(`File data RT ${rt} diunduh — kirim lewat WhatsApp / flashdisk ke Admin Desa`)
+  toast.success(`File data RT ${rt} diunduh — kirim lewat WhatsApp / flashdisk ke Admin Padukuhan`)
 }

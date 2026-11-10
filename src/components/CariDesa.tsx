@@ -37,7 +37,7 @@ function mirip(nama: string, q: string): boolean {
 
 interface Hasil { w: Warga; rt: string; kel?: Keluarga; anggota: Warga[]; nikGanda: string[] }
 
-/** Admin Desa: cari warga di semua RT sekaligus (nama, NIK, No KK, alamat, pekerjaan, umur, dll.) */
+/** Admin Padukuhan: cari warga di semua RT sekaligus (nama, NIK, No KK, alamat, pekerjaan, umur, dll.) */
 export default function CariDesa() {
   const nav = useNavigate()
   const { rt: rtAktif, pilihRT } = useSession()
@@ -94,10 +94,10 @@ export default function CariDesa() {
 
   return (
     <Card className="mb-5 p-4">
-      <div className="mb-2 flex items-center gap-2 font-display font-extrabold"><Search size={18} className="text-violet-600" /> Cari warga se-desa (RT 01–17)</div>
+      <div className="mb-2 flex items-center gap-2 font-display font-extrabold"><Search size={18} className="text-violet-600" /> Cari warga se-padukuhan (RT 01–17)</div>
       <div className="relative">
         <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ketik nama, NIK, No KK, alamat, pekerjaan, umur…" aria-label="Cari warga se-desa"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ketik nama, NIK, No KK, alamat, pekerjaan, umur…" aria-label="Cari warga se-padukuhan"
           className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-200 dark:border-white/10 dark:bg-slate-800" />
       </div>
       <div className="mt-1 text-xs text-slate-400">

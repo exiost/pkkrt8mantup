@@ -25,7 +25,7 @@ describe('cadangan harian database', () => {
     expect(salinan.prepare("SELECT COUNT(*) AS n FROM records WHERE coll = 'warga'").get().n).toBe(1)
     salinan.close()
   })
-  it('server membuat cadangan saat menyala; hanya Admin Desa yang bisa melihat & mengunduh', async () => {
+  it('server membuat cadangan saat menyala; hanya Admin Padukuhan yang bisa melihat & mengunduh', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'siwarga-cad2-'))
     const { app } = createApp({ dbFile: join(dir, 'siwarga.db'), distDir: '/nonexistent' })
     const srv = await new Promise((ok) => { const x = app.listen(0, () => ok(x)) })

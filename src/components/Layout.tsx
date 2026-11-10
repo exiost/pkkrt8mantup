@@ -24,7 +24,7 @@ const NAV: { to: string; color: string; label: string; icon: typeof Users; group
   { to: '/pengaturan', color: 'slate', label: 'Pengaturan', icon: Settings, group: 'Sistem' },
   { to: '/sampah', color: 'rose', label: 'Tempat Sampah', icon: Trash2, group: 'Sistem' },
   { to: '/riwayat', color: 'indigo', label: 'Riwayat Perubahan', icon: History, group: 'Sistem' },
-  { to: '/beranda-rt', color: 'amber', label: 'Beranda RT', icon: Building2, group: 'Desa' },
+  { to: '/beranda-rt', color: 'amber', label: 'Beranda RT', icon: Building2, group: 'Padukuhan' },
 ]
 
 export type Peran = 'admin' | 'editor' | 'viewer'
@@ -32,10 +32,10 @@ export type Peran = 'admin' | 'editor' | 'viewer'
 export const usePeran = (): Peran => useSession((s) => (s.server ? s.user?.role ?? 'viewer' : 'admin'))
 /** Menu yang boleh dibuka: viewer hanya Laporan, Beranda khusus admin */
 export const menuBoleh = (peran: Peran, desa = false) => NAV.filter((n) => (n.to === '/beranda-rt' ? desa : peran === 'viewer' ? n.to === '/laporan' : n.to === '/' || n.to === '/data' ? peran === 'admin' : true))
-/** Admin Desa: akun yang bisa membuka semua RT */
+/** Admin Padukuhan: akun yang bisa membuka semua RT */
 export const useDesa = () => useSession((s) => s.server && !!s.user?.desa)
 
-/** Pilihan RT untuk Admin Desa */
+/** Pilihan RT untuk Admin Padukuhan */
 export function RtPicker({ className = '' }: { className?: string }) {
   const { rt, rts, pilihRT } = useSession()
   const desa = useDesa()
@@ -96,7 +96,7 @@ function UserBox() {
   return (
     <div className="mt-3 flex items-center gap-2 rounded-xl bg-slate-100 p-2 dark:bg-white/5">
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 text-xs font-bold text-white">{(user.name || user.username).slice(0, 2).toUpperCase()}</div>
-      <div className="min-w-0 flex-1 leading-tight"><div className="truncate text-xs font-semibold">{user.name || user.username}</div><div className="text-[10px] uppercase tracking-wide text-slate-400">{user.desa ? 'Admin Desa' : `${user.role} · RT ${user.rt ?? ''}`}</div></div>
+      <div className="min-w-0 flex-1 leading-tight"><div className="truncate text-xs font-semibold">{user.name || user.username}</div><div className="text-[10px] uppercase tracking-wide text-slate-400">{user.desa ? 'Admin Padukuhan' : `${user.role} · RT ${user.rt ?? ''}`}</div></div>
       <button onClick={logout} title="Keluar" aria-label="Keluar" className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-white dark:hover:bg-white/10"><LogOut size={16} /></button>
     </div>
   )
@@ -104,7 +104,7 @@ function UserBox() {
 
 function Brand() {
   const { server, rt, user } = useSession()
-  const sub = server && rt ? `${user?.desa ? 'Desa · ' : ''}RT ${rt} · Mantup` : 'RT 08 · Mantup'
+  const sub = server && rt ? (user?.desa ? `Padukuhan Mantup · RT ${rt}` : `RT ${rt} · Mantup`) : 'RT 08 · Mantup'
   return (
     <div className="flex items-center gap-3 px-2">
       <img src="./icon.svg" alt="" className="floaty h-10 w-10 rounded-xl shadow-lg shadow-violet-500/40 ring-2 ring-white dark:ring-slate-800" />
@@ -137,7 +137,7 @@ function NavList({ onNav }: { onNav?: () => void }) {
                   <>
                     {isActive && <motion.span layoutId="nav-active" className={`absolute inset-0 rounded-xl bg-gradient-to-r ${c.banner}`} />}
                     <span className={`relative grid h-8 w-8 shrink-0 place-items-center rounded-lg transition group-hover:scale-110 group-hover:rotate-3 ${isActive ? 'bg-white/25 text-white ring-1 ring-white/40' : `bg-gradient-to-br text-white shadow ${c.grad}`}`}><n.icon size={17} /></span>
-                    <span className="relative">{desa && n.to === '/' ? 'Beranda Desa' : desa && n.to === '/beranda-rt' ? `Beranda RT ${rt}` : n.label}</span>
+                    <span className="relative">{desa && n.to === '/' ? 'Beranda Padukuhan' : desa && n.to === '/beranda-rt' ? `Beranda RT ${rt}` : n.label}</span>
                   </>
                 )
               }}

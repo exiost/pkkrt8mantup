@@ -145,7 +145,7 @@ export default function WargaForm({ id, preset, onClose }: { id?: string; preset
                   </div>
                   {nikLain.length > 0 && (
                     <div role="alert" className="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-                      ⚠️ NIK ini sudah tercatat di {nikLain.map((x) => `RT ${x.rt} (${x.nama}${x.dihapus ? ', di Tempat Sampah' : x.status && x.status !== 'Aktif' ? `, ${x.status}` : ''})`).join(', ')}. Bila orangnya sama dan pindah RT, minta Admin Desa memakai <b>Pindah RT</b> agar datanya tidak dobel.
+                      ⚠️ NIK ini sudah tercatat di {nikLain.map((x) => `RT ${x.rt} (${x.nama}${x.dihapus ? ', di Tempat Sampah' : x.status && x.status !== 'Aktif' ? `, ${x.status}` : ''})`).join(', ')}. Bila orangnya sama dan pindah RT, minta Admin Padukuhan memakai <b>Pindah RT</b> agar datanya tidak dobel.
                     </div>
                   )}
                 </Field>

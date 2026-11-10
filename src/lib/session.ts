@@ -20,9 +20,9 @@ interface Session {
   offline: boolean
   /** RT yang sedang dibuka ("08") */
   rt: string
-  /** daftar semua RT (untuk Admin Desa) */
+  /** daftar semua RT (untuk Admin Padukuhan) */
   rts: string[]
-  /** Admin Desa: pindah ke RT lain */
+  /** Admin Padukuhan: pindah ke RT lain */
   pilihRT: (rt: string) => Promise<boolean>
   /** ambil ulang seluruh data RT ini dari server */
   muatUlang: () => Promise<void>

@@ -189,7 +189,7 @@ function SheetView({ tplId, values, regions, rowsShown, overrides, editText, onE
       }
       fix.forEach(([td, f]) => { td.style.fontSize = `${f}px` })
     }
-    // font sudah siap: cukup sekali. Tabel besar (mis. gabungan desa) diukur sesudah tampil agar layar tidak tertahan
+    // font sudah siap: cukup sekali. Tabel besar (mis. gabungan padukuhan) diukur sesudah tampil agar layar tidak tertahan
     const besar = t.rows.length > 400
     let batal = false
     const jalan = () => { if (!batal) run() }
@@ -224,5 +224,5 @@ export function sheetNaturalSize(tplId: string, rowsCount?: number): { w: number
   return { w: t.cols.reduce((a, b) => a + b, 0), h: t.rows.reduce((a, r) => a + r.h, 0) + (rowsCount ?? 0) }
 }
 
-/** digambar ulang hanya bila isinya berubah (tabel gabungan desa bisa ribuan baris) */
+/** digambar ulang hanya bila isinya berubah (tabel gabungan padukuhan bisa ribuan baris) */
 export default memo(SheetView)

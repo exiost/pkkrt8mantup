@@ -14,7 +14,7 @@ interface Berkas { format: 'siwarga-rt'; versi: number; rt: string; dibuat: stri
 
 
 /**
- * Kirim data RT lewat file: RT mengekspor satu file .siwarga (bisa offline), Admin Desa / Admin RT
+ * Kirim data RT lewat file: RT mengekspor satu file .siwarga (bisa offline), Admin Padukuhan / Admin RT
  * mengimpornya. Sebelum diterapkan tampil pratinjau; server membuat cadangan otomatis dulu.
  */
 export default function KirimRT() {
@@ -62,7 +62,7 @@ export default function KirimRT() {
   const total = (k: keyof Ringkas) => (cek ? Object.values(cek.ringkas).reduce((a, r) => a + r[k], 0) : 0)
   return (
     <Section title="Kirim data RT lewat file (.siwarga)" icon={Send} color="amber">
-      <p className="mb-3 text-sm text-slate-500">Untuk RT yang bekerja offline: <b>ekspor</b> satu file berisi semua data RT ini, kirim lewat WhatsApp / flashdisk, lalu Admin Desa <b>mengimpornya</b>. Sebelum diterapkan tampil ringkasan perubahan, dan server menyimpan cadangan otomatis sehingga bisa dibatalkan.</p>
+      <p className="mb-3 text-sm text-slate-500">Untuk RT yang bekerja offline: <b>ekspor</b> satu file berisi semua data RT ini, kirim lewat WhatsApp / flashdisk, lalu Admin Padukuhan <b>mengimpornya</b>. Sebelum diterapkan tampil ringkasan perubahan, dan server menyimpan cadangan otomatis sehingga bisa dibatalkan.</p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button variant="outline" icon={FileDown} onClick={eksporRT}>Ekspor data RT {kodeRT(s.rt, useStore.getState().settings.rt)}</Button>
         {bisaImpor && <>

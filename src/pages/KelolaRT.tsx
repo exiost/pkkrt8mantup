@@ -21,7 +21,7 @@ interface RingkasRT { rt: string; warga: number; keluarga: number; akhir: string
 const PERAN: Record<Role, string> = { admin: 'Admin RT', editor: 'Pengurus', viewer: 'Pembaca' }
 const tgl = (s: string | null) => (s ? new Date(s).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—')
 
-/** Khusus Admin Desa: ringkasan 17 RT, membuka data RT, dan membuat akun tiap RT */
+/** Khusus Admin Padukuhan: ringkasan 17 RT, membuka data RT, dan membuat akun tiap RT */
 export default function KelolaRT() {
   const { rt: rtAktif, pilihRT } = useSession()
   const nav = useNavigate()
@@ -66,10 +66,10 @@ export default function KelolaRT() {
 
   return (
     <div>
-      <PageHeader title="Beranda Desa Mantup" subtitle="Ringkasan 17 RT, cari warga, akun RT, laporan gabungan, aktivitas & cadangan" icon={Building2} color="amber"
+      <PageHeader title="Beranda Padukuhan Mantup" subtitle="Ringkasan 17 RT, cari warga, akun RT, laporan gabungan, aktivitas & cadangan" icon={Building2} color="amber"
         actions={<><Button variant="outline" icon={LayoutDashboard} onClick={() => nav('/beranda-rt')}>Beranda RT {rtAktif}</Button><Button variant="outline" icon={RefreshCw} onClick={() => { void load(); void useDataDesa.getState().load(true) }}>Muat ulang</Button></>} />
 
-      <div role="tablist" aria-label="Bagian Beranda Desa" className="sticky top-[57px] z-20 -mx-4 mb-4 flex gap-1 overflow-x-auto bg-slate-50/90 px-4 py-2 backdrop-blur dark:bg-slate-950/80 sm:mx-0 sm:rounded-2xl sm:px-2 lg:top-2">
+      <div role="tablist" aria-label="Bagian Beranda Padukuhan" className="sticky top-[57px] z-20 -mx-4 mb-4 flex gap-1 overflow-x-auto bg-slate-50/90 px-4 py-2 backdrop-blur dark:bg-slate-950/80 sm:mx-0 sm:rounded-2xl sm:px-2 lg:top-2">
         {TABS.map(({ k, l, I }) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => pilihTab(k)}
             className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition ${tab === k ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-white/10'}`}><I size={16} />{l}</button>
@@ -92,12 +92,12 @@ export default function KelolaRT() {
 
       {tab === 'laporan' && (
       <Card className="mb-5 p-4">
-        <div className="mb-3 flex items-center gap-2 font-display font-extrabold"><FileText size={18} className="text-amber-600" /> Laporan gabungan Desa Mantup (RT 01–17)</div>
+        <div className="mb-3 flex items-center gap-2 font-display font-extrabold"><FileText size={18} className="text-amber-600" /> Laporan gabungan Padukuhan Mantup (RT 01–17)</div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {REPORTS.filter((d) => GABUNGAN[d.slug] && !d.hidden).map((d) => (
             <Link key={d.slug} to={`/laporan/${d.slug}?desa=1`} className="shine flex items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-2.5 text-sm font-semibold text-slate-700 transition hover:shadow-md dark:border-amber-500/30 dark:from-amber-500/10 dark:to-orange-500/10 dark:text-slate-100">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow"><d.icon size={17} /></span>
-              <span className="min-w-0 flex-1 leading-tight">{d.title}<span className="block text-[11px] font-normal text-slate-500">{GABUNGAN[d.slug] === 'rekap' ? 'satu baris per RT + jumlah desa' : 'daftar nama semua RT + kolom RT'}</span></span>
+              <span className="min-w-0 flex-1 leading-tight">{d.title}<span className="block text-[11px] font-normal text-slate-500">{GABUNGAN[d.slug] === 'rekap' ? 'satu baris per RT + jumlah padukuhan' : 'daftar nama semua RT + kolom RT'}</span></span>
             </Link>
           ))}
         </div>
@@ -135,7 +135,7 @@ export default function KelolaRT() {
 
       {tab === 'cadangan' && <>
       <Card className="p-4">
-        <div className="mb-1 flex items-center gap-2 font-display font-extrabold"><DatabaseBackup size={18} className="text-sky-600" /> Cadangan harian otomatis (seluruh desa)</div>
+        <div className="mb-1 flex items-center gap-2 font-display font-extrabold"><DatabaseBackup size={18} className="text-sky-600" /> Cadangan harian otomatis (seluruh padukuhan)</div>
         <p className="mb-3 text-xs text-slate-500">Server menyalin seluruh database (semua RT &amp; akun) sekali sehari dan menyimpan 14 hari terakhir di folder <b>cadangan-harian</b> di sebelah folder data. Unduh sesekali dan simpan di laptop/Google Drive.</p>
         {cad.length ? (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -170,7 +170,7 @@ export default function KelolaRT() {
   )
 }
 
-/** Cadangan ke Google Drive lewat Google Apps Script milik Admin Desa */
+/** Cadangan ke Google Drive lewat Google Apps Script milik Admin Padukuhan */
 function GoogleDrive() {
   const confirm = useConfirm()
   const [kunci, setKunci] = useState('')
@@ -203,7 +203,7 @@ function GoogleDrive() {
         <Button size="sm" variant="ghost" icon={lihat ? EyeOff : Eye} onClick={() => setLihat(!lihat)}>{lihat ? 'Sembunyikan' : 'Lihat'}</Button>
         <Button size="sm" variant="outline" onClick={() => void ganti()}>Buat kunci baru</Button>
       </div>
-      <p className="mb-2 text-[11px] text-slate-400">Siapa pun yang tahu kunci ini bisa mengunduh seluruh data desa. Jangan dibagikan. Bila bocor, tekan <b>Buat kunci baru</b> lalu ganti skrip di Google.</p>
+      <p className="mb-2 text-[11px] text-slate-400">Siapa pun yang tahu kunci ini bisa mengunduh seluruh data padukuhan. Jangan dibagikan. Bila bocor, tekan <b>Buat kunci baru</b> lalu ganti skrip di Google.</p>
       <Button icon={Copy} disabled={!skrip} onClick={() => void salin()}>Salin skrip</Button>
       {skrip && <details className="mt-2 text-xs"><summary className="cursor-pointer text-slate-500">Lihat isi skrip</summary><textarea readOnly value={skrip} className="mt-2 h-56 w-full rounded-xl border border-slate-200 bg-slate-50 p-2 font-mono text-[11px] dark:border-white/10 dark:bg-slate-900" /></details>}
     </Card>

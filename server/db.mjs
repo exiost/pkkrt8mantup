@@ -28,12 +28,12 @@ export function openDb(file) {
   return db
 }
 
-/** Daftar RT Desa Mantup (bawaan 01–17) */
+/** Daftar RT Padukuhan Mantup (bawaan 01–17) */
 export const RT_BAWAAN = Array.from({ length: 17 }, (_, i) => String(i + 1).padStart(2, '0'))
 
 /**
  * Multi-RT: setiap data & akun diberi label RT. Database lama (satu RT) otomatis menjadi RT 08,
- * pengaturannya disalin ke "settings:08". Akun dengan rt kosong (NULL) = Admin Desa.
+ * pengaturannya disalin ke "settings:08". Akun dengan rt kosong (NULL) = Admin Padukuhan.
  */
 function migrateRT(db) {
   const cols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name)

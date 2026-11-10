@@ -137,7 +137,7 @@ function RegionTable({ b, rows, tplId }: { b: Block; rows: Record<string, Val>[]
   const cols = letters.filter((L, i) => b.labels.has(i) || (L === 'A' && hasNo))
   if (!cols.length) return null
   const label = (L: string) => { const a = b.labels.get(letters.indexOf(L)) ?? (L === 'A' ? ['NO'] : []); return a }
-  // tabel sangat panjang (mis. gabungan desa): tampilkan bertahap agar HP tidak berat; cetak & Excel tetap lengkap
+  // tabel sangat panjang (mis. gabungan padukuhan): tampilkan bertahap agar HP tidak berat; cetak & Excel tetap lengkap
   const [batas, setBatas] = useState(300)
   const tampil = data.length > batas ? data.slice(0, batas) : data
   const baris = (r: Record<string, Val>, ri: number) => (

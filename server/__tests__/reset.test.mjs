@@ -13,11 +13,11 @@ const siapkan = () => {
 const user = (store, nama) => store.q.userByName.get(nama)
 
 describe('pemulihan darurat kata sandi lewat file di folder data', () => {
-  it('isi kata sandi saja → semua Admin Desa direset, wajib ganti saat masuk, file berisi daftar nama pengguna', () => {
+  it('isi kata sandi saja → semua Admin Padukuhan direset, wajib ganti saat masuk, file berisi daftar nama pengguna', () => {
     const { dir, store } = siapkan()
-    store.q.insUser.run('d1', 'desa', 'Admin Desa', hashPassword('lupaaaaa1'), 'admin', '2026-01-01', null)
+    store.q.insUser.run('d1', 'desa', 'Admin Padukuhan', hashPassword('lupaaaaa1'), 'admin', '2026-01-01', null)
     store.q.insUser.run('a8', 'admin', 'Admin', hashPassword('tetapsama1'), 'admin', '2026-01-01', '08')
-    store.q.updUser.run('Admin Desa', 'admin', 0, null, 'd1') // bahkan bila akunnya nonaktif
+    store.q.updUser.run('Admin Padukuhan', 'admin', 0, null, 'd1') // bahkan bila akunnya nonaktif
     writeFileSync(join(dir, 'reset-admin-desa.txt'), 'SandiBaru2026\n')
     createApp({ dbFile: join(dir, 'siwarga.db'), distDir: '/nonexistent' }) // = RESTART di cPanel
     const d = user(store, 'desa')
@@ -27,7 +27,7 @@ describe('pemulihan darurat kata sandi lewat file di folder data', () => {
     expect(verifyPassword('tetapsama1', user(store, 'admin').pass)).toBe(true) // admin RT tidak tersentuh
     const hasil = readFileSync(join(dir, 'reset-admin-desa.txt'), 'utf8')
     expect(hasil).toMatch(/^BERHASIL/)
-    expect(hasil).toMatch(/desa \(Admin Desa\)/)
+    expect(hasil).toMatch(/desa \(Admin Padukuhan\)/)
     expect(hasil).not.toMatch(/SandiBaru2026/) // kata sandi tidak ditulis ulang
     // restart lagi: file yang sudah diproses tidak dijalankan ulang
     store.q.updPass.run(hashPassword('sudahdiganti1'), 'd1')
@@ -44,14 +44,14 @@ describe('pemulihan darurat kata sandi lewat file di folder data', () => {
     createApp({ dbFile: join(dir, 'siwarga.db'), distDir: '/nonexistent' })
     expect(verifyPassword('SandiBaru2026', user(store, 'admin').pass)).toBe(true)
   })
-  it('kata sandi terlalu pendek ditolak; belum ada Admin Desa → dibuat akun "desa"', () => {
+  it('kata sandi terlalu pendek ditolak; belum ada Admin Padukuhan → dibuat akun "padukuhan"', () => {
     const { dir, store } = siapkan()
     writeFileSync(join(dir, 'reset-admin-desa.txt'), 'pendek')
     createApp({ dbFile: join(dir, 'siwarga.db'), distDir: '/nonexistent' })
     expect(readFileSync(join(dir, 'reset-admin-desa.txt'), 'utf8')).toMatch(/GAGAL.*minimal 8/)
     writeFileSync(join(dir, 'reset-admin-desa.txt'), 'SandiBaru2026')
     createApp({ dbFile: join(dir, 'siwarga.db'), distDir: '/nonexistent' })
-    const d = user(store, 'desa')
+    const d = user(store, 'padukuhan')
     expect(d.role).toBe('admin')
     expect(d.rt).toBe(null)
     expect(verifyPassword('SandiBaru2026', d.pass)).toBe(true)

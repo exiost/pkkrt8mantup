@@ -12,7 +12,7 @@ import { Button, Card } from '@/components/ui'
 
 interface Baris { rt: string; warga: number; kk: number; balita: number; wus: number; pus: number; hamil: number; lansia: number; baru: number; cek: number; penting: number }
 
-/** Ringkasan seluruh desa: angka utama per RT (dihitung seperti laporan: warga aktif & ikut PKK) */
+/** Ringkasan seluruh padukuhan: angka utama per RT (dihitung seperti laporan: warga aktif & ikut PKK) */
 export default function RingkasanDesa() {
   const dd = useDataDesa()
   const tabel = useRef<HTMLDivElement>(null)
@@ -38,8 +38,8 @@ export default function RingkasanDesa() {
   return (
     <Card className="mb-5 p-4">
       <div className="mb-1 flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 font-display font-extrabold"><BarChart3 size={18} className="text-indigo-600" /> Ringkasan Desa Mantup per RT</div>
-        <Button size="sm" variant="outline" icon={FileSpreadsheet} disabled={!dd.list} onClick={() => tabel.current && (eksporTabel(tabel.current, `Ringkasan Desa Mantup ${acuan}`) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}>Excel</Button>
+        <div className="flex min-w-0 flex-1 items-center gap-2 font-display font-extrabold"><BarChart3 size={18} className="text-indigo-600" /> Ringkasan Padukuhan Mantup per RT</div>
+        <Button size="sm" variant="outline" icon={FileSpreadsheet} disabled={!dd.list} onClick={() => tabel.current && (eksporTabel(tabel.current, `Ringkasan Padukuhan Mantup ${acuan}`) ? toast.success('File Excel diunduh') : toast.error('Tidak ada tabel'))}>Excel</Button>
         <Button size="sm" variant="outline" icon={Printer} disabled={!dd.list} onClick={() => cetak(tabel.current, acuan)}>Cetak</Button>
       </div>
       <p className="mb-3 text-xs text-slate-500">Dihitung per hari ini, seperti di laporan (warga aktif &amp; ikut PKK). “Baru bln ini” = warga yang ditambahkan bulan ini. “Perlu dicek” = isian janggal (lihat menu Cek Data di RT tersebut).</p>
@@ -86,7 +86,7 @@ function cetak(el: HTMLElement | null, acuan: string) {
   const w = window.open('', '_blank')
   if (!w) { toast.error('Jendela cetak diblokir browser. Izinkan pop-up untuk situs ini.'); return }
   const tgl = new Date(acuan + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-  w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Ringkasan Desa Mantup ${acuan}</title><style>
+  w.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Ringkasan Padukuhan Mantup ${acuan}</title><style>
     body{font:12px Arial,sans-serif;margin:16px;color:#000} h1{font-size:15px;margin:0 0 2px;text-align:center} p{margin:0 0 10px;text-align:center}
     table{width:100%;border-collapse:collapse} th,td{border:1px solid #000;padding:4px 6px} th{background:#eee;text-transform:uppercase;font-size:10px} td:not(:first-child),th:not(:first-child){text-align:right}
     tr:last-child td{font-weight:bold} .catatan{margin-top:8px;font-size:10px}
@@ -95,7 +95,7 @@ function cetak(el: HTMLElement | null, acuan: string) {
   </style></head><body>
   <div class="alat"><select onchange="document.getElementById('kertas').textContent='@page{size:'+this.value+';margin:12mm}'"><option value="A4 landscape">Kertas A4</option><option value="330mm 215mm">Kertas F4 / Folio</option></select> <button onclick="print()">Cetak</button></div>
   <style id="kertas"></style>
-  <h1>RINGKASAN DATA WARGA DESA MANTUP PER RT</h1><p>Keadaan ${tgl} · warga aktif &amp; ikut PKK</p>
+  <h1>RINGKASAN DATA WARGA PADUKUHAN MANTUP PER RT</h1><p>Keadaan ${tgl} · warga aktif &amp; ikut PKK</p>
   ${t.outerHTML}
   <div class="catatan">Baru bln ini = warga yang ditambahkan bulan ini. Perlu dicek = isian yang janggal / belum lengkap.</div>
   </body></html>`)

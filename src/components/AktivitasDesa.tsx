@@ -7,7 +7,7 @@ interface Aktivitas { id: string; waktu: string; aksi: string; label: string; ko
 const WARNA: Record<string, string> = { Tambah: 'emerald', Ubah: 'sky', Hapus: 'rose', Pulihkan: 'violet', 'Hapus Permanen': 'red' }
 const NAMA: Record<string, string> = { warga: 'Warga', keluarga: 'Keluarga', kelahiran: 'Kelahiran', kematian: 'Kematian', pesertaKB: 'Peserta KB', pusBaru: 'PUS baru', dasawisma: 'Dasawisma', tags: 'Penanda', kampungKB: 'Kampung KB', arsip: 'Arsip' }
 
-/** Admin Desa: siapa mengubah apa, di RT mana (gabungan riwayat semua RT) */
+/** Admin Padukuhan: siapa mengubah apa, di RT mana (gabungan riwayat semua RT) */
 export default function AktivitasDesa() {
   const [list, setList] = useState<Aktivitas[] | null>(null)
   const [rt, setRt] = useState('')
@@ -19,7 +19,7 @@ export default function AktivitasDesa() {
   return (
     <Card className="mt-5 p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 font-display font-extrabold"><Activity size={18} className="text-sky-600" /> Catatan aktivitas seluruh desa</div>
+        <div className="flex min-w-0 flex-1 items-center gap-2 font-display font-extrabold"><Activity size={18} className="text-sky-600" /> Catatan aktivitas seluruh padukuhan</div>
         <select aria-label="Saring RT" value={rt} onChange={(e) => { setRt(e.target.value); setBatas(50) }} className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm dark:border-white/10 dark:bg-slate-800">
           <option value="">Semua RT</option>
           {rts.map((r) => <option key={r} value={r}>RT {r}</option>)}

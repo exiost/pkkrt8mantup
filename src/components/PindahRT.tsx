@@ -8,7 +8,7 @@ import { useDataDesa } from '@/reports/desa'
 import { Button, Modal, Toggle } from '@/components/ui'
 import type { Warga } from '@/lib/types'
 
-/** Admin Desa: pindahkan warga (atau sekeluarga) ke RT lain tanpa membuat data ganda; riwayat ikut */
+/** Admin Padukuhan: pindahkan warga (atau sekeluarga) ke RT lain tanpa membuat data ganda; riwayat ikut */
 export default function PindahRT({ w, anggota }: { w: Warga; anggota: Warga[] }) {
   const s = useSession()
   const nav = useNavigate()

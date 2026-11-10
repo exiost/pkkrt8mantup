@@ -71,16 +71,16 @@ Buka dengan `https://pemerintahkota.id/data-warga/`. Versi ≥ 1.2.0 sudah mendu
 ## Alternatif: mode statis (tanpa Node.js)
 Unggah isi folder `paket-cpanel\statis` ke `public_html`. Tanpa login & viewer; data tersimpan di browser masing-masing perangkat (data dari server lokal tidak ikut).
 
-## Memperbarui ke versi multi-RT (Desa Mantup, RT 01–17)
+## Memperbarui ke versi multi-RT (Padukuhan Mantup, RT 01–17)
 1. **Cadangkan folder `DATA_DIR`** (berisi `siwarga.db`).
 2. Hapus `dist`, `server`, `app.cjs`, `package.json` lama, upload & Extract zip baru, lalu **RESTART**.
 3. Saat server menyala, database lama otomatis diubah: semua data & akun lama menjadi **RT 08** (tidak ada yang hilang). Daftar RT 01–17 dibuat otomatis.
-4. Masuk sebagai `admin` → Pengaturan → Akun & Server → **Buat Admin Desa** (sekali saja). Langkah lengkap: `docs/panduan-desa.html`.
+4. Masuk sebagai `admin` → Pengaturan → Akun & Server → **Buat Admin Padukuhan** (sekali saja). Langkah lengkap: `docs/panduan-desa.html`.
 
 Database yang sudah diubah ke multi-RT tidak bisa dipakai lagi oleh versi lama. Bila ingin kembali ke versi lama, pakai cadangan dari langkah 1.
 
 ## Cadangan harian otomatis
-Server menyalin seluruh database sekali sehari ke folder **`cadangan-harian`** di sebelah `siwarga.db` (di dalam `DATA_DIR`), dan menyimpan 14 hari terakhir (`siwarga-YYYY-MM-DD.db`). Admin Desa bisa mengunduhnya di **Beranda Desa → tab Cadangan → Cadangan harian otomatis**.
+Server menyalin seluruh database sekali sehari ke folder **`cadangan-harian`** di sebelah `siwarga.db` (di dalam `DATA_DIR`), dan menyimpan 14 hari terakhir (`siwarga-YYYY-MM-DD.db`). Admin Padukuhan bisa mengunduhnya di **Beranda Padukuhan → tab Cadangan → Cadangan harian otomatis**.
 
 Mengembalikan data dari cadangan harian:
 1. Setup Node.js App → **STOP APP**.
@@ -91,13 +91,13 @@ Mengembalikan data dari cadangan harian:
 Catatan: bila mencadangkan manual, salin **seluruh folder `data`** (termasuk `siwarga.db-wal`), bukan hanya `siwarga.db` — perubahan terbaru bisa masih berada di file `-wal`.
 
 ## Cadangan ke Google Drive (Google Apps Script)
-Beranda Desa → tab **Cadangan** → **Cadangan otomatis ke Google Drive**: tekan **Salin skrip**, tempel di script.google.com (Proyek baru), Simpan, pilih fungsi `pasangJadwalHarian` → Jalankan → izinkan. Skrip mengambil `api/cadangan-terbaru?kunci=…` tiap hari jam 01.00–02.00 WIB dan menyimpan `siwarga-YYYY-MM-DD.db` di folder Drive **Cadangan SIWARGA** (60 hari). Bila skrip gagal dengan kode 403/503 dari Cloudflare, buat aturan di Cloudflare (Security → WAF) yang melewatkan jalur `/data-warga/api/cadangan-terbaru`. Kunci bocor → **Buat kunci baru** lalu ganti skrip.
+Beranda Padukuhan → tab **Cadangan** → **Cadangan otomatis ke Google Drive**: tekan **Salin skrip**, tempel di script.google.com (Proyek baru), Simpan, pilih fungsi `pasangJadwalHarian` → Jalankan → izinkan. Skrip mengambil `api/cadangan-terbaru?kunci=…` tiap hari jam 01.00–02.00 WIB dan menyimpan `siwarga-YYYY-MM-DD.db` di folder Drive **Cadangan SIWARGA** (60 hari). Bila skrip gagal dengan kode 403/503 dari Cloudflare, buat aturan di Cloudflare (Security → WAF) yang melewatkan jalur `/data-warga/api/cadangan-terbaru`. Kunci bocor → **Buat kunci baru** lalu ganti skrip.
 
 ## Lupa kata sandi / nama pengguna (pemulihan darurat)
 Hanya bisa dilakukan pemegang akses cPanel.
 1. File Manager → buka folder data (`DATA_DIR`, tempat `siwarga.db`) → **+ File** → nama **`reset-admin-desa.txt`**.
 2. Edit file itu, isi **satu baris**:
-   - `KataSandiBaru123` → semua akun **Admin Desa** diberi kata sandi itu (bila belum ada Admin Desa, dibuat akun `desa`), atau
+   - `KataSandiBaru123` → semua akun **Admin Padukuhan** diberi kata sandi itu (bila belum ada Admin Padukuhan, dibuat akun `desa`), atau
    - `admin: KataSandiBaru123` → hanya akun bernama `admin` (bisa akun apa saja, mis. Admin RT).
    Kata sandi minimal 8 karakter. Simpan.
 3. Setup Node.js App → **RESTART**.

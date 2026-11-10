@@ -9,8 +9,8 @@ import type { AppUser, Role } from '@/lib/types'
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'Admin (semua hak)', editor: 'Pengurus (ubah data)', viewer: 'Pembaca (hanya lihat)' }
 type Akun = AppUser & { created_at?: string; password?: string; baru?: boolean }
-/** pilihan "RT" di form akun Admin Desa: '' = Admin Desa (semua RT) */
-const rtLabel = (u: Partial<AppUser>) => (u.desa ? 'Admin Desa' : u.rt ? `RT ${u.rt}` : '')
+/** pilihan "RT" di form akun Admin Padukuhan: '' = Admin Padukuhan (semua RT) */
+const rtLabel = (u: Partial<AppUser>) => (u.desa ? 'Admin Padukuhan' : u.rt ? `RT ${u.rt}` : '')
 
 export default function AkunServer() {
   const s = useSession()
@@ -47,7 +47,7 @@ function ServerMode() {
     <div className="space-y-4">
       <Section title="Akun saya" icon={KeyRound} color="violet" actions={<Button size="sm" variant="outline" icon={LogOut} onClick={s.logout}>Keluar</Button>}>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-          <b>{user.name || user.username}</b> <Chip color="violet">{user.desa ? 'Admin Desa (semua RT)' : ROLE_LABEL[user.role]}</Chip>{!user.desa && user.rt && <Chip color="amber">RT {user.rt}</Chip>} <Chip color="emerald" icon={Cloud}>Terhubung ke server {getBase() || '(server ini)'}</Chip>
+          <b>{user.name || user.username}</b> <Chip color="violet">{user.desa ? 'Admin Padukuhan (semua RT)' : ROLE_LABEL[user.role]}</Chip>{!user.desa && user.rt && <Chip color="amber">RT {user.rt}</Chip>} <Chip color="emerald" icon={Cloud}>Terhubung ke server {getBase() || '(server ini)'}</Chip>
         </div>
         <ChangePassword />
       </Section>
@@ -107,8 +107,8 @@ function Users() {
     <Section title={me.desa ? 'Pengguna (semua RT)' : `Pengguna RT ${me.rt ?? ''}`} icon={UserCog} color="indigo" actions={<Button size="sm" icon={Plus} onClick={() => setEdit({ baru: true, role: 'editor', active: true, username: '', name: '', password: '', rt: me.desa ? rtAktif : me.rt, desa: false })}>Tambah</Button>}>
       {!adaDesa && !me.desa && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-          <span className="min-w-0 flex-1"><b>Belum ada akun Admin Desa.</b> Admin Desa bisa membuka dan mengubah data semua RT (RT 01–17). Buat sekali di sini; setelah itu hanya Admin Desa yang bisa membuat Admin Desa lain.</span>
-          <Button size="sm" icon={Plus} onClick={() => setEdit({ baru: true, role: 'admin', desa: true, active: true, username: 'desa', name: 'Admin Desa Mantup', password: '' })}>Buat Admin Desa</Button>
+          <span className="min-w-0 flex-1"><b>Belum ada akun Admin Padukuhan.</b> Admin Padukuhan bisa membuka dan mengubah data semua RT (RT 01–17). Buat sekali di sini; setelah itu hanya Admin Padukuhan yang bisa membuat Admin Padukuhan lain.</span>
+          <Button size="sm" icon={Plus} onClick={() => setEdit({ baru: true, role: 'admin', desa: true, active: true, username: 'padukuhan', name: 'Admin Padukuhan Mantup', password: '' })}>Buat Admin Padukuhan</Button>
         </div>
       )}
       <div className="divide-y divide-slate-100 dark:divide-white/5">
@@ -134,11 +134,11 @@ function Users() {
             <Field label="Nama lengkap"><Input value={edit.name ?? ''} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></Field>
             <Field label="Nama pengguna (untuk login)"><Input value={edit.username ?? ''} disabled={!edit.baru} onChange={(e) => setEdit({ ...edit, username: e.target.value })} /></Field>
             <Field label="Peran"><Select options={['admin', 'editor', 'viewer']} value={edit.role ?? 'editor'} onChange={(v) => setEdit({ ...edit, role: (v || 'viewer') as Role })} /></Field>
-            <p className="-mt-1 text-xs text-slate-400">{edit.desa ? 'Admin Desa: membuka & mengubah data semua RT' : ROLE_LABEL[edit.role ?? 'editor']}</p>
+            <p className="-mt-1 text-xs text-slate-400">{edit.desa ? 'Admin Padukuhan: membuka & mengubah data semua RT' : ROLE_LABEL[edit.role ?? 'editor']}</p>
             {me.desa && (
               <Field label="Wilayah akun">
-                <Select options={[...(edit.role === 'admin' ? ['Admin Desa'] : []), ...rts.map((r) => `RT ${r}`)]} value={edit.desa ? 'Admin Desa' : `RT ${edit.rt ?? ''}`}
-                  onChange={(v) => setEdit({ ...edit, desa: v === 'Admin Desa', rt: v.startsWith('RT ') ? v.slice(3) : null })} />
+                <Select options={[...(edit.role === 'admin' ? ['Admin Padukuhan'] : []), ...rts.map((r) => `RT ${r}`)]} value={edit.desa ? 'Admin Padukuhan' : `RT ${edit.rt ?? ''}`}
+                  onChange={(v) => setEdit({ ...edit, desa: v === 'Admin Padukuhan', rt: v.startsWith('RT ') ? v.slice(3) : null })} />
               </Field>
             )}
             <Field label={edit.baru ? 'Kata sandi (min. 8)' : 'Kata sandi baru (kosongkan bila tidak diganti)'}><Input type="password" value={edit.password ?? ''} onChange={(e) => setEdit({ ...edit, password: e.target.value })} autoComplete="new-password" /></Field>

@@ -258,9 +258,9 @@ export interface AppUser {
   name: string
   role: Role
   active: boolean
-  /** kode RT akun ini ("08"); null = Admin Desa */
+  /** kode RT akun ini ("08"); null = Admin Padukuhan */
   rt?: string | null
-  /** true = Admin Desa (bisa membuka semua RT) */
+  /** true = Admin Padukuhan (bisa membuka semua RT) */
   desa?: boolean
   /** wajib ganti kata sandi sebelum memakai aplikasi */
   harusGanti?: boolean

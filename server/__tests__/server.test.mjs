@@ -155,7 +155,7 @@ describe('server SIWARGA', () => {
     expect((await j(`/api/users/${kader.id}`, { method: 'PUT', token: t9, body: { active: false } })).status).toBe(404)
     expect((await j('/api/users', { method: 'POST', token: t9, body: { username: 'desa2', password: 'desa2pass', role: 'admin', desa: true } })).status).toBe(403)
     expect((await j('/api/rts', { token: t9 })).status).toBe(403)
-    // Admin Desa memilih RT lewat X-RT
+    // Admin Padukuhan memilih RT lewat X-RT
     expect((await j('/api/data', { token: admin, rt: '09' })).data.collections.warga.map((w) => w.nama)).toEqual(['Warga 9'])
     expect((await j('/api/data', { token: admin, rt: '08' })).data.collections.warga.map((w) => w.nama)).toEqual(['Siti'])
     expect((await j('/api/data', { token: admin, rt: '99' })).status).toBe(400)
@@ -169,7 +169,7 @@ describe('server SIWARGA', () => {
     expect((await j('/api/restore', { method: 'POST', token: t9, body: { warga: [] } })).status).toBe(200)
     expect((await j('/api/data', { token: admin, rt: '08' })).data.collections.warga.length).toBe(1)
   })
-  it('gabungan desa hanya untuk Admin Desa', async () => {
+  it('gabungan padukuhan hanya untuk Admin Padukuhan', async () => {
     const d = await j('/api/desa', { token: admin })
     expect(d.status).toBe(200)
     expect(d.data.rts.length).toBe(17)
@@ -201,7 +201,7 @@ describe('server SIWARGA', () => {
     const d = (await j('/api/data', { token: admin, rt: '09' })).data
     expect(d.collections.warga.map((w) => w.nama).sort()).toEqual(['Ani', 'Budi'])
   })
-  it('Admin Desa: RT terakhir diingat server (perangkat lain langsung membuka RT itu)', async () => {
+  it('Admin Padukuhan: RT terakhir diingat server (perangkat lain langsung membuka RT itu)', async () => {
     expect((await j('/api/me/rt', { method: 'POST', token: admin, body: { rt: '09' } })).status).toBe(200)
     expect((await j('/api/me', { token: admin, rt: '' })).data.rt).toBe('09')
     expect((await j('/api/data', { token: admin, rt: '' })).data.rt).toBe('09')
@@ -225,7 +225,7 @@ describe('server SIWARGA', () => {
     expect(cd[0]).toMatchObject({ rt: '08', nama: 'Siti Aminah', id: 'p1' })
     expect((await j('/api/cek-nik?nik=3404011111110001&kecuali=p1', { token: admin })).data.ada).toEqual([])
     expect([401, 403]).toContain((await j('/api/cek-nik?nik=3404011111110001', { token: viewer })).status) // viewer (akun tamu sudah dinonaktifkan di tes sebelumnya)
-    // pindah: hanya Admin Desa; sekeluarga ikut, nomor keluarga baru, alamat & dasawisma disesuaikan
+    // pindah: hanya Admin Padukuhan; sekeluarga ikut, nomor keluarga baru, alamat & dasawisma disesuaikan
     expect((await j('/api/pindah-rt', { method: 'POST', token: t9, body: { id: 'p1', keRT: '09' } })).status).toBe(403)
     const gen8 = (await j('/api/data', { token: admin, rt: '08' })).data.gen
     const r = await j('/api/pindah-rt', { method: 'POST', token: admin, body: { id: 'p1', keRT: '09', sekeluarga: true } })

@@ -102,7 +102,7 @@ function ReportView({ slug }: { slug: string }) {
     () => makeCtx({ warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kampungKB: kbAll, settings }, pe, o, ym),
     [pe, o, ym, warga, keluarga, kelahiran, kematian, pesertaKB, pusBaru, dasawisma, kbAll, settings],
   )
-  // Admin Desa: laporan gabungan seluruh RT (Desa Mantup)
+  // Admin Padukuhan: laporan gabungan seluruh RT (Padukuhan Mantup)
   const desa = useDesa()
   const rtAktif = useSession((s) => s.rt)
   const bisaGabung = desa && !!GABUNGAN[def.slug]
@@ -226,7 +226,7 @@ function ReportView({ slug }: { slug: string }) {
         {!web && editText && <p className="mt-2 rounded-xl bg-violet-50 p-2 text-xs text-violet-700 dark:bg-violet-500/15 dark:text-violet-200">Mode ubah teks: klik teks tetap di lembar (judul, RT, desa, dll.) untuk menggantinya. Perubahan berlaku untuk semua cetakan laporan ini.</p>}
         <ReportControls uses={def.uses} p={p} setP={setP} o={o} setO={setO} ctx={ctxPakai} viewer={!!viewer} admin={isAdmin && !gab} gabungan={gab} />
         {def.uses.includes('manualKB') && !viewer && !gab && <ManualKB periode={periode} />}
-        {gab && def.uses.includes('manualKB') && <p className="mt-2 text-xs text-slate-500">Isian manual Kampung KB pada gabungan desa = jumlah isian semua RT. Untuk mengubahnya, buka laporan ini per RT.</p>}
+        {gab && def.uses.includes('manualKB') && <p className="mt-2 text-xs text-slate-500">Isian manual Kampung KB pada gabungan padukuhan = jumlah isian semua RT. Untuk mengubahnya, buka laporan ini per RT.</p>}
         {!viewer && !def.uses.includes('warga') && !def.uses.includes('keluarga') && (tidakTerhitung.pkk > 0 || tidakTerhitung.dawis > 0) && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100">
             <Info size={16} className="shrink-0" />

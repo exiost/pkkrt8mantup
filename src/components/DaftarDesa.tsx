@@ -9,14 +9,14 @@ import { periksaData, urutTemuan, type Temuan } from '@/lib/periksa'
 import { todayISO } from '@/lib/format'
 import { Card, Chip } from '@/components/ui'
 
-/** buka data warga / keluarga di RT-nya (Admin Desa pindah RT dulu bila perlu) */
+/** buka data warga / keluarga di RT-nya (Admin Padukuhan pindah RT dulu bila perlu) */
 function useBuka() {
   const nav = useNavigate()
   const { rt: aktif, pilihRT } = useSession()
   return async (rt: string, to: string) => { if (rt !== aktif && !(await pilihRT(rt))) return; nav(to) }
 }
 
-/** Pengingat bulan ini di seluruh desa (gabungan 17 RT) */
+/** Pengingat bulan ini di seluruh padukuhan (gabungan 17 RT) */
 export function PengingatDesa() {
   const dd = useDataDesa()
   const buka = useBuka()
@@ -35,7 +35,7 @@ export function PengingatDesa() {
   }, [dd.list, acuan])
   return (
     <Card className="mb-5 p-4">
-      <div className="mb-1 flex items-center gap-2 font-display font-extrabold"><BellRing size={18} className="text-fuchsia-600" /> Pengingat se-desa</div>
+      <div className="mb-1 flex items-center gap-2 font-display font-extrabold"><BellRing size={18} className="text-fuchsia-600" /> Pengingat se-padukuhan</div>
       <p className="mb-3 text-xs text-slate-500">Dari semua RT (warga aktif). Klik nama untuk membuka datanya.</p>
       {!dd.list ? <Memuat /> : kelompok.length === 0 ? <p className="text-sm italic text-slate-400">Tidak ada pengingat bulan ini.</p> : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -63,7 +63,7 @@ function Kelompok({ g, buka }: { g: { judul: string; warna: string; isi: { rt: s
   )
 }
 
-/** Cek Data se-desa: temuan dari semua RT, dikelompokkan per RT */
+/** Cek Data se-padukuhan: temuan dari semua RT, dikelompokkan per RT */
 export function CekDesa() {
   const dd = useDataDesa()
   const buka = useBuka()
@@ -78,7 +78,7 @@ export function CekDesa() {
   return (
     <Card className="mb-5 p-4">
       <div className="mb-1 flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2 font-display font-extrabold"><ClipboardCheck size={18} className="text-emerald-600" /> Cek Data se-desa</div>
+        <div className="flex min-w-0 flex-1 items-center gap-2 font-display font-extrabold"><ClipboardCheck size={18} className="text-emerald-600" /> Cek Data se-padukuhan</div>
         <button onClick={() => setHanyaPenting(true)} className={`rounded-full px-3 py-1 text-xs font-bold ${hanyaPenting ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-200'}`}>Penting ({penting})</button>
         <button onClick={() => setHanyaPenting(false)} className={`rounded-full px-3 py-1 text-xs font-bold ${!hanyaPenting ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300'}`}>Semua ({total})</button>
       </div>

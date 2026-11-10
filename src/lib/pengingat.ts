@@ -1,4 +1,4 @@
-/** Pengingat bulan ini / tahun ini (HPL, genap 1/15/17 th, usia sekolah, usia lansia) — dipakai Beranda RT & Beranda Desa */
+/** Pengingat bulan ini / tahun ini (HPL, genap 1/15/17 th, usia sekolah, usia lansia) — dipakai Beranda RT & Beranda Padukuhan */
 import type { Warga } from './types'
 
 export interface Pengingat { kode: string; judul: string; warna: string; list: Warga[]; info: (w: Warga) => string }

@@ -10,7 +10,7 @@ export const setBase = (u: string) => safe(() => { u ? localStorage.setItem(LS_U
 export const getToken = () => safe(() => localStorage.getItem(LS_TOKEN), null)
 export const setToken = (t: string | null) => safe(() => { t ? localStorage.setItem(LS_TOKEN, t) : localStorage.removeItem(LS_TOKEN) }, undefined)
 
-/** RT yang dipilih Admin Desa (akun RT diabaikan server, selalu RT-nya sendiri) */
+/** RT yang dipilih Admin Padukuhan (akun RT diabaikan server, selalu RT-nya sendiri) */
 export const getRT = () => safe(() => localStorage.getItem(LS_RT) ?? '', '')
 export const setRT = (rt: string) => safe(() => { rt ? localStorage.setItem(LS_RT, rt) : localStorage.removeItem(LS_RT) }, undefined)
 
